@@ -1,0 +1,136 @@
+<form class="{{classes}} lib-wrapper" autocomplete="off">
+	<nav class="sheet-tabs tabs">
+		<a class='item' data-tab='Priorities'>Priorities</a>
+		<a class='item' data-tab='Conflicts'>Conflicts</a>
+		<a class='item' data-tab='Wrappers'>Active Wrappers</a>
+		<a class='item' data-tab='About'>About</a>
+	</nav>
+
+	<section class='tab' data-tab='Priorities'>
+		<h1>Priorities</h1>
+		{{#if about.collect_stats}}
+		{{^}}
+			<p style="margin:auto; width:100%; text-align: center; padding-bottom: 5px"><b>Note: Statistics collection is disabled, not able to show unprioritized modules.</b></p>
+		{{/if}}
+		<div class="module-priority-group">
+			<div class="form-group" style="width: 90%; float:left">
+				<label for="modules-prioritized">Prioritized Modules
+					<p class="notes">These modules will be prioritized compared to any module not in this list.<br>Higher positions in the list result in a higher priority.</p>
+				</label>
+				<select name="modules-prioritized" id="modules-prioritized" size="8">
+					{{#if modules.prioritized}}
+					{{#each modules.prioritized}}
+						<option value="{{this.id}}">{{this.title}} ({{this.id}})</option>
+					{{/each}}
+					{{/if}}
+				</select>
+			</div>
+			<div class="vertical-arrow-btn-group" style="width: 5%; padding-top: 45px;">
+				<button type="button" class="change-priority" data-which="modules-prioritized" data-direction="up">&uarr;</button>
+				<button type="button" class="change-priority" data-which="modules-prioritized" data-direction="down">&darr;</button>
+			</div>
+			<div class="arrow-btn-group" style="width: 10%">
+				<button type="button" style="width:50%" class="change-category" data-from="modules-normal" data-to="modules-prioritized">&uarr;</button>
+				<button type="button" style="width:50%" class="change-category" data-from="modules-prioritized" data-to="modules-normal">&darr;</button>
+			</div>
+		</div>
+		<div class="module-priority-group">
+			<div class="form-group" style="width: 90%">
+				<label for="modules-normal">Unprioritized Modules
+					<p class="notes">These modules will be neither prioritized nor deprioritized.<br>Priorities among these modules are decided on a first-come-first-served basis.<br>New modules will default to this list.</p>
+				</label>
+				<select name="modules-normal" id="modules-normal" size="8">
+					{{#if modules.normal}}
+					{{#each modules.normal}}
+						<option value="{{this.id}}">{{this.title}} ({{this.id}})</option>
+					{{/each}}
+					{{/if}}
+				</select>
+			</div>
+			<div class="arrow-btn-group" style="width: 10%">
+				<button type="button" style="width:50%" class="change-category" data-from="modules-deprioritized" data-to="modules-normal">&uarr;</button>
+				<button type="button" style="width:50%" class="change-category" data-from="modules-normal" data-to="modules-deprioritized">&darr;</button>
+			</div>
+		</div>
+		<div class="module-priority-group">
+			<div class="form-group" style="width: 90%; float:left">
+				<label for="modules-deprioritized">Deprioritized Modules
+					<p class="notes">These modules will be deprioritized compared to any module not in this list.<br>Higher positions in the list result in a higher priority.<br><b>Note that modules that do not use libWrapper are deprioritized even compared to these.</b></p>
+				</label>
+				<select name="modules-deprioritized" id="modules-deprioritized" size="8">
+					{{#if modules.deprioritized}}
+					{{#each modules.deprioritized}}
+						<option value="{{this.id}}">{{this.title}} ({{this.id}})</option>
+					{{/each}}
+					{{/if}}
+				</select>
+			</div>
+			<div class="vertical-arrow-btn-group" style="width: 5%; padding-top: 45px;">
+				<button type="button" class="change-priority" data-which="modules-deprioritized" data-direction="up">&uarr;</button>
+				<button type="button" class="change-priority" data-which="modules-deprioritized" data-direction="down">&darr;</button>
+			</div>
+		</div>
+		<div style="margin: auto; width: 50%; padding-top: 60px">
+			<button type="button" id='submit' style="width:30%">Save</button>
+			<button type="button" id="reload" style="width:30%">Reload</button>
+			<button type="button" id="reset" style="width:30%">Reset</button>
+		</div>
+	</section>
+
+	<section class='tab' data-tab='Conflicts'>
+		<h1>Conflicts</h1>
+		{{#if about.collect_stats}}
+			{{#if conflicts}}
+				{{#each conflicts}}
+				<ul id="{{this.module}}_{{this.other}}" class="has-nested">
+					<li><span class="caret has-nested">{{this.module}} vs. {{this.other}} (x{{this.count}})</span>
+						<ul class="nested">
+						{{#each this.targets}}
+							<li>{{this.target}} (x{{this.count}})</li>
+						{{/each}}
+						</ul>
+					</li>
+				</ul>
+				{{/each}}
+			{{^}}
+				<p>No conflicts have been detected.</p>
+			{{/if}}
+		{{^}}
+			<p>Statistics collection is disabled.</p>
+		{{/if}}
+
+		<div style="margin: auto; width: 15%; padding-top: 60px">
+			<button type="button" id="reload" style="width:100%">Reload</button>
+		</div>
+	</section>
+
+	<section class='tab' data-tab='Wrappers'>
+		<h1>Active Wrappers</h1>
+		{{#if wrappers}}
+			{{#each wrappers}}
+			<ul id="{{this.name}}" class="has-nested">
+				<li><span class="caret has-nested">{{this.name}} (x{{this.modules.length}})</span>
+					<ul class="nested">
+					{{#each this.modules}}
+						<li>{{this.name}} ({{this.type}})</li>
+					{{/each}}
+					</ul>
+				</li>
+			</ul>
+			{{/each}}
+		{{^}}
+			<p>No wrappers are active right now.</p>
+		{{/if}}
+
+		<div style="margin: auto; width: 15%; padding-top: 60px">
+			<button type="button" id="reload" style="width:100%">Reload</button>
+		</div>
+	</section>
+
+	<section class='tab' data-tab='About'>
+		<h1>About libWrapper</h1>
+		<p>{{about.name}} {{about.version}} by Rui Pinheiro.</p>
+
+		<p><a href="https://github.com/ruipin/fvtt-lib-wrapper">Github repository</a></p>
+	</section>
+</form>

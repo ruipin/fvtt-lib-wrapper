@@ -1,0 +1,55 @@
+.lib-wrapper ul.has-nested {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+.lib-wrapper .caret.has-nested {
+  cursor: pointer;
+  user-select: none;
+  /* Prevent text selection */
+}
+.lib-wrapper .caret::before {
+  content: "\25B6";
+  color: black;
+  display: inline-block;
+  margin-right: 6px;
+}
+.lib-wrapper .caret-down::before {
+  transform: rotate(90deg);
+}
+.lib-wrapper .nested {
+  display: none;
+  margin-left: 20px;
+  margin-top: 0;
+}
+.lib-wrapper .active {
+  display: block;
+}
+.lib-wrapper .module-priority-group {
+  height: 33%;
+  margin: auto;
+  clear: both;
+}
+.lib-wrapper .module-priority-group select {
+  height: 150px;
+}
+.lib-wrapper .module-priority-group .arrow-btn-group {
+  margin: auto;
+  position: relative;
+  left: 75px;
+}
+.lib-wrapper .module-priority-group .arrow-btn-group:after {
+  content: "";
+  clear: both;
+  display: table;
+}
+.lib-wrapper .module-priority-group .arrow-btn-group button {
+  float: left;
+  margin: 0;
+}
+.lib-wrapper .module-priority-group .vertical-arrow-btn-group {
+  margin: auto;
+  display: flex;
+  flex-flow: column wrap;
+  justify-content: center;
+}

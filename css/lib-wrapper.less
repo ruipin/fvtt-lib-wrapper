@@ -1,0 +1,67 @@
+.lib-wrapper {
+	ul.has-nested {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.caret.has-nested {
+		cursor: pointer;
+		user-select: none; /* Prevent text selection */
+	}
+
+	.caret::before {
+		content: "\25B6";
+		color: black;
+		display: inline-block;
+		margin-right: 6px;
+	}
+
+	.caret-down::before {
+		transform: rotate(90deg);
+	}
+
+	.nested {
+		display: none;
+		margin-left: 20px;
+		margin-top: 0;
+	}
+
+	.active {
+		display: block;
+	}
+
+	.module-priority-group {
+		height: 33%;
+		margin: auto;
+		clear: both;
+
+		select {
+			height: 150px;
+		}
+
+		.arrow-btn-group {
+			margin: auto;
+			position: relative;
+			left: 75px;
+		}
+
+		.arrow-btn-group:after {
+			content: "";
+			clear: both;
+			display: table;
+		}
+
+		.arrow-btn-group button {
+			float: left;
+			margin: 0;
+		}
+
+		.vertical-arrow-btn-group {
+			margin: auto;
+			display: flex;
+			flex-flow: column wrap;
+			justify-content: center;
+		}
+	}
+}
