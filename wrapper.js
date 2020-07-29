@@ -7,7 +7,7 @@
 (function() {
 	const MAJOR_VERSION = 0;
 	const MINOR_VERSION = 2;
-	const PATCH_VERSION = 0;
+	const PATCH_VERSION = 2;
 	const VERSION = `${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}`;
 
 	// Get global scope
@@ -43,20 +43,15 @@
 
 	class Handler {
 		constructor(fn) {
-			this.set_fn(fn);
-		}
+			this.set(fn);
 
-		get() {
 			let _this = this;
-
-			let fn = function() {
-			return _this._fn(this, ...arguments);
+			this.fn = function() {
+				return _this._fn(this, ...arguments);
 			};
-
-			return fn;
 		}
 
-		set_fn(fn) {
+		set(fn) {
 			this._fn = fn;
 		}
 	}
@@ -77,6 +72,10 @@
 
 		static get version() {
 			return VERSION;
+		}
+
+		static get debug() {
+			return false;
 		}
 
 
@@ -113,10 +112,13 @@
 			}
 			else {
 				if(descriptor.get)
-					throw "TODO";
+					throw `Wrapping a property ('${methodName}') with a getter/setter is currently not supported.`;
 				else
 					this.wrapped = descriptor.value;
 			}
+
+			if(this.debug)
+				console.debug(`ResilientWrapper ${VERSION} hooking `);
 
 			this._create_handler();
 			this._wrap();
@@ -131,7 +133,7 @@
 				let _this = this;
 
 				getter = function() {
-					return _this.handler.get();
+					return _this.handler.fn;
 				};
 
 				setter = function(value) {
@@ -204,7 +206,6 @@
 		}
 
 		set(value, obj=null) {
-			console.log('set');
 			// If assigning to an instance directly, create a wrapper for the instance
 			if(obj != this.object) {
 				let objWrapper = new this.constructor(obj, this.methodName);
@@ -216,8 +217,8 @@
 			{
 				let wrapped = this.wrapped;
 
-				this.handler.set_fn(function(obj) {
-					return wrapped.apply(obj);
+				this.handler.set(function(obj, ...args) {
+					return wrapped.apply(obj, args);
 				});
 			}
 
@@ -281,7 +282,13 @@
 		};
 	}
 	else {
-		glbl.ResilientWrapper = ResilientWrapper;
+		// define as property so that it can't be as easily deleted
+		delete glbl.ResilientWrapper;
+		Object.defineProperty(glbl, 'ResilientWrapper', {
+			get: () => { return ResilientWrapper; },
+			set: (value) => {},
+			configurable: true
+		});
 	}
 
 

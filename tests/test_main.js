@@ -70,8 +70,8 @@ test('Prototype redirection', function(t) {
 	setup();
 
 	class A {
-		z() {
-			return 1;
+		z(y) {
+			return y;
 		}
 	}
 
@@ -79,28 +79,28 @@ test('Prototype redirection', function(t) {
 	let originalValue = 1;
 	let a = new A();
 	{
-		let result = a.z();
+		let result = a.z(1);
 		t.ok(result === originalValue, `Original: ${result} === ${originalValue}`);
 	}
 
 
 	// Wrap normally first
-	let zWrapper = new ResilientWrapper(A.prototype, 'z', function(original) {
-		let result = original();
+	let zWrapper = new ResilientWrapper(A.prototype, 'z', function(original, ...args) {
+		let result = original.apply(this, args)
 		t.ok(result === originalValue, `zWrapper 1: ${result} === ${originalValue}`);
 		return 100;
 	});
-	t.ok(a.z() === 100, "Wrapped with 100");
+	t.ok(a.z(1) === 100, "Wrapped with 100");
 
 
 	// Wrap in the traditional way, by modifying prototype
+	let wrappedValue = 1;
 	A.prototype.z = (function() {
 		let original = A.prototype.z;
-		let storedValue = originalValue;
 
 		return function() {
 			let result = original.apply(this, arguments);
-			t.ok(result === storedValue, `Prototype Wrapper 1: ${result} === ${storedValue}`);
+			t.ok(result === wrappedValue, `Prototype Wrapper 1: ${result} === ${wrappedValue}`);
 			return 2;
 		};
 	})();
@@ -108,7 +108,9 @@ test('Prototype redirection', function(t) {
 
 
 	// Confirm it's working properly
-	t.ok(a.z() === 100, "Wrapped with prototype");
+	t.ok(a.z(1) === 100, "Wrapped with prototype (1)");
+	wrappedValue = 2;
+	t.ok(a.z(2) === 100, "Wrapped with prototype (2)");
 
 
 	// Done

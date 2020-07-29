@@ -1,3 +1,8 @@
+# 0.2.2 (2020-07-29)
+
+* Fix automatic update mechanism.
+* Fix issue where parameters would not be passed down correctly to the calling method.
+
 # 0.2.0 (2020-07-29)
 
 * Code cleanup.

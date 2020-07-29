@@ -2,12 +2,12 @@
 	"name": "resilient-wrapper",
 	"title": "Resilient Wrapper",
 	"description": "Library that allows more resilient wrapping of Foundry methods in modules.",
-	"version": "0.2.0",
+	"version": "0.2.3",
 	"author": "Rui Pinheiro",
 	"scripts": ["wrapper.js"],
 	"minimumCoreVersion": "0.6.5",
 	"compatibleCoreVersion": "0.6.5",
 	"url": "https://github.com/ruipin/fvtt-resilient-wrapper",
-	"manifest": "https://raw.githubusercontent.com/ruipin/fvtt-resilient-wrapper/0.2.0/module.json",
-	"download": "https://github.com/ruipin/fvtt-resilient-wrapper/archive/0.2.0.zip"
+	"manifest": "https://raw.githubusercontent.com/ruipin/fvtt-resilient-wrapper/0.2.2/module.json",
+	"download": "https://github.com/ruipin/fvtt-resilient-wrapper/archive/0.2.2.zip"
 }
