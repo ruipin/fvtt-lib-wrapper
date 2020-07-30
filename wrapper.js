@@ -7,7 +7,7 @@
 (function() {
 	const MAJOR_VERSION = 0;
 	const MINOR_VERSION = 2;
-	const PATCH_VERSION = 2;
+	const PATCH_VERSION = 3;
 	const VERSION = `${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}`;
 
 	// Get global scope
@@ -95,26 +95,31 @@
 			// Get wrapped value
 			let descriptor = Object.getOwnPropertyDescriptor(obj, methodName) || { value: undefined };
 
-			if(!descriptor) {
-				this.wrapped = undefined;
-			}
-			else if(descriptor.configurable === false) {
-				let wrapper = descriptor.get?.wrapper;
+			if(descriptor) {
+				if(descriptor.get?.wrapper) {
+					let wrapper = descriptor.get?.wrapper;
 
-				if(wrapper && wrapper.constructor == this.constructor) {
-					if(methods)
-						wrapper.push_back(...methods);
+					if(wrapper && wrapper instanceof this.constructor) {
+						if(methods)
+							wrapper.push_back(...methods);
 
-					return wrapper;
+						return wrapper;
+					}
 				}
 
-				throw `Method '${methodName}' cannot be wrapped, the corresponding descriptor has 'configurable=false'.`;
+
+				if(descriptor.configurable === false) {
+					throw `Method '${methodName}' cannot be wrapped, the corresponding descriptor has 'configurable=false'.`;
+				}
+				else {
+					if(descriptor.get)
+						throw `Wrapping a property ('${methodName}') with a getter/setter is currently not supported.`;
+					else
+						this.wrapped = descriptor.value;
+				}
 			}
 			else {
-				if(descriptor.get)
-					throw `Wrapping a property ('${methodName}') with a getter/setter is currently not supported.`;
-				else
-					this.wrapped = descriptor.value;
+				this.wrapped = undefined;
 			}
 
 			if(this.debug)
@@ -144,11 +149,11 @@
 			// Store a reference to this in the getter so that we can support 'singleton'-like functionality
 			getter.wrapper = this;
 
-			// Define a property with configurable=false to avoid someone redefining it later
+			// Define a property with a getter/setter
 			Object.defineProperty(this.object, this.methodName, {
 				get: getter,
 				set: setter,
-				configurable: false
+				configurable: true
 			});
 		}
 

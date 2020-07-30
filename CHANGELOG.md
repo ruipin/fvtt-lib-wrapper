@@ -1,3 +1,8 @@
+# 0.2.3 (2020-07-29)
+
+* Change property to configurable=true to avoid breakage.
+* Improve singleton detection mechanism.
+
 # 0.2.2 (2020-07-29)
 
 * Fix automatic update mechanism.

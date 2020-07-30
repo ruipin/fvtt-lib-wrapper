@@ -8,6 +8,6 @@
 	"minimumCoreVersion": "0.6.5",
 	"compatibleCoreVersion": "0.6.5",
 	"url": "https://github.com/ruipin/fvtt-resilient-wrapper",
-	"manifest": "https://raw.githubusercontent.com/ruipin/fvtt-resilient-wrapper/0.2.2/module.json",
-	"download": "https://github.com/ruipin/fvtt-resilient-wrapper/archive/0.2.2.zip"
+	"manifest": "https://raw.githubusercontent.com/ruipin/fvtt-resilient-wrapper/master/module.json",
+	"download": "https://github.com/ruipin/fvtt-resilient-wrapper/archive/master.zip"
 }
