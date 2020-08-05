@@ -29,7 +29,7 @@ As a bonus, it provides the GM with module conflict detection, as well as the po
 ### As a Library
 You have multiple options here.
 
-1. Include the [shim.js](shim/shim.js) file in your project. You may configure the options between `USER CONFIGURATION BEGIN` and `USER CONFIGURATION END` to your liking. **Please do not modify anything else.**
+1. Include the provided [shim](#shim) in your project.
 
     or
 
@@ -125,12 +125,24 @@ To unregister all wrapper functions belonging to a given module, you should call
 ```
 
 
+#### Once-Ready Callbacks
+
+To register callback to be called once the libWrapper library is ready, you should call the method `libWrapper.once_ready(callback)`:
+
+```javascript
+/**
+ * Register a callback to be called once the libWrapper library is ready. If it is already ready, the callback gets called immediately.
+ *
+ * @param {function} callback   The callback. The first argument will be the libWrapper instance.
+ */
+```
+
+
+
 ### Shim
 
-The [shim.js](shim/shim.js) file in this repository can be used to avoid a hard dependency on libWrapper. The shim will automatically detect when the libWrapper module is installed, and disable itself. If you are planning to use this library, it is recommended to use the shim.
+The [shim.js](shim/shim.js) file in this repository can be used to avoid a hard dependency on libWrapper. It exports a 'libWrapper' symbol which will automatically proxy calls to the real libWrapper if present, or to a fallback implementation otherwise. If you are planning to use this library, it is recommended to use this shim.
 
-The shim will place itself at global scope and implements the `register` function (see documentation above) using a fallback implementation that is more "traditional". It does not implement any of the more "fancy" features of the libWrapper library - most importantly, it does not check for module conflicts or enforce call order between the different wrapper types.
+This shim includes a fallback implementation for the `register` and `once_ready` functions (see documentation above). This fallback implementation does not have any of the "fancy" features of the libWrapper library - most importantly, it does not check for module conflicts or enforce call order between the different wrapper types. To programmatically detect whether the fallback implementation is active, you can check `libWrapper.is_fallback == true`.
 
-To detect whether the shim is in use, you can check `libWrapper.is_shim == true`.
-
-> :warning: **Please do not modify anything in the shim, except those variables between `USER CONFIGURATION BEGIN` and `USER CONFIGURATION END`.**
+To be able to use this shim, your module needs to use `esmodules` in its manifest file. Then, you can import this symbol by adding e.g. `import {libWrapper} from './relative/path/to/shim.mjs';` to your JS code. As this shim does not place itself in global scope, please feel free to customize it to your liking.

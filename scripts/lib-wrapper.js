@@ -3,7 +3,7 @@
 
 'use strict';
 
-import {MODULE_ID, VERSION} from './consts.js';
+import {MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION} from './consts.js';
 import {get_global_variable} from './get_global_variable.js';
 import {LibWrapperStats} from './stats.js';
 import {LibWrapperSettings} from './settings.js';
@@ -487,9 +487,8 @@ export const PRIORITIES = new Map();
 export class libWrapper {
 	// Properties
 	static get version() { return VERSION; }
-	static get is_shim() {	return false; }
-	static get module_active() { return true; }
-	static merge_shim_settings(settings) { /* swallow */ };
+	static get versions() { return [MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION]; }
+	static get is_fallback() { return false; }
 
 	static get debug() { return DEBUG; }
 	static set debug(value) { DEBUG = !!value; }
@@ -781,6 +780,18 @@ export class libWrapper {
 
 		console.info(`libWrapper: Cleared all wrapper functions by module '${module}'.`);
 	}
+
+	/**
+	 * Register a callback to be called once the libWrapper library is ready. If it is already ready, the callback gets called immediately.
+	 *
+	 * @param {function} callback   The callback. The first argument will be the libWrapper instance.
+	 */
+	static once_ready(callback) {
+		if(!libwrapper_ready)
+			return Hooks.once('libWrapperReady', callback);
+
+		callback(this);
+	}
 };
 Object.freeze(libWrapper);
 
@@ -808,7 +819,7 @@ if(typeof Game !== 'undefined') {
 		libWrapper.load_priorities();
 
 		console.info(`libWrapper ${VERSION}: Ready.`);
-		Hooks.callAll('libWrapperReady', libWrapper, true);
+		Hooks.callAll('libWrapperReady', libWrapper);
 
 		const result = wrapper.apply(this, args);
 

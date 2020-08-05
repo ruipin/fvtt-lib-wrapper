@@ -6,10 +6,11 @@
 
 import test from 'tape';
 import './utilities.js';
-import defaultExports from '../shim/shim.js';
+import {libWrapper} from '../shim/shim.js';
 
 function setup() {
 	game.modules.clear();
+	libWrapper._seen_init = true;
 }
 
 
@@ -36,6 +37,9 @@ test('Shim: Basic functionality', async function (t) {
 	globalThis.A = A;
 	let a = new A();
 	t.equal(a.x(), 1, 'Original');
+
+	// Check libWrapper is a shim
+	t.equal(libWrapper.is_fallback, true, 'Check is shim fallback');
 
 	// Use shim to wrap method
 	game.add_module('module1');
@@ -66,6 +70,9 @@ test('Shim: Basic functionality', async function (t) {
 	// Enable lib wrapper module, then test to see if the shim used the full library
 	game.add_module('lib-wrapper');
 	await import('../scripts/lib-wrapper.js');
+
+	// Check it is not a shim
+	t.equal(libWrapper.is_fallback, false, 'Check is not shim fallback');
 
 	// Register a real wrapper
 	let module1_check_2 = 1000;
