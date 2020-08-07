@@ -125,24 +125,13 @@ To unregister all wrapper functions belonging to a given module, you should call
 ```
 
 
-#### Once-Ready Callbacks
-
-To register callback to be called once the libWrapper library is ready, you should call the method `libWrapper.once_ready(callback)`:
-
-```javascript
-/**
- * Register a callback to be called once the libWrapper library is ready. If it is already ready, the callback gets called immediately.
- *
- * @param {function} callback   The callback. The first argument will be the libWrapper instance.
- */
-```
-
-
 
 ### Shim
 
-The [shim.js](shim/shim.js) file in this repository can be used to avoid a hard dependency on libWrapper. It exports a 'libWrapper' symbol which will automatically proxy calls to the real libWrapper if present, or to a fallback implementation otherwise. If you are planning to use this library, it is recommended to use this shim.
+The [shim.js](shim/shim.js) file in this repository can be used to avoid a hard dependency on libWrapper. It exports a 'libWrapper' symbol which will be a reference to the real libWrapper if present, or to a fallback implementation otherwise. If you are planning to use this library, it is recommended to use this shim.
 
-This shim includes a fallback implementation for the `register` and `once_ready` functions (see documentation above). This fallback implementation does not have any of the "fancy" features of the libWrapper library - most importantly, it does not check for module conflicts or enforce call order between the different wrapper types. To programmatically detect whether the fallback implementation is active, you can check `libWrapper.is_fallback == true`.
+This shim includes a fallback implementation for the `register` function only (see documentation above). This fallback implementation does not have any of the "fancy" features of the libWrapper library - most importantly, it does not check for module conflicts or enforce call order between the different wrapper types. To programmatically detect whether the fallback implementation is active, you can check `libWrapper.is_fallback == true`.
 
 To be able to use this shim, your module needs to use `esmodules` in its manifest file. Then, you can import this symbol by adding e.g. `import {libWrapper} from './relative/path/to/shim.mjs';` to your JS code. As this shim does not place itself in global scope, please feel free to customize it to your liking.
+
+Example code is provided in the shim to warn the user if libWrapper is not installed. If you wish to do this, look for the variable `SHIM_WARNING_MESSAGE`.

@@ -6,7 +6,11 @@ import test from 'tape';
 // Emulate hooks
 class Hooks {
 	static callAll() {}
-	static once() {}
+
+	static once(key, cb) {
+		console.log(`Hooks.once('${key}') triggered`);
+		cb();
+	}
 };
 globalThis.Hooks = Hooks;
 

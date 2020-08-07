@@ -6,11 +6,11 @@
 
 import test from 'tape';
 import './utilities.js';
-import {libWrapper} from '../shim/shim.js';
+import {libWrapper as libWrapperShim} from '../shim/shim.js';
+import {} from '../scripts/lib-wrapper.js';
 
 function setup() {
 	game.modules.clear();
-	libWrapper._seen_init = true;
 }
 
 
@@ -21,7 +21,6 @@ test('Shim: Basic functionality', async function (t) {
 	let __x = 1;
 	class A {
 		get xvalue() {
-			console.log('xvalue');
 			return __x;
 		}
 
@@ -39,40 +38,33 @@ test('Shim: Basic functionality', async function (t) {
 	t.equal(a.x(), 1, 'Original');
 
 	// Check libWrapper is a shim
-	t.equal(libWrapper.is_fallback, true, 'Check is shim fallback');
+	t.equal(libWrapperShim.is_fallback, true, 'Check shim is fallback');
+	t.equal(libWrapper.is_fallback, false, 'Check real is not fallback');
 
 	// Use shim to wrap method
 	game.add_module('module1');
 	let module1_check = 1;
-	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
+	libWrapperShim.register('module1', 'A.prototype.x', function(wrapped, ...args) {
 		t.equal(wrapped.apply(this, args), module1_check, 'Module 1');
 		return 1000;
 	});
 	t.equal(a.x(), 1000, 'Wrapped #1');
 
 	// Wrap xvalue getter
-	libWrapper.register('module1', 'A.prototype.xvalue', function(wrapped, ...args) {
-		console.log('getter');
+	libWrapperShim.register('module1', 'A.prototype.xvalue', function(wrapped, ...args) {
 		return wrapped.call(this)+1;
 	});
 	module1_check = 2;
 	t.equal(a.x(), 1000, 'Wrapped getter #1');
 
 	// Wrap xvalue setter
-	libWrapper.register('module1', 'A.prototype.xvalue#set', function(wrapped, value) {
+	libWrapperShim.register('module1', 'A.prototype.xvalue#set', function(wrapped, value) {
 		wrapped.call(this, value+1);
 	}, 'OVERRIDE');
 	a.xvalue = 3;
 	module1_check = 5;
 	t.equal(a.x(), 1000, 'Wrapped setter #1');
 	t.equal(__x, 4, 'Wrapper setter #2');
-
-	// Enable lib wrapper module, then test to see if the shim used the full library
-	game.add_module('lib-wrapper');
-	await import('../scripts/lib-wrapper.js');
-
-	// Check it is not a shim
-	t.equal(libWrapper.is_fallback, false, 'Check is not shim fallback');
 
 	// Register a real wrapper
 	let module1_check_2 = 1000;

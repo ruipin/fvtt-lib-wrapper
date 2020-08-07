@@ -780,18 +780,6 @@ export class libWrapper {
 
 		console.info(`libWrapper: Cleared all wrapper functions by module '${module}'.`);
 	}
-
-	/**
-	 * Register a callback to be called once the libWrapper library is ready. If it is already ready, the callback gets called immediately.
-	 *
-	 * @param {function} callback   The callback. The first argument will be the libWrapper instance.
-	 */
-	static once_ready(callback) {
-		if(!libwrapper_ready)
-			return Hooks.once('libWrapperReady', callback);
-
-		callback(this);
-	}
 };
 Object.freeze(libWrapper);
 
@@ -808,7 +796,7 @@ Object.defineProperty(globalThis, 'libWrapper', {
 });
 
 
-// Detect game 'setup'
+// Initialize libWrapper right before the 'init' hook. If Game is undefined, assume this is a unit test and just initialize immediately
 if(typeof Game !== 'undefined') {
 	libWrapper.register('lib-wrapper', 'Game.prototype.initialize', function(wrapper, ...args) {
 		// Notify everyone the library has loaded and is ready to start registering wrappers
@@ -822,9 +810,7 @@ if(typeof Game !== 'undefined') {
 		Hooks.callAll('libWrapperReady', libWrapper);
 
 		const result = wrapper.apply(this, args);
-
 		libWrapper.unregister('lib-wrapper', 'Game.prototype.initialize');
-
 		return result;
 	}, 'WRAPPER');
 }
