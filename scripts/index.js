@@ -5,7 +5,7 @@
 
 
 // Import the main library
-import {} from './lib-wrapper.js';
+import {} from './main/lib-wrapper.js';
 
 // Settings dialog
 import {} from './settings.js';

@@ -5,12 +5,12 @@
 
 import test from 'tape';
 import './utilities.js';
-import '../scripts/lib-wrapper.js';
+import '../scripts/main/lib-wrapper.js';
 
 function setup() {
 	libWrapper._unwrap_all();
 
-	game.modules.clear();
+	game.clear_modules();
 	global.A = undefined;
 }
 

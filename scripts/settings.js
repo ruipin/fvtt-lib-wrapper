@@ -3,9 +3,10 @@
 
 'use strict';
 
-import {MODULE_ID, MODULE_NAME, VERSION} from './consts.js';
+import {MODULE_ID, MODULE_TITLE, VERSION} from './consts.js';
 import {LibWrapperStats} from './stats.js';
-import {WRAPPERS, TYPES_REVERSE} from './lib-wrapper.js'
+import {TYPES_REVERSE} from './main/utilities.js';
+import {WRAPPERS} from './main/lib-wrapper.js';
 
 
 export class LibWrapperSettings extends FormApplication {
@@ -22,7 +23,7 @@ export class LibWrapperSettings extends FormApplication {
 
 		game.settings.registerMenu(MODULE_ID, 'menu', {
 			name: '',
-			label: `${MODULE_NAME} Settings Menu`,
+			label: `${MODULE_TITLE} Settings Menu`,
 			icon: "fas fa-cog",
 			type: LibWrapperSettings,
 			restricted: true
@@ -43,7 +44,7 @@ export class LibWrapperSettings extends FormApplication {
 			...super.defaultOptions,
 			template: `modules/${MODULE_ID}/templates/settings.html`,
 			height: 700,
-			title: `${MODULE_NAME} Settings Menu`,
+			title: `${MODULE_TITLE} Settings Menu`,
 			width: 600,
 			classes: [MODULE_ID, "settings"],
 			tabs: [
@@ -95,25 +96,29 @@ export class LibWrapperSettings extends FormApplication {
 					name  : name,
 					modules: []
 				};
-				data.push(_d);
 
 				wrapper.get_fn_data(is_setter).forEach((fn_data) => {
 					_d.modules.push({
 						name    : fn_data.module,
-						type    : TYPES_REVERSE[fn_data.type],
-						priority: fn_data.priority
+						type    : TYPES_REVERSE[fn_data.type]
 					});
 				});
 
 				if(wrapper.detected_classic_wrapper) {
-					_d.modules.push({
-						name    : '<non-libWrapper>',
-						type    : 'MANUAL',
-						priority: Number.MIN_VALUE
+					wrapper.detected_classic_wrapper.forEach((module) => {
+						_d.modules.push({
+							name    : module,
+							type    : 'MANUAL'
+						});
 					});
 				}
+
+				if(_d.modules.length > 0)
+					data.push(_d);
 			}
 		});
+
+		data.sort((a,b) => b.modules.length - a.modules.length);
 
 		return data;
 	}
@@ -211,7 +216,7 @@ export class LibWrapperSettings extends FormApplication {
 	getData() {
 		let data = {
 			about: {
-				name: MODULE_NAME,
+				name: MODULE_TITLE,
 				version: VERSION,
 				collect_stats: LibWrapperStats.collect_stats
 			},

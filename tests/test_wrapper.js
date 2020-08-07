@@ -6,7 +6,7 @@
 
 import test from 'tape';
 import {wrap_front} from './utilities.js';
-import '../scripts/lib-wrapper.js';
+import '../scripts/main/lib-wrapper.js';
 
 function setup() {
 	libWrapper._unwrap_all();

@@ -7,10 +7,10 @@
 import test from 'tape';
 import './utilities.js';
 import {libWrapper as libWrapperShim} from '../shim/shim.js';
-import {} from '../scripts/lib-wrapper.js';
+import '../scripts/main/lib-wrapper.js';
 
 function setup() {
-	game.modules.clear();
+	game.clear_modules();
 }
 
 

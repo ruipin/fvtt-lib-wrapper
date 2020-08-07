@@ -1,12 +1,12 @@
 # FVTT libWrapper
-Library for Foundry VTT that assists in wrapping/patching Javascript methods, meant to improve compatibility between modules that modify the same methods.
+Library for [Foundry VTT](https://foundryvtt.com/) which provides module developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other modules.
 
 
 ## Why?
 
-One of the biggest causes of incompatibility between modules is them patching the same method, breaking each-other. This module attempts to improve this situation, and also provide module developers with a flexible and easy-to-use API to wrap/monkey-patch core Foundry VTT code.
+One of the biggest causes of incompatibility between modules is them patching the same method, breaking each other. This module attempts to improve this situation, and also provide module developers with a flexible and easy-to-use API to wrap/monkey-patch core Foundry VTT code.
 
-As a bonus, it provides the GM with module conflict detection, as well as the possibility of prioritizing and/or deprioritizing certain modules, which can help resolve incompatibilities.
+As a bonus, it provides the GM with module conflict detection, as well as the possibility of prioritizing and/or deprioritizing certain modules, which can help resolve conflicts if they do arise.
 
 ### Examples
 
@@ -37,7 +37,7 @@ You have multiple options here.
 
     or
 
-3. Require your users to install this library. For example, one way to achieve this is:
+3. Require your users to install this library. One simple example that achieves this is provided below. Reference the more complex example in the provided [shim](#shim) if you prefer a dialog (including an option to dismiss it permanently) instead of a simple notification.
 
 ```javascript
 Hooks.once('ready', () => {
@@ -66,16 +66,16 @@ To register a wrapper function, you should call the method `libWrapper.register(
 ```javascript
 /**
  * Register a new wrapper.
- * Important: If called before the 'setup' hook, this method will fail.
+ * Important: If called before the 'init' hook, this method will fail.
  *
  * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.
  * @param {string} target  A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
  *                         This works for both normal methods, as well as properties with getters. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
- * @param {function} fn    Wrapper function. When called, the first parameter will be the next function in the chain.
+ * @param {function} fn    Wrapper function. When called, the first argument will be the next function in the chain. The remaining arguments will correspond to the parameters passed to the wrapped method.
  * @param {string} type    The type of the wrapper. Default is 'MIXED'. The possible types are:
  *
  *   'WRAPPER':
- *     Use if your wrapper will always call the next function in the chain.
+ *     Use if your wrapper will *always* call the next function in the chain.
  *     This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
  *     Note that the library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
  *
@@ -84,9 +84,10 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *     These will always come after 'WRAPPER'-type wrappers. Order is not guaranteed, but conflicts will be auto-detected.
  *
  *   'OVERRIDE':
- *     Use if your wrapper never calls the next function in the chain. This type has the lowest priority, and will always be called last.
+ *     Use if your wrapper will *never* call the next function in the chain. This type has the lowest priority, and will always be called last.
  *     If another module already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <AlreadyOverriddenError> exception.
- *     This should allow you to fail gracefully, and for example warn the user of the conflict.
+ *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
+ *     Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
  */
 ```
 
@@ -128,10 +129,17 @@ To unregister all wrapper functions belonging to a given module, you should call
 
 ### Shim
 
-The [shim.js](shim/shim.js) file in this repository can be used to avoid a hard dependency on libWrapper. It exports a 'libWrapper' symbol which will be a reference to the real libWrapper if present, or to a fallback implementation otherwise. If you are planning to use this library, it is recommended to use this shim.
+The [shim.js](shim/shim.js) file in this repository can be used to avoid a hard dependency on libWrapper. If you are planning to use this library, it is recommended to use this shim.
 
-This shim includes a fallback implementation for the `register` function only (see documentation above). This fallback implementation does not have any of the "fancy" features of the libWrapper library - most importantly, it does not check for module conflicts or enforce call order between the different wrapper types. To programmatically detect whether the fallback implementation is active, you can check `libWrapper.is_fallback == true`.
+The shim exports a 'libWrapper' symbol which will at the 'init' hook become a reference to the real libWrapper library if present, or to a fallback implementation otherwise. This symbol will be `undefined` until the 'init' hook fires. A fallback implementation is included for the `register` function only (see documentation above). This fallback implementation does not have any of the "fancy" features of the libWrapper library - most importantly, it does not check for module conflicts or enforce call order between the different wrapper types. To programmatically detect whether the fallback implementation is active, you can check `libWrapper.is_fallback == true`.
 
-To be able to use this shim, your module needs to use `esmodules` in its manifest file. Then, you can import this symbol by adding e.g. `import {libWrapper} from './relative/path/to/shim.mjs';` to your JS code. As this shim does not place itself in global scope, please feel free to customize it to your liking.
+To be able to use this shim, your module needs to use `esmodules` in its manifest file. Then, you can import the shim by adding e.g. `import {libWrapper} from './relative/path/to/shim.js';` to your JS code. While the shim is mostly plug-and-play, please feel free to modify it to your liking - in particular, some places you might wish to customize are explicitly marked with `//************** USER CUSTOMIZABLE:`.
 
-Example code is provided in the shim to warn the user if libWrapper is not installed. If you wish to do this, look for the variable `SHIM_WARNING_MESSAGE`.
+#### Default Shim Configuration
+
+By default, the shim displays a warning dialog similar to the image below when libWrapper is not installed and therefore the fallback code path is being used.
+
+This is meant to be a "sane default", but you should feel free to customize this dialog by modifying the shim code or even just strip it out completely if you do not wish to have a warning dialog at all.
+
+<img src="https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/d54d5d8c5adbd34bc65396c31f042f3f9d8d6a24/example_warning_dialog.png" width="200">
+<sup>Note: Images may be out-of-date.</sup>

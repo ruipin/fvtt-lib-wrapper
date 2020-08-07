@@ -1,3 +1,3 @@
-# 1.0.0rc (2020-08-05)
+# 1.0.0 (2020-08-??)
 
-* First release candidate.
+* Initial release.
