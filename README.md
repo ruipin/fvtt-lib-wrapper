@@ -49,9 +49,7 @@ Hooks.once('ready', () => {
 
 ### As a Contributor
 
-1. Copy this link and use it in Foundry's Module Manager to install the latest master:
-
-    > https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/master/module.json
+1. You should check out this repository and symlink it inside Foundry VTT's `Data/modules` folder, then restart the server.
 
 3. By default, master's `module.json` manifest loads [src/index.js](src/index.js) and `dist/lib-wrapper.css`. You can build the latter (as well as `dist/lib-wrapper.js`) by running the following commands:
 

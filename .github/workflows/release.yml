@@ -15,9 +15,18 @@ jobs:
           fetch-depth: 0
 
 
-      - name: Get Version
-        id: get_version
+      - name: Prepare Environment
+        id: prepare_env
         run: |
+          PROJECT="${GITHUB_REPOSITORY#ruipin/}"
+          PROJECT_NO_FVTT="${PROJECT#fvtt-}"
+
+          echo ::set-env name=PROJECT::${PROJECT}
+          echo ::set-env name=PROJECT_NO_FVTT::${PROJECT_NO_FVTT}
+
+          echo ::set-output name=PROJECT::${PROJECT}
+          echo ::set-output name=PROJECT_NO_FVTT::${PROJECT_NO_FVTT}
+
           VERSION="${GITHUB_REF#refs/*/v}"
           SPLIT_VERSION_1="${VERSION#*.}"
           SPLIT_VERSION_2="${SPLIT_VERSION_1#*.}"
@@ -29,7 +38,7 @@ jobs:
 
           IS_PRERELEASE="true"
           if [[ "$SUFFIX_VERSION" != *rc* ]]; then
-            git branch master --contains "$GITHUB_REF" && IS_PRERELEASE="false"
+            git merge-base --is-ancestor HEAD origin/master && IS_PRERELEASE="false"
           fi
 
           echo ::set-output name=VERSION::${VERSION}
@@ -47,7 +56,7 @@ jobs:
 
           echo ::set-env name=SUFFIX_VERSION::${IS_PRERELEASE}
 
-          echo "Version: '$VERSION' ; Major: '$MAJOR_VERSION' ; Minor: '$MINOR_VERSION' ; Patch: '$PATCH_VERSION' ; Suffix: '$SUFFIX_VERSION' ; Pre-release: '$IS_PRERELEASE' ;"
+          echo "Project: '$PROJECT' ; Version: '$VERSION' ; Major: '$MAJOR_VERSION' ; Minor: '$MINOR_VERSION' ; Patch: '$PATCH_VERSION' ; Suffix: '$SUFFIX_VERSION' ; Pre-release: '$IS_PRERELEASE' ;"
 
           if ! grep "\"$VERSION\"" module.json ; then
             echo "module.json version does not match the tag"
@@ -74,18 +83,20 @@ jobs:
       - name: Build
         run: |
           mkdir -p "dist"
+          cp *.md "LICENSE" dist/
+          cp -r templates dist/templates
 
           npm run build
 
           sed -r \
             -e 's~("esmodules":).*~\1 ["lib-wrapper.js"],~' \
             -e 's~("styles":).*~\1 ["lib-wrapper.css"],~' \
-            -e 's~("manifest":).*~\1 "https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json",~' \
-            -e 's~("download":).*~\1 "https://github.com/ruipin/fvtt-lib-wrapper/releases/download/v${{ steps.get_version.outputs.VERSION }}/lib-wrapper-v${{ steps.get_version.outputs.VERSION }}.zip",~' \
+            -e 's~("manifest":)[^,]*~\1 "https://github.com/ruipin/${{ steps.prepare_env.outputs.PROJECT }}/releases/latest/download/module.json"~' \
+            -e 's~("download":)[^,]*~\1 "https://github.com/ruipin/${{ steps.prepare_env.outputs.PROJECT }}/releases/download/v${{ steps.prepare_env.outputs.VERSION }}/${{ steps.prepare_env.outputs.PROJECT_NO_FVTT }}-v${{ steps.prepare_env.outputs.VERSION }}.zip"~' \
             module.json > dist/module.json
 
           cd dist
-          7z a -tzip "../lib-wrapper-v${{ steps.get_version.outputs.VERSION }}.zip" "." -mx0
+          7z a -tzip "../${{ steps.prepare_env.outputs.PROJECT_NO_FVTT }}-v${{ steps.prepare_env.outputs.VERSION }}.zip" "." -mx0
           cd ..
           cp dist/module.json "module.json"
 
@@ -93,8 +104,19 @@ jobs:
       - name: Create/Upload Zip
         uses: ncipollo/release-action@1df3b9d90da563e0a6f5e19f350774bc1074df54
         with:
-          artifacts: "./lib-wrapper-v${{ steps.get_version.outputs.VERSION }}.zip,./module.json"
+          artifacts: "./${{ steps.prepare_env.outputs.PROJECT_NO_FVTT }}-v${{ steps.prepare_env.outputs.VERSION }}.zip"
+          artifactContentType: application/zip
           allowUpdates: true
           replacesArtifacts: true
-          prerelease: ${{ steps.get_version.outputs.IS_PRERELEASE }}
+          prerelease: ${{ steps.prepare_env.outputs.IS_PRERELEASE }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create/Upload Json
+        uses: ncipollo/release-action@1df3b9d90da563e0a6f5e19f350774bc1074df54
+        with:
+          artifacts: ./module.json
+          artifactContentType: application/json
+          allowUpdates: true
+          replacesArtifacts: true
+          prerelease: ${{ steps.prepare_env.outputs.IS_PRERELEASE }}
           token: ${{ secrets.GITHUB_TOKEN }}
