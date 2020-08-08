@@ -3,8 +3,8 @@
 
 'use strict';
 
-import {MODULE_ID, PROPERTIES_CONFIGURABLE} from '../consts.js';
-import {TYPES, DEBUG, get_current_module_name} from './utilities.js';
+import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG} from '../consts.js';
+import {get_current_module_name} from './utilities.js';
 import {LibWrapperStats} from '../stats.js';
 
 
@@ -303,7 +303,7 @@ export class Wrapper {
 			// As a "punishment" of sorts, we forcefully unregister them and ignore whatever they did.
 			if(data.type == TYPES.WRAPPER) {
 				console.error(`libWrapper: The wrapper for '${data.target}' registered by module '${data.module}' with type WRAPPER did not chain the call to the next wrapper, which breaks a libWrapper API requirement. This wrapper will be unregistered.`);
-				libWrapper.unregister(data.module, data.target);
+				globalThis.libWrapper.unregister(data.module, data.target);
 
 				// Manually chain to the next wrapper if there are more in the chain
 				if(!is_last_wrapper) {

@@ -1,6 +1,7 @@
 # FVTT libWrapper
 Library for [Foundry VTT](https://foundryvtt.com/) which provides module developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other modules.
 
+![Build Release](https://github.com/ruipin/fvtt-lib-wrapper/workflows/Build%20Release/badge.svg)
 
 ## Why?
 
@@ -22,7 +23,7 @@ As a bonus, it provides the GM with module conflict detection, as well as the po
 ### As a Module
 1. Copy this link and use it in Foundry's Module Manager to install the Module
 
-    > https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/master/module.json
+    > https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json
 
 2. Enable the Module in your World's Module Settings
 
@@ -45,6 +46,20 @@ Hooks.once('ready', () => {
 		ui.notifications.error("Module XYZ requires the 'libWrapper' module. Please install and activate it.");
 });
 ```
+
+### As a Contributor
+
+1. Copy this link and use it in Foundry's Module Manager to install the latest master:
+
+    > https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/master/module.json
+
+3. By default, master's `module.json` manifest loads [src/index.js](src/index.js) and `dist/lib-wrapper.css`. You can build the latter (as well as `dist/lib-wrapper.js`) by running the following commands:
+
+```bash
+npm install
+npm run build
+```
+
 
 
 ## Usage

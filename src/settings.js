@@ -3,10 +3,9 @@
 
 'use strict';
 
-import {MODULE_ID, MODULE_TITLE, VERSION} from './consts.js';
+import {MODULE_ID, MODULE_TITLE, VERSION, TYPES_REVERSE} from './consts.js';
 import {LibWrapperStats} from './stats.js';
-import {TYPES_REVERSE} from './main/utilities.js';
-import {WRAPPERS} from './main/lib-wrapper.js';
+import {WRAPPERS} from './main/utilities.js';
 
 
 export class LibWrapperSettings extends FormApplication {
@@ -17,7 +16,7 @@ export class LibWrapperSettings extends FormApplication {
 			type: Boolean,
 			scope: 'world',
 			config: true,
-			onChange: value => libWrapper.load_priorities(),
+			onChange: value => globalThis.libWrapper.load_priorities(),
 			hint: 'Whether to collect runtime information. The libWrapper settings menu relies on this being enabled, and will be mostly non-functional otherwise. Note: Changing this option requires a reload.'
 		});
 
@@ -35,7 +34,7 @@ export class LibWrapperSettings extends FormApplication {
 			type: Object,
 			scope: 'world',
 			config: false,
-			onChange: value => libWrapper.load_priorities()
+			onChange: value => globalThis.libWrapper.load_priorities()
 		});
 	}
 

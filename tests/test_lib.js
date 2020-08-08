@@ -5,7 +5,7 @@
 
 import test from 'tape';
 import './utilities.js';
-import '../scripts/main/lib-wrapper.js';
+import '../src/main/lib-wrapper.js';
 
 function setup() {
 	libWrapper._unwrap_all();

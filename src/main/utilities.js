@@ -6,29 +6,6 @@
 import {MODULE_ID} from '../consts.js';
 
 
-// Debug
-export let DEBUG = false;
-export function setDebug(new_debug) { DEBUG = new_debug; }
-
-
-// TYPES
-export const TYPES_LIST = ['WRAPPER', 'MIXED', 'OVERRIDE'];
-Object.freeze(TYPES_LIST);
-
-export const TYPES = {
-	WRAPPER : 1,
-	MIXED   : 2,
-	OVERRIDE: 3
-};
-Object.freeze(TYPES);
-
-export const TYPES_REVERSE = {};
-for(let key in TYPES) {
-	TYPES_REVERSE[TYPES[key]] = key;
-}
-Object.freeze(TYPES_REVERSE);
-
-
 // Already overridden Error type
 export class AlreadyOverriddenError extends Error {
 	constructor(module, target, conflicting_module, ...args) {
@@ -50,7 +27,7 @@ export class AlreadyOverriddenError extends Error {
 	 * Returns the title of the module that caused the wrapping conflict
 	 */
 	get conflicting_module_title() {
-		return game.modules.get(this.conflicting_module)?.data?.title;
+		const module_data = game.modules.get(this.conflicting_module)?.data?.title;
 	}
 }
 
@@ -80,3 +57,19 @@ export function get_current_module_name() {
 
 	return null;
 }
+
+
+// HACK: The browser doesn't expose all global variables (e.g. 'Game') inside globalThis, but it does to an eval
+// We declare this helper here so that the eval does not have access to the anonymous function scope
+const __eval_copy = eval;
+export function get_global_variable(varname) {
+	// Basic check to make sure we don't do anything too crazy by accident
+	if(varname == 'varname' || !/^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(varname))
+		throw `libWrapper: Invalid identifier ${varname}`;
+
+	return globalThis[varname] ?? __eval_copy(varname);
+}
+
+
+// Shared list of active wrappers
+export const WRAPPERS = new Set();

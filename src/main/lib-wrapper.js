@@ -3,10 +3,9 @@
 
 'use strict';
 
-import {MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, IS_UNITTEST, PROPERTIES_CONFIGURABLE} from '../consts.js';
+import {MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, parse_manifest_version, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug, TYPES, TYPES_REVERSE, TYPES_LIST} from '../consts.js';
 import {Wrapper} from './wrapper.js';
-import {get_global_variable} from './get_global_variable.js';
-import {DEBUG, setDebug, TYPES, TYPES_REVERSE, TYPES_LIST, AlreadyOverriddenError} from './utilities.js';
+import {AlreadyOverriddenError, get_global_variable, WRAPPERS} from './utilities.js';
 import {LibWrapperStats} from '../stats.js';
 import {LibWrapperSettings} from '../settings.js';
 
@@ -15,7 +14,6 @@ let libwrapper_ready = false;
 let allow_libwrapper_registrations = true;
 
 // Manager class
-export const WRAPPERS = new Set();
 export const PRIORITIES = new Map();
 
 export class libWrapper {
@@ -334,6 +332,7 @@ if(!IS_UNITTEST) {
 		// Notify everyone the library has loaded and is ready to start registering wrappers
 		libwrapper_ready = true;
 
+		parse_manifest_version();
 		LibWrapperSettings.init();
 		LibWrapperStats.init();
 		libWrapper.load_priorities();

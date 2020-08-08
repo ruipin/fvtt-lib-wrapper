@@ -1,0 +1,100 @@
+name: Build Release
+on:
+  push:
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10, v2.1.4rc5
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+
+      - name: Get Version
+        id: get_version
+        run: |
+          VERSION="${GITHUB_REF#refs/*/v}"
+          SPLIT_VERSION_1="${VERSION#*.}"
+          SPLIT_VERSION_2="${SPLIT_VERSION_1#*.}"
+          MAJOR_VERSION="${VERSION%%.*}"
+          MINOR_VERSION="${SPLIT_VERSION_1%%.*}"
+          SPLIT_VERSION_3="${SPLIT_VERSION_2%%[^0-9]*}"
+          PATCH_VERSION="${SPLIT_VERSION_3}"
+          SUFFIX_VERSION="${SPLIT_VERSION_2#${SPLIT_VERSION_3}}"
+
+          IS_PRERELEASE="true"
+          if [[ "$SUFFIX_VERSION" != *rc* ]]; then
+            git branch master --contains "$GITHUB_REF" && IS_PRERELEASE="false"
+          fi
+
+          echo ::set-output name=VERSION::${VERSION}
+          echo ::set-output name=MAJOR_VERSION::${MAJOR_VERSION}
+          echo ::set-output name=MINOR_VERSION::${MINOR_VERSION}
+          echo ::set-output name=PATCH_VERSION::${PATCH_VERSION}
+          echo ::set-output name=SUFFIX_VERSION::${SUFFIX_VERSION}
+          echo ::set-output name=IS_PRERELEASE::${IS_PRERELEASE}
+
+          echo ::set-env name=VERSION::${VERSION}
+          echo ::set-env name=MAJOR_VERSION::${MAJOR_VERSION}
+          echo ::set-env name=MINOR_VERSION::${MINOR_VERSION}
+          echo ::set-env name=PATCH_VERSION::${PATCH_VERSION}
+          echo ::set-env name=SUFFIX_VERSION::${SUFFIX_VERSION}
+
+          echo ::set-env name=SUFFIX_VERSION::${IS_PRERELEASE}
+
+          echo "Version: '$VERSION' ; Major: '$MAJOR_VERSION' ; Minor: '$MINOR_VERSION' ; Patch: '$PATCH_VERSION' ; Suffix: '$SUFFIX_VERSION' ; Pre-release: '$IS_PRERELEASE' ;"
+
+          if ! grep "\"$VERSION\"" module.json ; then
+            echo "module.json version does not match the tag"
+            exit 1
+          fi
+
+        shell: bash
+
+
+      - name: Prepare node
+        uses: actions/setup-node@v2-beta
+        with:
+          node-version: '14.6'
+
+
+      - name: Prepare npm
+        run: npm install
+
+
+      - name: Run tests
+        run: npm run test
+
+
+      - name: Build
+        run: |
+          mkdir -p "dist"
+
+          npm run build
+
+          sed -r \
+            -e 's~("esmodules":).*~\1 ["lib-wrapper.js"],~' \
+            -e 's~("styles":).*~\1 ["lib-wrapper.css"],~' \
+            -e 's~("manifest":).*~\1 "https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json",~' \
+            -e 's~("download":).*~\1 "https://github.com/ruipin/fvtt-lib-wrapper/releases/download/v${{ steps.get_version.outputs.VERSION }}/lib-wrapper-v${{ steps.get_version.outputs.VERSION }}.zip",~' \
+            module.json > dist/module.json
+
+          cd dist
+          7z a -tzip "../lib-wrapper-v${{ steps.get_version.outputs.VERSION }}.zip" "." -mx0
+          cd ..
+          cp dist/module.json "module.json"
+
+
+      - name: Create/Upload Zip
+        uses: ncipollo/release-action@1df3b9d90da563e0a6f5e19f350774bc1074df54
+        with:
+          artifacts: "./lib-wrapper-v${{ steps.get_version.outputs.VERSION }}.zip,./module.json"
+          allowUpdates: true
+          replacesArtifacts: true
+          prerelease: ${{ steps.get_version.outputs.IS_PRERELEASE }}
+          token: ${{ secrets.GITHUB_TOKEN }}
