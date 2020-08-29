@@ -1,7 +1,7 @@
 import cleanup from 'rollup-plugin-cleanup';
 
-//import { getBabelOutputPlugin } from '@rollup/plugin-babel';
-//import { terser } from "rollup-plugin-terser";
+import { getBabelOutputPlugin } from '@rollup/plugin-babel';
+import { terser } from "rollup-plugin-terser";
 
 export default {
 	input: 'src/index.js',
@@ -13,22 +13,23 @@ export default {
 		},
 		banner: "// SPDX-License-Identifier: LGPL-3.0-or-later\n// Copyright © 2020 fvtt-lib-wrapper Rui Pinheiro\n",
 		compact: true,
-		interop: false
+		interop: false,
+		sourcemap: 'dist/lib-wrapper.js.map'
 	},
 	plugins: [
 		cleanup({
 			comments: 'jsdoc'
 		}),
-		/*getBabelOutputPlugin({
+		getBabelOutputPlugin({
 			plugins: [
 				"@babel/plugin-proposal-optional-chaining",
 				"@babel/plugin-proposal-class-properties"
 			]
-		}),*/
-		/*terser({
+		}),
+		terser({
 			ecma: 2018,
 			toplevel: true,
 			module: true
-		})*/
+		})
 	]
 };
