@@ -26,7 +26,7 @@ export function parse_manifest_version() {
 	if(!version_str)
 		throw `libWrapper: Unable to find version string inside 'game.modules'`;
 
-	const match = version_str.match(/^([0-9]+)\.([0-9]+)\.([0-9]+)(.*)$/g);
+	const match = version_str.match(/^([0-9]+)\.([0-9]+)\.([0-9]+)(.*)$/i);
 	if(!match)
 		throw `libWrapper: Unable to parse version string '${version_str}'`
 
