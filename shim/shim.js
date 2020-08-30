@@ -3,9 +3,6 @@
 
 'use strict';
 
-// The browser doesn't expose all global variables (e.g. 'Game') inside globalThis, but it does to an eval
-const _libWrapperShim_eval = (__code) => eval(__code);
-
 // A shim for the libWrapper library
 export let libWrapper = undefined;
 
@@ -26,7 +23,8 @@ Hooks.once('init', () => {
 			const split = target.split('.');
 			const fn_name = split.pop();
 			const root_nm = split.splice(0,1)[0];
-			const obj = split.reduce((x,y)=>x[y], globalThis[root_nm] ?? _libWrapperShim_eval(root_nm));
+			const _eval = eval; // The browser doesn't expose all global variables (e.g. 'Game') inside globalThis, but it does to an eval. We copy it to a variable to have it run in global scope.
+			const obj = split.reduce((x,y)=>x[y], globalThis[root_nm] ?? _eval(root_nm));
 
 			const descriptor = Object.getOwnPropertyDescriptor(obj, fn_name);
 			if(descriptor.value) {

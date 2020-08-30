@@ -34,11 +34,22 @@ You have multiple options here.
 
     or
 
-2. Write your own shim. Note that if you pick this route, **please do not make your custom shim available in the global scope**.
+2. Write your own shim. **Please do not make your custom shim available in the global scope.**
 
     or
 
-3. Require your users to install this library. One simple example that achieves this is provided below. Reference the more complex example in the provided [shim](#shim) if you prefer a dialog (including an option to dismiss it permanently) instead of a simple notification.
+3. Trigger a different code path depending on whether libWrapper is installed and active or not. For example:
+
+```javascript
+if(game.modules.get('lib-wrapper')?.active) {
+  /* libWrapper is active and can be used */
+}
+else {
+  /* libWrapper is not active and can't be used */
+}
+```
+
+4. Require your users to install this library. One simple example that achieves this is provided below. Reference the more complex example in the provided [shim](#shim) if you prefer a dialog (including an option to dismiss it permanently) instead of a simple notification.
 
 ```javascript
 Hooks.once('ready', () => {
@@ -69,7 +80,7 @@ Using this library is very simple. All you need to do is to call the `libWrapper
 ```javascript
 libWrapper.register('my-fvtt-module', 'SightLayer.prototype.updateToken', function (wrapped, ...args) {
     console.log('updateToken was called');
-    return wrapped.apply(this, args);
+    return wrapped(...args);
 });
 ```
 
@@ -85,7 +96,7 @@ To register a wrapper function, you should call the method `libWrapper.register(
  * @param {string} target  A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
  *                         This works for both normal methods, as well as properties with getters. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
  * @param {function} fn    Wrapper function. When called, the first argument will be the next function in the chain. The remaining arguments will correspond to the parameters passed to the wrapped method.
- * @param {string} type    The type of the wrapper. Default is 'MIXED'. The possible types are:
+ * @param {string} type    [Optional] The type of the wrapper. Default is 'MIXED'. The possible types are:
  *
  *   'WRAPPER':
  *     Use if your wrapper will *always* call the next function in the chain.

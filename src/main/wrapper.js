@@ -34,7 +34,7 @@ export class Wrapper {
 	}
 
 	get is_property() {
-		return this._wrapped_getter;
+		return (this._wrapped_getter !== undefined);
 	}
 
 	// Constructor

@@ -176,7 +176,7 @@ export class libWrapper {
 	 * @param {string} target  A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
 	 *                         This works for both normal methods, as well as properties with getters. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
 	 * @param {function} fn    Wrapper function. When called, the first argument will be the next function in the chain. The remaining arguments will correspond to the parameters passed to the wrapped method.
-	 * @param {string} type    The type of the wrapper. Default is 'MIXED'. The possible types are:
+	 * @param {string} type    [Optional] The type of the wrapper. Default is 'MIXED'. The possible types are:
 	 *
 	 *   'WRAPPER':
 	 *     Use if your wrapper will always call the next function in the chain.
@@ -326,9 +326,9 @@ Object.defineProperty(globalThis, 'libWrapper', {
 });
 
 
-// Initialize libWrapper right before the 'init' hook. If Game is undefined, assume this is a unit test and just initialize immediately
+// Initialize libWrapper right before the 'init' hook. Unit tests just initialize immediately
 if(!IS_UNITTEST) {
-	libWrapper.register('lib-wrapper', 'Game.prototype.initialize', function(wrapper, ...args) {
+	libWrapper.register('lib-wrapper', 'Game.prototype.initialize', function(wrapped, ...args) {
 		// Notify everyone the library has loaded and is ready to start registering wrappers
 		libwrapper_ready = true;
 
@@ -340,8 +340,10 @@ if(!IS_UNITTEST) {
 		console.info(`libWrapper ${VERSION}: Ready.`);
 		Hooks.callAll('libWrapperReady', libWrapper);
 
-		const result = wrapper.apply(this, args);
+		const result = wrapped(...args);
+
 		libWrapper.unregister('lib-wrapper', 'Game.prototype.initialize');
+
 		return result;
 	}, 'WRAPPER');
 }
