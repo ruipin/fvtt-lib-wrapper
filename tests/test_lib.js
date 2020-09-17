@@ -19,17 +19,13 @@ test('Library: Main', function (t) {
 	setup();
 
 	class A {
-		get xvalue() {
-			return 1;
-		}
-
-		x() {
-			return this.xvalue;
+		x(in_value) {
+			return in_value;
 		}
 	}
 	globalThis.A = A;
 	let a = new A();
-	t.equal(a.x(), 1, 'Original');
+	t.equal(a.x(1), 1, 'Original');
 
 	// Register NORMAL
 	game.add_module('module1');
@@ -38,7 +34,7 @@ test('Library: Main', function (t) {
 		t.equal(wrapped.apply(this, args), module1_check, 'Module 1');
 		return 1000;
 	});
-	t.equal(a.x(), 1000, 'Wrapped #1');
+	t.equal(a.x(1), 1000, 'Wrapped #1');
 
 	// Registering the same method twice with the same module should fail
 	t.throws(function() {
@@ -52,17 +48,19 @@ test('Library: Main', function (t) {
 		t.equal(wrapped.apply(this, args), module2_check, 'Module 1');
 		return 20000;
 	}, 'WRAPPER');
-	t.equal(a.x(), 20000, 'Wrapped #2');
+	t.equal(a.x(1), 20000, 'Wrapped #2');
 
 	// Register OVERRIDE
 	game.add_module('module3');
+	let module3_check = 1;
 	libWrapper.register('module3', 'A.prototype.x', function() {
-		t.equal(arguments.length, 0, 'Override arguments');
+		t.equal(arguments.length, 1, 'Module 3 arguments');
+		t.equal(arguments[0], module3_check, 'Module 3 argument 0');
 		return 30000;
 	}, 'OVERRIDE');
 
 	module1_check = 30000;
-	t.equal(a.x(), 20000, 'Wrapped #3');
+	t.equal(a.x(1), 20000, 'Wrapped #3');
 
 	// Registing another OVERRIDE should fail
 	game.add_module('double-override');
@@ -74,25 +72,25 @@ test('Library: Main', function (t) {
 	libWrapper.unregister('module2', 'A.prototype.x');
 	module1_check = 30000;
 	module2_check = -1;
-	t.equal(a.x(), 1000, 'Wrapped #3');
+	t.equal(a.x(1), 1000, 'Wrapped #3');
 
 	// Add a WRAPPER that does not chain
 	libWrapper.register('module2', 'A.prototype.x', function(wrapped, ...args) {
 		return -2;
 	}, 'WRAPPER');
-	t.equal(a.x(), 1000, 'WRAPPER priority without chaining');
+	t.equal(a.x(1), 1000, 'WRAPPER priority without chaining');
 
 	// Add a NORMAL that does not chain
 	libWrapper.register('module2', 'A.prototype.x', function(wrapped, ...args) {
 		return 20000;
 	});
-	t.equal(a.x(), 20000, 'NORMAL priority without chaining');
+	t.equal(a.x(1), 20000, 'NORMAL priority without chaining');
 
 	// Try clearing 'A.prototype.x'
 	let pre_clear = A.prototype.x;
 	libWrapper._clear('A.prototype.x');
-	t.equal(a.x(), 1, 'Unwrapped');
-	t.equal(pre_clear.apply(a), 1, 'Unwrapped, pre-clear');
+	t.equal(a.x(1), 1, 'Unwrapped');
+	t.equal(pre_clear.call(a, 1), 1, 'Unwrapped, pre-clear');
 
 	// Try to wrap again
 	let rewrap_check = 1;
@@ -100,7 +98,7 @@ test('Library: Main', function (t) {
 		t.equal(wrapped.apply(this, args), rewrap_check, 'Wrapper: Rewrap after clear');
 		return 500;
 	});
-	t.equal(a.x(), 500, 'Rewrap after clear');
+	t.equal(a.x(1), 500, 'Rewrap after clear');
 
 	// Test manual wrapping
 	A.prototype.x = (function() {
@@ -112,7 +110,7 @@ test('Library: Main', function (t) {
 		};
 	})();
 	rewrap_check = 5000;
-	t.equal(a.x(), 500, 'Rewrap after clear');
+	t.equal(a.x(1), 500, 'Rewrap after clear');
 
 	// Done
 	t.end();
