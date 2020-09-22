@@ -66,6 +66,9 @@ export class Wrapper {
 			}
 		}
 		else {
+			if(!this._get_inherited(obj, fn_name))
+				throw `libWrapper: Can't wrap '${name}', target does not exist or could not be found.`;
+
 			this._wrapped = undefined;
 		}
 
@@ -147,8 +150,7 @@ export class Wrapper {
 
 		this.active = true;
 
-		if(DEBUG)
-			console.info(`libWrapper: Wrapped '${this.name}'.`);
+		console.debug(`libWrapper: Wrapped '${this.name}'.`);
 	}
 
 	unwrap() {
@@ -186,14 +188,13 @@ export class Wrapper {
 		// Done
 		this.active = false;
 
-		if(DEBUG)
-			console.info(`libWrapper: Unwrapped '${this.name}'.`);
+		console.debug(`libWrapper: Unwrapped '${this.name}'.`);
 	}
 
 
 	// Getter/setters
 	_get_parent_wrapper() {
-		let descriptor = Object.getOwnPropertyDescriptor(this.object.constructor.prototype, this.methodName);
+		let descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this.object), this.fn_name);
 		let wrapper = descriptor?.get?._lib_wrapper;
 
 		if(wrapper && wrapper != this)
@@ -202,21 +203,42 @@ export class Wrapper {
 		return null;
 	}
 
+	_get_inherited(obj, fn_name) {
+		let proto = Object.getPrototypeOf(obj);
+		if(proto === this.object) proto = Object.getPrototypeOf(proto); // In case this is an inherited wrapper
+
+		if(proto && proto != this.object)
+			return proto[fn_name];
+
+		return undefined;
+	}
+
 	get_wrapped(obj, setter=false) {
 		// If 'obj' is not this.object, then we need to see if it has a local wrapper
 		if(obj && obj != this.object) {
-			let descriptor = Object.getOwnPropertyDescriptor(obj, this.methodName);
+			let descriptor = Object.getOwnPropertyDescriptor(obj, this.fn_name);
 
 			let wrapper = descriptor?.get?._lib_wrapper;
 			if(wrapper)
 				return wrapper.get_wrapped(obj);
 		}
 
-		// Otherwise we just return our wrapped value
+		// Properties return the getter or setter, depending on what is requested
 		if(this.is_property)
 			return setter ? this._wrapped_setter : this._wrapped_getter;
-		else
-			return this._wrapped;
+
+		// If the wrapper is 'empty', this is probably an instance wrapper and we should check our instance's prototype first
+		if(this._wrapped === undefined) {
+			let result = this._get_inherited(obj, this.fn_name);
+
+			if(result === undefined)
+				console.warn(`libWrapper: There is no wrapped method for '${this.name}', returning 'undefined'.`);
+
+			return result;
+		}
+
+		// Otherwise we just return our wrapped value
+		return this._wrapped;
 	}
 
 	call_wrapper(state, obj, ...args) {

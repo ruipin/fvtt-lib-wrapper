@@ -45,21 +45,21 @@ test('Shim: Basic functionality', async function (t) {
 	game.add_module('module1');
 	let module1_check = 2;
 	libWrapperShim.register('module1', 'A.prototype.x', function(wrapped, ...args) {
-		t.equal(wrapped.apply(this, args), module1_check, 'Module 1');
+		t.equal(wrapped(...args), module1_check, 'Module 1');
 		return 1000;
 	});
 	t.equal(a.x(1), 1000, 'Wrapped #1');
 
 	// Wrap xvalue getter
 	libWrapperShim.register('module1', 'A.prototype.xvalue', function(wrapped, ...args) {
-		return wrapped.call(this)+1;
+		return wrapped()+1;
 	});
 	module1_check = 3;
 	t.equal(a.x(1), 1000, 'Wrapped getter #1');
 
 	// Wrap xvalue setter
 	libWrapperShim.register('module1', 'A.prototype.xvalue#set', function(wrapped, value) {
-		wrapped.call(this, value+1);
+		wrapped(value+1);
 	});
 	a.xvalue = 3;
 	module1_check = 6;
@@ -76,7 +76,7 @@ test('Shim: Basic functionality', async function (t) {
 	// Register a real wrapper
 	let module1_check_2 = 1000;
 	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
-		t.equal(wrapped.apply(this, args), module1_check_2, 'Module 1.2');
+		t.equal(wrapped(...args), module1_check_2, 'Module 1.2');
 		return 2000;
 	});
 	t.equal(a.x(1), 2000, 'Wrapped #2');

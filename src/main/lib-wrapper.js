@@ -172,10 +172,15 @@ export class libWrapper {
 	 * Register a new wrapper.
 	 * Important: If called before the 'init' hook, this method will fail.
 	 *
+	 * In addition to wrapping class methods, there is also support for wrapping methods on specific object instances, as well as class methods inherited from parent classes.
+	 * However, it is recommended to wrap methods directly in the class that defines them whenever possible, as inheritance/instance wrapping is less thoroughly tested and will incur a performance penalty.
+	 * Note: The provided compatibility shim does not support instance-specific nor inherited-method wrapping.
+	 *
 	 * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.
 	 * @param {string} target  A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
 	 *                         This works for both normal methods, as well as properties with getters. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
-	 * @param {function} fn    Wrapper function. When called, the first argument will be the next function in the chain. The remaining arguments will correspond to the parameters passed to the wrapped method.
+	* @param {function} fn    Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.
+	*                         The remaining arguments will correspond to the parameters passed to the wrapped method.
 	 * @param {string} type    [Optional] The type of the wrapper. Default is 'MIXED'. The possible types are:
 	 *
 	 *   'WRAPPER':

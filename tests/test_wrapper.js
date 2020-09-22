@@ -5,7 +5,7 @@
 
 
 import test from 'tape';
-import {wrap_front} from './utilities.js';
+import {wrap_front, unwrap_all_from_obj} from './utilities.js';
 import '../src/main/lib-wrapper.js';
 
 function setup() {
@@ -169,16 +169,82 @@ test('Wrapper: Replace on instance', function(t) {
 	t.equal(a.x(), 10, "Wrapped with 10");
 
 
-	// Assign directly to b, not to B.prototype
+	// Assign directly to a, not to A.prototype
 	a.x = function() { return 20; };
 	originalValue = 20;
-	t.equal(a.x(), 20, 'Instance assign #1');
+	t.equal(a.x(), 10, 'Instance assign #1');
 
 
 	// Calling another instance should return the old value
 	let b = new A();
 	originalValue = 1;
 	t.equal(b.x(), 10, 'Instance assign #2');
+
+
+	// Done
+	t.end();
+});
+
+test('Wrapper: Inherited Class', function(t) {
+	class B {
+		x() {
+			return 1;
+		}
+	}
+
+	class A extends B {
+	}
+
+	class C extends B {
+	}
+
+	let originalValue = 1;
+	let a = new A();
+	t.equal(a.x(), originalValue, 'Original');
+
+	wrap_front(a, 'x', function(original) {
+		t.equal(original(), originalValue, 'xWrapper 1');
+		return 10;
+	});
+	t.equal(a.x(), 10, "Wrapped with 10");
+
+
+	// Assign directly to a, not to A.prototype
+	a.x = function() { return 20; };
+	originalValue = 20;
+	t.equal(a.x(), 10, 'Instance assign #1');
+
+
+	// Calling another instance should return the old value
+	let a2 = new A();
+	t.equal(a2.x(), 1, 'Instance assign #2');
+
+
+	// Overriding C's prototype will wrap 'undefined'
+	let originalValue2 = 1;
+	wrap_front(C.prototype, 'x', function(original) {
+		t.equal(original(), originalValue2, 'xWrapper 2');
+		return 8;
+	});
+	let c = new C();
+	t.equal(c.x(), 8, "Wrapped with 8");
+
+
+	// Overriding B's prototype will work
+	wrap_front(B.prototype, 'x', function(original) {
+		t.equal(original(), originalValue2, 'xWrapper 3');
+		return 5;
+	});
+	originalValue = 5;
+	t.equal(a2.x(), 5, "Wrapped with 5");
+
+
+	// Overriding A's prototype will use B's wrapper
+	wrap_front(A.prototype, 'x', function(original) {
+		t.equal(original(), originalValue, 'xWrapper 4');
+		return 7;
+	});
+	t.equal(a2.x(), 7, "Wrapped with 7");
 
 
 	// Done

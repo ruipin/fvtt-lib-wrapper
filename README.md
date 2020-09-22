@@ -58,6 +58,16 @@ Hooks.once('ready', () => {
 });
 ```
 
+If you require the user to install this library, you should also update your module's manifest to notify the user of this. For example, by adding the following to your module's manifest:
+
+```javascript
+"dependencies": [
+	{
+		"name": "lib-wrapper"
+	}
+]
+```
+
 ### As a Contributor
 
 1. You should check out this repository and symlink it inside Foundry VTT's `Data/modules` folder, then restart the server.
@@ -92,10 +102,15 @@ To register a wrapper function, you should call the method `libWrapper.register(
  * Register a new wrapper.
  * Important: If called before the 'init' hook, this method will fail.
  *
+ * In addition to wrapping class methods, there is also support for wrapping methods on specific object instances, as well as class methods inherited from parent classes.
+ * However, it is recommended to wrap methods directly in the class that defines them whenever possible, as inheritance/instance wrapping is less thoroughly tested and will incur a performance penalty.
+ * Note: The provided compatibility shim does not support instance-specific nor inherited-method wrapping.
+ *
  * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.
  * @param {string} target  A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
  *                         This works for both normal methods, as well as properties with getters. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
- * @param {function} fn    Wrapper function. When called, the first argument will be the next function in the chain. The remaining arguments will correspond to the parameters passed to the wrapped method.
+ * @param {function} fn    Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.
+ *                         The remaining arguments will correspond to the parameters passed to the wrapped method.
  * @param {string} type    [Optional] The type of the wrapper. Default is 'MIXED'. The possible types are:
  *
  *   'WRAPPER':
@@ -153,9 +168,11 @@ To unregister all wrapper functions belonging to a given module, you should call
 
 ### Shim
 
-The [shim.js](shim/shim.js) file in this repository can be used to avoid a hard dependency on libWrapper. If you are planning to use this library, it is recommended to use this shim.
+The [shim.js](shim/shim.js) file in this repository can be used to avoid a hard dependency on libWrapper.
 
-The shim exports a 'libWrapper' symbol which will at the 'init' hook become a reference to the real libWrapper library if present, or to a fallback implementation otherwise. This symbol will be `undefined` until the 'init' hook fires. A fallback implementation is included for the `register` function only (see documentation above). This fallback implementation does not have any of the "fancy" features of the libWrapper library - most importantly, it does not check for module conflicts or enforce call order between the different wrapper types. To programmatically detect whether the fallback implementation is active, you can check `libWrapper.is_fallback == true`.
+The shim exports a 'libWrapper' symbol which will at the 'init' hook become a reference to the real libWrapper library if present, or to a fallback implementation otherwise. This symbol will be `undefined` until the 'init' hook fires. A fallback implementation is included for the `register` function only (see documentation above). This fallback implementation does not have any of the "fancy" features of the libWrapper library - most importantly, it does not check for module conflicts or enforce call order between the different wrapper types, and it does not support instance-specific nor inherited-method wrapping. *Due to these differences in behaviour, it is extremely important to test your code both with the shim and with the full library.*
+
+To programmatically detect whether the fallback implementation is active, you can check `libWrapper.is_fallback == true`.
 
 To be able to use this shim, your module needs to use `esmodules` in its manifest file. Then, you can import the shim by adding e.g. `import {libWrapper} from './relative/path/to/shim.js';` to your JS code. While the shim is mostly plug-and-play, please feel free to modify it to your liking - in particular, some places you might wish to customize are explicitly marked with `//************** USER CUSTOMIZABLE:`.
 

@@ -28,9 +28,10 @@ Hooks.once('init', () => {
 			const obj = split.reduce((x,y)=>x[y], globalThis[root_nm] ?? _eval(root_nm));
 
 			const descriptor = Object.getOwnPropertyDescriptor(obj, fn_name);
+			if(!descriptor) throw `libWrapper Shim: "${target}" does not exist or could not be found.`;
 
 			let original = null;
-			const wrapper = (type == 'OVERRIDE') ? function() { return fn.call(this, ...arguments); } : function() { return fn.call(this, original, ...arguments); }
+			const wrapper = (type == 'OVERRIDE') ? function() { return fn.call(this, ...arguments); } : function() { return fn.call(this, original.bind(this), ...arguments); }
 			if(descriptor.value) {
 				original = obj[fn_name];
 				obj[fn_name] = wrapper;
