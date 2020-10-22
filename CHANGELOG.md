@@ -1,3 +1,8 @@
+# 1.0.5 (2020-10-22)
+
+* No code changes.
+* Explicitly announce compatibility with Foundry 0.7.5.
+
 # 1.0.4 (2020-09-22)
 
 * Adds official support for instance-specific, as well as inherited-method wrapping. Note that these are not supported by the shim.
