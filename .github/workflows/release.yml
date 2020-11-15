@@ -21,8 +21,8 @@ jobs:
           PROJECT="${GITHUB_REPOSITORY#ruipin/}"
           PROJECT_NO_FVTT="${PROJECT#fvtt-}"
 
-          echo ::set-env name=PROJECT::${PROJECT}
-          echo ::set-env name=PROJECT_NO_FVTT::${PROJECT_NO_FVTT}
+          echo "PROJECT=${PROJECT}"                 >> $GITHUB_ENV
+          echo "PROJECT_NO_FVTT=${PROJECT_NO_FVTT}" >> $GITHUB_ENV
 
           echo ::set-output name=PROJECT::${PROJECT}
           echo ::set-output name=PROJECT_NO_FVTT::${PROJECT_NO_FVTT}
@@ -35,6 +35,8 @@ jobs:
           SPLIT_VERSION_3="${SPLIT_VERSION_2%%[^0-9]*}"
           PATCH_VERSION="${SPLIT_VERSION_3}"
           SUFFIX_VERSION="${SPLIT_VERSION_2#${SPLIT_VERSION_3}}"
+          SUFFIX_VERSION="${SUFFIX_VERSION#.}"
+          SUFFIX_VERSION="${SUFFIX_VERSION#-}"
 
           IS_PRERELEASE="true"
           if [[ "$SUFFIX_VERSION" != *rc* ]]; then
@@ -48,13 +50,12 @@ jobs:
           echo ::set-output name=SUFFIX_VERSION::${SUFFIX_VERSION}
           echo ::set-output name=IS_PRERELEASE::${IS_PRERELEASE}
 
-          echo ::set-env name=VERSION::${VERSION}
-          echo ::set-env name=MAJOR_VERSION::${MAJOR_VERSION}
-          echo ::set-env name=MINOR_VERSION::${MINOR_VERSION}
-          echo ::set-env name=PATCH_VERSION::${PATCH_VERSION}
-          echo ::set-env name=SUFFIX_VERSION::${SUFFIX_VERSION}
-
-          echo ::set-env name=SUFFIX_VERSION::${IS_PRERELEASE}
+          echo "VERSION=${VERSION}"               >> $GITHUB_ENV
+          echo "MAJOR_VERSION=${MAJOR_VERSION}"   >> $GITHUB_ENV
+          echo "MINOR_VERSION=${MINOR_VERSION}"   >> $GITHUB_ENV
+          echo "PATCH_VERSION=${PATCH_VERSION}"   >> $GITHUB_ENV
+          echo "SUFFIX_VERSION=${SUFFIX_VERSION}" >> $GITHUB_ENV
+          echo "IS_PRERELEASE=${IS_PRERELEASE}"   >> $GITHUB_ENV
 
           echo "Project: '$PROJECT' ; Version: '$VERSION' ; Major: '$MAJOR_VERSION' ; Minor: '$MINOR_VERSION' ; Patch: '$PATCH_VERSION' ; Suffix: '$SUFFIX_VERSION' ; Pre-release: '$IS_PRERELEASE' ;"
 
