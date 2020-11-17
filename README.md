@@ -21,63 +21,88 @@ As a bonus, it provides the GM with module conflict detection, as well as the po
 ## Installation
 
 ### As a Module
-1. Copy this link and use it in Foundry's Module Manager to install the Module
+1.  Copy this link and use it in Foundry's Module Manager to install the Module
 
     > https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json
 
-2. Enable the Module in your World's Module Settings
+2.  Enable the Module in your World's Module Settings
+
 
 ### As a Library
 You have multiple options here.
 
-1. Include the provided [shim](#shim) in your project.
+1.  Include the provided [shim](#shim) in your project.
 
     or
 
-2. Write your own shim. **Please do not make your custom shim available in the global scope.**
+2.  Write your own shim. **Please do not make your custom shim available in the global scope.**
 
     or
 
-3. Trigger a different code path depending on whether libWrapper is installed and active or not. For example:
+3.  Trigger a different code path depending on whether libWrapper is installed and active or not. For example:
 
-```javascript
-if(game.modules.get('lib-wrapper')?.active) {
-  /* libWrapper is active and can be used */
-}
-else {
-  /* libWrapper is not active and can't be used */
-}
-```
+    ```javascript
+    if(game.modules.get('lib-wrapper')?.active) {
+    	/* libWrapper is active and can be used */
+    }
+    else {
+    	/* libWrapper is not active and can't be used */
+    }
+    ```
 
-4. Require your users to install this library. One simple example that achieves this is provided below. Reference the more complex example in the provided [shim](#shim) if you prefer a dialog (including an option to dismiss it permanently) instead of a simple notification.
+4.  Require your users to install this library. One simple example that achieves this is provided below. Reference the more complex example in the provided [shim](#shim) if you prefer a dialog (including an option to dismiss it permanently) instead of a simple notification.
 
-```javascript
-Hooks.once('ready', () => {
-	if(!game.modules.get('lib-wrapper')?.active && game.user.isGM)
-		ui.notifications.error("Module XYZ requires the 'libWrapper' module. Please install and activate it.");
-});
-```
+    ```javascript
+    Hooks.once('ready', () => {
+    	if(!game.modules.get('lib-wrapper')?.active && game.user.isGM)
+    		ui.notifications.error("Module XYZ requires the 'libWrapper' module. Please install and activate it.");
+    });
+    ```
 
-If you require the user to install this library, you should also update your module's manifest to notify the user of this. For example, by adding the following to your module's manifest:
+    Note that if you choose this option and require the user to install this library, you should make sure to list libWrapper as a dependency. This can be done by adding the following to your module's manifest:
 
-```javascript
-"dependencies": [
-	{
-		"name": "lib-wrapper"
-	}
-]
-```
+    ```javascript
+    "dependencies": [
+    	{
+    		"name": "lib-wrapper"
+    	}
+    ]
+    ```
+
+Once your module is released, you should consider adding it to the wiki list of [Modules using libWrapper](https://github.com/ruipin/fvtt-lib-wrapper/wiki/Modules-using-libWrapper). This list can also be used as an additional (unofficial) source of libWrapper usage examples.
+
 
 ### As a Contributor
 
-1. You should check out this repository and symlink it inside Foundry VTT's `Data/modules` folder, then restart the server.
+You should clone this repository and symlink it inside Foundry VTT's `Data/modules` folder, then restart the server.
 
-3. By default, master's `module.json` manifest loads [src/index.js](src/index.js) and `dist/lib-wrapper.css`. You can build the latter (as well as `dist/lib-wrapper.js`) by running the following commands:
+-   After cloning this repository, you will need to run the following console commands to set up the development environment:
 
-```bash
-npm install
-npm run build
-```
+    ```bash
+    npm install
+    npm run build
+    ```
+
+    These will install the NPM dependencies required for module development, and compile [less/lib-wrapper.less](less/lib-wrapper.less) into `dist/lib-wrapper.css`.
+
+-   The script contains a basic test suite in [tests](tests) which can be used to validate various usage cases and library behaviour. This can be run by doing `npm test`.
+
+    -   ⚠ While this test suite does test a significant amount of the library functionality, it does not achieve full coverage. It is always recommended to test the library with some real-world modules and confirm that they are working as expected.
+
+    -   The wiki list of [Modules using libWrapper](https://github.com/ruipin/fvtt-lib-wrapper/wiki/Modules-using-libWrapper) can be used as a source of modules for testing.
+
+-   To generate a release artifact, you should use the command `npm run build`.
+
+    -   The JS code in [src](src) will be rolled up into a single file and minified automatically, with the corresponding sourcemap also generated. The results of this process are stored in `dist/lib-wrapper.js` and `dist/lib-wrapper.js.map`.
+
+        -   For ease of development, by default the module manifest points to the unprocessed [src/index.js](src/index.js) such that source code changes are immediately visible.
+
+        -   To use the output of the `npm run build` command, you will need to locally update your local [module.json](module.json) to point to `dist/lib-wrapper.js` instead of [src/index.js](src/index.js).
+
+    -   The LESS stylesheet [less/lib-wrapper.less](less/lib-wrapper.less) will be compiled into `dist/lib-wrapper.css`.
+
+    -   Note that the actual [release artifacts](https://github.com/ruipin/fvtt-lib-wrapper/releases) on Github are generated using a custom Github Action, which is responsible for updating the module manifest and packaging the build output into a ZIP file.
+        This is implemented in [.github/workflows/release.yml](.github/workflows/release.yml).
 
 
 
@@ -184,3 +209,7 @@ This is meant to be a "sane default", but you should feel free to customize this
 
 <img src="https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/d54d5d8c5adbd34bc65396c31f042f3f9d8d6a24/example_warning_dialog.png" width="200">
 <sup>Note: Images may be out-of-date.</sup>
+
+### Further examples
+
+A list of modules using libWrapper, which can be used as further examples, can be found in the wiki page [Modules using libWrapper](https://github.com/ruipin/fvtt-lib-wrapper/wiki/Modules-using-libWrapper).
