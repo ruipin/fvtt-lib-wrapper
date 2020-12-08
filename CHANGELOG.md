@@ -1,3 +1,8 @@
+# 1.0.5.3 (2020-12-08)
+
+* No code changes.
+* Explicitly announce compatibility with Foundry 0.7.8.
+
 # 1.0.5.2 (2020-11-15)
 
 * No code changes (Note: from now on, versions with no code changes will not increment the "minor version", instead using a suffix).
