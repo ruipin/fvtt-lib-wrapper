@@ -174,17 +174,19 @@ export class libWrapper {
 	 *
 	 * In addition to wrapping class methods, there is also support for wrapping methods on specific object instances, as well as class methods inherited from parent classes.
 	 * However, it is recommended to wrap methods directly in the class that defines them whenever possible, as inheritance/instance wrapping is less thoroughly tested and will incur a performance penalty.
+	 *
+	 * Important: You may not call the next function in the chain more than once, if you wish to do so you should call the full method instead. Calling it a second time will throw an exception.
 	 * Note: The provided compatibility shim does not support instance-specific nor inherited-method wrapping.
 	 *
 	 * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.
 	 * @param {string} target  A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
 	 *                         This works for both normal methods, as well as properties with getters. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
-	* @param {function} fn    Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.
-	*                         The remaining arguments will correspond to the parameters passed to the wrapped method.
+	 * @param {function} fn    Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.
+	 *                         The remaining arguments will correspond to the parameters passed to the wrapped method.
 	 * @param {string} type    [Optional] The type of the wrapper. Default is 'MIXED'. The possible types are:
 	 *
 	 *   'WRAPPER':
-	 *     Use if your wrapper will always call the next function in the chain.
+	 *     Use if your wrapper will *always* call the next function in the chain.
 	 *     This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
 	 *     Note that the library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
 	 *
@@ -197,6 +199,8 @@ export class libWrapper {
 	 *     If another module already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <AlreadyOverriddenError> exception.
 	 *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
 	 *     Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
+	 *
+	 *
 	 */
 	static register(module, target, fn, type='MIXED') {
 		if(module != MODULE_ID && !libwrapper_ready)

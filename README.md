@@ -43,10 +43,10 @@ You have multiple options here.
 
     ```javascript
     if(game.modules.get('lib-wrapper')?.active) {
-    	/* libWrapper is active and can be used */
+        /* libWrapper is active and can be used */
     }
     else {
-    	/* libWrapper is not active and can't be used */
+        /* libWrapper is not active and can't be used */
     }
     ```
 
@@ -54,8 +54,8 @@ You have multiple options here.
 
     ```javascript
     Hooks.once('ready', () => {
-    	if(!game.modules.get('lib-wrapper')?.active && game.user.isGM)
-    		ui.notifications.error("Module XYZ requires the 'libWrapper' module. Please install and activate it.");
+        if(!game.modules.get('lib-wrapper')?.active && game.user.isGM)
+            ui.notifications.error("Module XYZ requires the 'libWrapper' module. Please install and activate it.");
     });
     ```
 
@@ -63,9 +63,9 @@ You have multiple options here.
 
     ```javascript
     "dependencies": [
-    	{
-    		"name": "lib-wrapper"
-    	}
+        {
+            "name": "lib-wrapper"
+        }
     ]
     ```
 
@@ -76,7 +76,7 @@ Once your module is released, you should consider adding it to the wiki list of 
 
 You should clone this repository and symlink it inside Foundry VTT's `Data/modules` folder, then restart the server.
 
--   After cloning this repository, you will need to run the following console commands to set up the development environment:
+-   After cloning this repository, you will need to install NPM and then run the following console commands to set up the development environment:
 
     ```bash
     npm install
@@ -111,12 +111,86 @@ You should clone this repository and symlink it inside Foundry VTT's `Data/modul
 ### Library
 
 Using this library is very simple. All you need to do is to call the `libWrapper.register` method and provide your module ID, the scope of the method you want to override, and a wrapper function.
+You can also specify the type of wrapper you want in the fourth (optional) parameter:
+
+- `WRAPPER`:
+
+    - Use if your wrapper will *always* call the next function in the chain.
+    - This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
+    - Note that the library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
+
+- `MIXED` (default):
+
+    - Your wrapper will be allowed to decide whether it should call the next function in the chain or not.
+    - These will always come after 'WRAPPER'-type wrappers. Order is not guaranteed, but conflicts will be auto-detected.
+
+- `OVERRIDE`:
+
+    - Use if your wrapper will *never* call the next function in the chain. This type has the lowest priority, and will always be called last.
+    - If another module already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <AlreadyOverriddenError> exception.
+      Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
+    - Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
+
+If using `WRAPPER` or `MIXED`, the first parameter passed to your wrapper will be the next wrapper in the wrapper chain, which you can use to continue the call.
 
 ```javascript
 libWrapper.register('my-fvtt-module', 'SightLayer.prototype.updateToken', function (wrapped, ...args) {
     console.log('updateToken was called');
-    return wrapped(...args);
-});
+    // ... do things ...
+    let result = wrapped(...args);
+    // ... do things ...
+    return result;
+}, 'MIXED' /* optional, since this is the default type */ );
+```
+
+#### Common Pitfalls
+
+##### OVERRIDE wrappers have a different call signature
+
+When using `OVERRIDE`, wrappers do not receive the next function in the wrapper chain as the first parameter. Make sure to account for this.
+
+```javascript
+libWrapper.register('my-fvtt-module', 'SightLayer.prototype.updateToken', function (...args) { //There is no 'wrapped' parameter in the wrapper signature
+    console.log('updateToken was overridden');
+    return;
+}, 'OVERRIDE');
+```
+
+##### Calling the next wrapper more than once
+
+You may not call the next function in the chain more than once. Calling it a second time will throw an exception.
+This is to avoid modules not seeing some calls to the wrapped function, depending on the wrapper call order.
+
+```javascript
+libWrapper.register('my-fvtt-module', 'SightLayer.prototype.updateToken', function (wrapped, ...args) {
+    wrapped(...args); // Works
+    wrapped(...args); // Throws 'libWrapper: This wrapper function has already been called, and must not be called twice.'
+}, 'MIXED');
+```
+
+See [this issue](https://github.com/ruipin/fvtt-lib-wrapper/issues/6) for discussion about this limitation, and whether/how to lift it.
+
+If you really need to call the original method more than once, you can work around this by calling the full method instead and disabling yourself on the second call.
+
+```javascript
+libWrapper.register('my-fvtt-module', 'SightLayer.prototype.updateToken', (function() {
+    let ignoreWrap = false;
+
+    return function (wrapped, ...args) {
+        wrapped(...args);
+
+        if(ignoreWrap)
+            return;
+
+        try {
+            ignoreWrap = true;
+            this.updateToken(...args);
+        }
+        finally {
+            ignoreWrap = false;
+        }
+    };
+})());
 ```
 
 #### Registering a wrapper
@@ -129,6 +203,8 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *
  * In addition to wrapping class methods, there is also support for wrapping methods on specific object instances, as well as class methods inherited from parent classes.
  * However, it is recommended to wrap methods directly in the class that defines them whenever possible, as inheritance/instance wrapping is less thoroughly tested and will incur a performance penalty.
+ *
+ * Important: You may not call the next function in the chain more than once, if you wish to do so you should call the full method instead. Calling it a second time will throw an exception.
  * Note: The provided compatibility shim does not support instance-specific nor inherited-method wrapping.
  *
  * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.
@@ -152,6 +228,8 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *     If another module already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <AlreadyOverriddenError> exception.
  *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
  *     Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
+ *
+ *
  */
 ```
 

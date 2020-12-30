@@ -242,22 +242,35 @@ export class Wrapper {
 	}
 
 	call_wrapper(state, obj, ...args) {
+		// Set up basic information about this wrapper
+		const index = state?.index ?? 0;
+		const is_setter = state?.setter ?? false;
+		const fn_data = is_setter ? this.setter_data : this.getter_data;
+
 		// Keep track of call state
 		if(state) {
+			let err_msg = null;
+
 			if('valid' in state && !state.valid)
-				throw `libWrapper: This wrapper function is no longer valid.`;
+				err_msg = 'libWrapper: This wrapper function is no longer valid, and must not be called.';
 			if('called' in state && state.called)
-				throw `libWrapper: This wrapper function has already been called.`;
+				err_msg = 'libWrapper: This wrapper function has already been called, and must not be called twice.';
 			if('modification_counter' in state && state.modification_counter != this._modification_counter)
 				throw `libWrapper: The wrapper '${this.name}' was modified while a call chain was in progress. The chain is not allowed proceed.`;
+
+			if(err_msg) {
+				if(index > 0) {
+					const d = fn_data[index-1];
+					err_msg += ` This is most likely caused by an issue in the '${d.target}' wrapper registered by module '${d.module}'.`;
+				}
+
+				throw err_msg;
+			}
 
 			state.called = true;
 		}
 
 		// Grab the next function from the function data array
-		const index = state?.index ?? 0;
-		const is_setter = state?.setter ?? false;
-		const fn_data = is_setter ? this.setter_data : this.getter_data;
 		const data = fn_data[index];
 		let fn = data?.fn;
 

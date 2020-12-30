@@ -1,3 +1,10 @@
+# 1.0.6.0 (2020-12-30)
+
+* Improved some exception messages to make it clearer which module/wrapper is responsible for them.
+* Improved the README, to make more explicit some of the common pitfalls when using this library.
+  Now explicitly mentions that 'OVERRIDE' wrappers have a different call signature, and that wrappers should not chain more than once.
+* Explicitly announce compatibility with Foundry 0.7.9.
+
 # 1.0.5.3 (2020-12-08)
 
 * No code changes.
