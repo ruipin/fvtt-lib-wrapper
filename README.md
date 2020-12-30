@@ -156,42 +156,6 @@ libWrapper.register('my-fvtt-module', 'SightLayer.prototype.updateToken', functi
 }, 'OVERRIDE');
 ```
 
-##### Calling the next wrapper more than once
-
-You may not call the next function in the chain more than once. Calling it a second time will throw an exception.
-This is to avoid modules not seeing some calls to the wrapped function, depending on the wrapper call order.
-
-```javascript
-libWrapper.register('my-fvtt-module', 'SightLayer.prototype.updateToken', function (wrapped, ...args) {
-    wrapped(...args); // Works
-    wrapped(...args); // Throws 'libWrapper: This wrapper function has already been called, and must not be called twice.'
-}, 'MIXED');
-```
-
-See [this issue](https://github.com/ruipin/fvtt-lib-wrapper/issues/6) for discussion about this limitation, and whether/how to lift it.
-
-If you really need to call the original method more than once, you can work around this by calling the full method instead and disabling yourself on the second call.
-
-```javascript
-libWrapper.register('my-fvtt-module', 'SightLayer.prototype.updateToken', (function() {
-    let ignoreWrap = false;
-
-    return function (wrapped, ...args) {
-        wrapped(...args);
-
-        if(ignoreWrap)
-            return;
-
-        try {
-            ignoreWrap = true;
-            this.updateToken(...args);
-        }
-        finally {
-            ignoreWrap = false;
-        }
-    };
-})());
-```
 
 #### Registering a wrapper
 To register a wrapper function, you should call the method `libWrapper.register(module, target, fn, type)`:
@@ -204,7 +168,6 @@ To register a wrapper function, you should call the method `libWrapper.register(
  * In addition to wrapping class methods, there is also support for wrapping methods on specific object instances, as well as class methods inherited from parent classes.
  * However, it is recommended to wrap methods directly in the class that defines them whenever possible, as inheritance/instance wrapping is less thoroughly tested and will incur a performance penalty.
  *
- * Important: You may not call the next function in the chain more than once, if you wish to do so you should call the full method instead. Calling it a second time will throw an exception.
  * Note: The provided compatibility shim does not support instance-specific nor inherited-method wrapping.
  *
  * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.

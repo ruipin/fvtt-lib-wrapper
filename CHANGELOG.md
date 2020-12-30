@@ -1,3 +1,7 @@
+# 1.0.7.0 (2020-12-30)
+
+* Implement support for multiple chaining. Now, modules can call the next wrapper in the chain more than once.
+
 # 1.0.6.0 (2020-12-30)
 
 * Improved some exception messages to make it clearer which module/wrapper is responsible for them.

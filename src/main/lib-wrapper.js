@@ -175,7 +175,6 @@ export class libWrapper {
 	 * In addition to wrapping class methods, there is also support for wrapping methods on specific object instances, as well as class methods inherited from parent classes.
 	 * However, it is recommended to wrap methods directly in the class that defines them whenever possible, as inheritance/instance wrapping is less thoroughly tested and will incur a performance penalty.
 	 *
-	 * Important: You may not call the next function in the chain more than once, if you wish to do so you should call the full method instead. Calling it a second time will throw an exception.
 	 * Note: The provided compatibility shim does not support instance-specific nor inherited-method wrapping.
 	 *
 	 * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.
