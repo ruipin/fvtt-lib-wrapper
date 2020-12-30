@@ -139,7 +139,7 @@ test('Library: Special', function (t) {
 	game.add_module('module1');
 	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
 		t.equal(wrapped.apply(this, ...args), 1, 'Wrapped that calls twice #1');
-		t.throws(() => { wrapped.apply(this, ...args) }, undefined, 'Wrapped that calls twice #2');
+		t.equal(wrapped.apply(this, ...args), 1, 'Wrapped that calls twice #2');
 		return 30000;
 	}, 'WRAPPER');
 	t.equal(a.x(), 30000, 'Wrapped #1');

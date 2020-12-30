@@ -253,8 +253,6 @@ export class Wrapper {
 
 			if('valid' in state && !state.valid)
 				err_msg = 'libWrapper: This wrapper function is no longer valid, and must not be called.';
-			if('called' in state && state.called)
-				err_msg = 'libWrapper: This wrapper function has already been called, and must not be called twice.';
 			if('modification_counter' in state && state.modification_counter != this._modification_counter)
 				throw `libWrapper: The wrapper '${this.name}' was modified while a call chain was in progress. The chain is not allowed proceed.`;
 
