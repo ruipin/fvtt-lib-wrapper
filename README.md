@@ -108,7 +108,7 @@ You should clone this repository and symlink it inside Foundry VTT's `Data/modul
 
 ## Usage
 
-### Library
+### Summary
 
 Using this library is very simple. All you need to do is to call the `libWrapper.register` method and provide your module ID, the scope of the method you want to override, and a wrapper function.
 You can also specify the type of wrapper you want in the fourth (optional) parameter:
@@ -143,9 +143,10 @@ libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', function (wrapped, ..
 }, 'MIXED' /* optional, since this is the default type */ );
 ```
 
-#### Common Pitfalls
 
-##### OVERRIDE wrappers have a different call signature
+### Common Pitfalls
+
+#### OVERRIDE wrappers have a different call signature
 
 When using `OVERRIDE`, wrappers do not receive the next function in the wrapper chain as the first parameter. Make sure to account for this.
 
@@ -156,7 +157,7 @@ libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', function (...args) { 
 }, 'OVERRIDE');
 ```
 
-##### Registering or unregistering a wrapper invalidates any pending wrapper chains for a given method
+#### Registering or unregistering a wrapper invalidates any pending wrapper chains for a given method
 
 Due to libWrapper limitations (see [issue #7](https://github.com/ruipin/fvtt-lib-wrapper/issues/7)), currently executing wrapper chains may be invalidated any time a wrapper is registered or unregistered for a given method.
 
@@ -175,7 +176,7 @@ For example, the following code will execute `wrapped` asynchronously, and there
 libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', async function (wrapped, ...args) {
     const a = await some_async_function(); // <- Returns a Promise to the caller
     const b = wrapped(...args); // This runs asynchronously, only after the Promise above completes, and could throw
-    // ... do things with a ...
+    // ... do things ...
 });
 ```
 
@@ -186,9 +187,12 @@ Note that if the first and only asynchronous call is the wrapped method itself, 
 ```javascript
 libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', async function (wrapped, ...args) {
     const a = await wrapped(...args); // The call to 'wrapped' happens synchronously, returning a Promise. Only the code below this line runs asynchronously
-    // ... do things with a ...
+    // ... do things ...
 });
 ```
+
+
+### LibWrapper API
 
 #### Registering a wrapper
 To register a wrapper function, you should call the method `libWrapper.register(module, target, fn, type)`:
