@@ -134,8 +134,8 @@ You can also specify the type of wrapper you want in the fourth (optional) param
 If using `WRAPPER` or `MIXED`, the first parameter passed to your wrapper will be the next wrapper in the wrapper chain, which you can use to continue the call.
 
 ```javascript
-libWrapper.register('my-fvtt-module', 'SightLayer.prototype.updateToken', function (wrapped, ...args) {
-    console.log('updateToken was called');
+libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', function (wrapped, ...args) {
+    console.log('Foo.prototype.bar was called');
     // ... do things ...
     let result = wrapped(...args);
     // ... do things ...
@@ -150,12 +150,45 @@ libWrapper.register('my-fvtt-module', 'SightLayer.prototype.updateToken', functi
 When using `OVERRIDE`, wrappers do not receive the next function in the wrapper chain as the first parameter. Make sure to account for this.
 
 ```javascript
-libWrapper.register('my-fvtt-module', 'SightLayer.prototype.updateToken', function (...args) { //There is no 'wrapped' parameter in the wrapper signature
-    console.log('updateToken was overridden');
+libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', function (...args) { // There is no 'wrapped' parameter in the wrapper signature
+    console.log('Foo.prototype.bar was overridden');
     return;
 }, 'OVERRIDE');
 ```
 
+##### Registering or unregistering a wrapper invalidates any pending wrapper chains for a given method
+
+Due to libWrapper limitations (see [issue #7](https://github.com/ruipin/fvtt-lib-wrapper/issues/7)), currently executing wrapper chains may be invalidated any time a wrapper is registered or unregistered for a given method.
+
+```javascript
+libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', function (wrapped, ...args) {
+    libWrapper.unregister('my-fvtt-module', 'Foo.prototype.bar');
+    return wrapped(...args); // throws libWrapper.InvalidWrapperChainError
+});
+```
+
+The majority of modules will not have to worry about this, as wrappers will typically be fully synchronous, or will be alone wrapping a given method. However, if modules chain wrappers asynchronously (e.g. inside a `Promise`), they should expect the possibility that the chaining will throw. The likelihood of such invalidation increases the more modules are wrapping the same method and doing things asynchronously.
+
+For example, the following code will execute `wrapped` asynchronously, and therefore could, in rare situations, throw:
+
+```javascript
+libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', async function (wrapped, ...args) {
+    const a = await some_async_function(); // <- Returns a Promise to the caller
+    const b = wrapped(...args); // This runs asynchronously, only after the Promise above completes, and could throw
+    // ... do things with a ...
+});
+```
+
+As a result, it is recommended to avoid chaining wrappers asynchronously. If at all possible, the `await` should be delayed until after the call to `wrapped`, in order to avoid this issue.
+
+Note that if the first and only asynchronous call is the wrapped method itself, then there is nothing to worry about. For example, the following will not chain asynchronously, and therefore is completely fine:
+
+```javascript
+libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', async function (wrapped, ...args) {
+    const a = await wrapped(...args); // The call to 'wrapped' happens synchronously, returning a Promise. Only the code below this line runs asynchronously
+    // ... do things with a ...
+});
+```
 
 #### Registering a wrapper
 To register a wrapper function, you should call the method `libWrapper.register(module, target, fn, type)`:

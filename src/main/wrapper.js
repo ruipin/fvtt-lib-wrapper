@@ -4,7 +4,7 @@
 'use strict';
 
 import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG} from '../consts.js';
-import {get_current_module_name} from './utilities.js';
+import {InvalidWrapperChainError, get_current_module_name} from './utilities.js';
 import {LibWrapperStats} from '../stats.js';
 
 
@@ -252,18 +252,9 @@ export class Wrapper {
 			let err_msg = null;
 
 			if('valid' in state && !state.valid)
-				err_msg = 'libWrapper: This wrapper function is no longer valid, and must not be called.';
+				throw new InvalidWrapperChainError(this, 'This wrapper function is no longer valid, and must not be called.');
 			if('modification_counter' in state && state.modification_counter != this._modification_counter)
-				throw `libWrapper: The wrapper '${this.name}' was modified while a call chain was in progress. The chain is not allowed proceed.`;
-
-			if(err_msg) {
-				if(index > 0) {
-					const d = fn_data[index-1];
-					err_msg += ` This is most likely caused by an issue in the '${d.target}' wrapper registered by module '${d.module}'.`;
-				}
-
-				throw err_msg;
-			}
+				throw new InvalidWrapperChainError(this, `The wrapper '${this.name}' was modified while a call chain was in progress. The chain is not allowed proceed.`);
 
 			state.called = true;
 		}
@@ -301,15 +292,7 @@ export class Wrapper {
 
 		const next_fn = this.call_wrapper.bind(this, next_state, obj);
 
-		let result = undefined;
-		try {
-			// Call next method in the chain
-			result = fn.call(obj, next_fn, ...args);
-		}
-		finally {
-			// Mark next_fn as invalid to prevent someone from calling it asynchronously
-			next_state.valid = false;
-		}
+		let result = fn.call(obj, next_fn, ...args);
 
 		// Check that next_fn was called
 		if(!next_state.called && next_state.modification_counter == this._modification_counter) {

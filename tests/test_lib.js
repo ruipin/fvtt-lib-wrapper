@@ -140,9 +140,9 @@ test('Library: Special', function (t) {
 	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
 		t.equal(wrapped.apply(this, ...args), 1, 'Wrapped that calls twice #1');
 		t.equal(wrapped.apply(this, ...args), 1, 'Wrapped that calls twice #2');
-		return 30000;
+		return 10000;
 	}, 'WRAPPER');
-	t.equal(a.x(), 30000, 'Wrapped #1');
+	t.equal(a.x(), 10000, 'Wrapped #1');
 
 	// Unregister
 	libWrapper.unregister('module1', 'A.prototype.x');
@@ -151,10 +151,10 @@ test('Library: Special', function (t) {
 	// Clear inside wrapper (before call)
 	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
 		libWrapper.clear_module('module1');
-		t.throws(() => { wrapped.apply(this, ...args) }, undefined, 'Clear inside wrapper (before call)');
-		return 30000;
+		t.throws(() => { wrapped.apply(this, ...args) }, libWrapper.InvalidWrapperChainError, 'Clear inside wrapper (before call)');
+		return 20000;
 	}, 'WRAPPER');
-	t.equal(a.x(), 30000, 'Wrapped #2');
+	t.equal(a.x(), 20000, 'Wrapped #2');
 
 	// Clear inside wrapper (after call)
 	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
@@ -168,10 +168,10 @@ test('Library: Special', function (t) {
 	let stored_wrapped = undefined;
 	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
 		stored_wrapped = wrapped;
-		return 30000;
+		return 40000;
 	});
-	t.equal(a.x(), 30000, 'Wrapped #3');
-	t.throws(() => { stored_wrapped.apply(a) }, undefined, 'Call asynchronously');
+	t.equal(a.x(), 40000, 'Wrapped #3');
+	t.equal(stored_wrapped.apply(a), 1, 'Call asynchronously');
 
 	// Done
 	t.end();

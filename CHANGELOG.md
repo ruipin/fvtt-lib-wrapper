@@ -1,3 +1,7 @@
+# 1.0.8.0 (2021-01-01)
+
+* Allow modules to chain wrappers asynchronously ([issue #7](https://github.com/ruipin/fvtt-lib-wrapper/issues/7)).
+
 # 1.0.7.0 (2020-12-30)
 
 * Implement support for multiple chaining. Now, modules can call the next wrapper in the chain more than once.

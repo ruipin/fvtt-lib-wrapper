@@ -27,7 +27,25 @@ export class AlreadyOverriddenError extends Error {
 	 * Returns the title of the module that caused the wrapping conflict
 	 */
 	get conflicting_module_title() {
-		const module_data = game.modules.get(this.conflicting_module)?.data?.title;
+		return game.modules.get(this.conflicting_module)?.data?.title;
+	}
+}
+
+// Already overridden Error type
+export class InvalidWrapperChainError extends Error {
+	constructor(wrapper, msg, ...args) {
+		super(`libWrapper: ${msg}`, ...args);
+
+		// Maintains proper stack trace for where our error was thrown (only available on V8)
+		if (Error.captureStackTrace)
+			Error.captureStackTrace(this, InvalidWrapperChainError)
+
+		this.name = 'InvalidWrapperChainError';
+		this._wrapper = wrapper;
+	}
+
+	get wrapper_name() {
+		return this._wrapper?.name;
 	}
 }
 

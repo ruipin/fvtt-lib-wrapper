@@ -5,7 +5,7 @@
 
 import {MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, parse_manifest_version, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug, TYPES, TYPES_REVERSE, TYPES_LIST} from '../consts.js';
 import {Wrapper} from './wrapper.js';
-import {AlreadyOverriddenError, get_global_variable, WRAPPERS} from './utilities.js';
+import {AlreadyOverriddenError, InvalidWrapperChainError, get_global_variable, WRAPPERS} from './utilities.js';
 import {LibWrapperStats} from '../stats.js';
 import {LibWrapperSettings} from '../settings.js';
 
@@ -26,6 +26,7 @@ export class libWrapper {
 	static set debug(value) { setDebug(value) }
 
 	static get AlreadyOverriddenError() { return AlreadyOverriddenError; };
+	static get InvalidWrapperChainError() { return InvalidWrapperChainError; };
 
 
 	// Variables
