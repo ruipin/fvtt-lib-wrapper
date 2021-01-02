@@ -149,7 +149,9 @@ test('Wrapper: Prototype redirection', function(t) {
 
 
 test('Wrapper: Replace on instance', function(t) {
-	// Replace on instance
+	setup();
+
+
 	class A {
 		x() {
 			return 1;
@@ -186,6 +188,8 @@ test('Wrapper: Replace on instance', function(t) {
 });
 
 test('Wrapper: Inherited Class', function(t) {
+	setup();
+
 	class B {
 		x() {
 			return 1;

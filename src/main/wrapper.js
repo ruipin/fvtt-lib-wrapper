@@ -252,7 +252,7 @@ export class Wrapper {
 			let err_msg = null;
 
 			if('valid' in state && !state.valid)
-				throw new InvalidWrapperChainError(this, 'This wrapper function is no longer valid, and must not be called.');
+				throw new InvalidWrapperChainError(this, `This wrapper function for '${this.name}' is no longer valid, and must not be called.`);
 			if('modification_counter' in state && state.modification_counter != this._modification_counter)
 				throw new InvalidWrapperChainError(this, `The wrapper '${this.name}' was modified while a call chain was in progress. The chain is not allowed proceed.`);
 
@@ -292,48 +292,96 @@ export class Wrapper {
 
 		const next_fn = this.call_wrapper.bind(this, next_state, obj);
 
-		let result = fn.call(obj, next_fn, ...args);
+		let result = undefined;
 
-		// Check that next_fn was called
-		if(!next_state.called && next_state.modification_counter == this._modification_counter) {
-			let collect_information = (LibWrapperStats.collect_stats || !data.warned_conflict);
-			let affectedModules = null;
-			let is_last_wrapper = false;
+		// Try-catch block to handle normal exception flow
+		try {
+			// Call next method in the chain
+			result = fn.call(obj, next_fn, ...args);
+		}
+		catch(e) {
+			// An exception causes invalidation of next_fn
+			next_state.valid = false;
+			// Re-throw
+			throw e;
+		}
 
-			if(collect_information) {
-				affectedModules = fn_data.slice(next_state.index).filter((x) => {
-					return x.module != data.module;
-				}).map((x) => {
-					return x.module;
-				});
-				is_last_wrapper = (affectedModules.length == 0);
+		// If the result is a Promise, then we must wait until it fulfills before cleaning up.
+		// Per the JS spec, the only way to detect a Promise (since Promises can be polyfilled, extended, wrapped, etc) is to look for the 'then' method.
+		// Anything with a 'then' function is technically a Promise. This leaves a path for false-positives, but I don't see a way to avoid this.
+		if(typeof result?.then === 'function') {
+			result = result.then(
+				// onResolved
+				v => {
+					return this.cleanup_call_wrapper(v, next_state, data, fn_data, next_fn, obj, ...args);
+				},
+				// onRejected
+				e => {
+					// The promise being rejected causes invalidation of next_fn
+					next_state.valid = false;
+					// Re-throw
+					throw e;
+				}
+			);
+		}
+		// Otherwise, we can immediately cleanup.
+		else {
+			result = this.cleanup_call_wrapper(result, next_state, data, fn_data, next_fn, obj, ...args);
+		}
 
-				if(LibWrapperStats.collect_stats) {
-					affectedModules.forEach((affected) => {
-						LibWrapperStats.register_conflict(data.module, affected, this.name);
+		// Done
+		return result;
+	}
+
+	cleanup_call_wrapper(result, next_state, data, fn_data, next_fn, obj, ...args) {
+		// Invalidate next_fn to avoid unsynchronous calls
+		next_state.valid = false;
+
+		// This method may be called asynchronously! There is no guarantee data/fn_data are still valid.
+		// As such, we check 'modification_counter' before doing any complex logic.
+		if(next_state.modification_counter == this._modification_counter) {
+
+			// Check that next_fn was called
+			if(!next_state.called && next_state.modification_counter == this._modification_counter) {
+				let collect_information = (LibWrapperStats.collect_stats || !data.warned_conflict);
+				let affectedModules = null;
+				let is_last_wrapper = false;
+
+				if(collect_information) {
+					affectedModules = fn_data.slice(next_state.index).filter((x) => {
+						return x.module != data.module;
+					}).map((x) => {
+						return x.module;
 					});
+					is_last_wrapper = (affectedModules.length == 0);
+
+					if(LibWrapperStats.collect_stats) {
+						affectedModules.forEach((affected) => {
+							LibWrapperStats.register_conflict(data.module, affected, this.name);
+						});
+					}
 				}
-			}
 
-			// WRAPPER-type functions that do this are breaking an API requirement, as such we need to be loud about this.
-			// As a "punishment" of sorts, we forcefully unregister them and ignore whatever they did.
-			if(data.type == TYPES.WRAPPER) {
-				console.error(`libWrapper: The wrapper for '${data.target}' registered by module '${data.module}' with type WRAPPER did not chain the call to the next wrapper, which breaks a libWrapper API requirement. This wrapper will be unregistered.`);
-				globalThis.libWrapper.unregister(data.module, data.target);
+				// WRAPPER-type functions that do this are breaking an API requirement, as such we need to be loud about this.
+				// As a "punishment" of sorts, we forcefully unregister them and ignore whatever they did.
+				if(data.type == TYPES.WRAPPER) {
+					console.error(`libWrapper: The wrapper for '${data.target}' registered by module '${data.module}' with type WRAPPER did not chain the call to the next wrapper, which breaks a libWrapper API requirement. This wrapper will be unregistered.`);
+					globalThis.libWrapper.unregister(data.module, data.target);
 
-				// Manually chain to the next wrapper if there are more in the chain
-				if(!is_last_wrapper) {
-					next_state.index = index;
-					next_state.valid = true;
-					next_state.modification_counter = this._modification_counter;
-					return next_fn.apply(obj, args);
+					// Manually chain to the next wrapper if there are more in the chain
+					if(!is_last_wrapper) {
+						next_state.index -= 1;
+						next_state.valid = true;
+						next_state.modification_counter = this._modification_counter;
+						result = next_fn.apply(obj, args);
+					}
 				}
-			}
 
-			// Other TYPES only get a single log line
-			else if(collect_information && (DEBUG || !data.warned_conflict) && !is_last_wrapper) {
-				console.warn(`libWrapper: Possible conflict detected between '${data.module}' and [${affectedModules.join(', ')}]. The former did not chain the wrapper for '${data.target}'.`);
-				data.warned_conflict = true;
+				// Other TYPES only get a single log line
+				else if(collect_information && (DEBUG || !data.warned_conflict) && !is_last_wrapper) {
+					console.warn(`libWrapper: Possible conflict detected between '${data.module}' and [${affectedModules.join(', ')}]. The former did not chain the wrapper for '${data.target}'.`);
+					data.warned_conflict = true;
+				}
 			}
 		}
 

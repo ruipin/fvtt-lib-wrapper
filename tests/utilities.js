@@ -66,3 +66,12 @@ export let unwrap_all_from_obj = function(obj, fn_name, is_setter=false) {
 	const wrapper = libWrapper._create_wrapper_from_object(obj, fn_name);
 	wrapper.get_fn_data(is_setter).splice(0);
 }
+
+
+
+// Async helpers
+export const ASYNC_TIMEOUT = 1;
+
+export let async_retval = function(in_value) {
+	return new Promise(resolve => setTimeout(() => { resolve(in_value) }, ASYNC_TIMEOUT));
+}
