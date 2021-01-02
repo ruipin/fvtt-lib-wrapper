@@ -16,6 +16,7 @@ function setup() {
 }
 
 
+
 test('Wrapper: Basic functionality', function (t) {
 	setup();
 
@@ -159,33 +160,49 @@ test('Wrapper: Replace on instance', function(t) {
 	}
 
 
-	let originalValue = 1;
 	let a = new A();
-	t.equal(a.x(), originalValue, 'Original');
+	t.equal(a.x(), 1, 'Original');
 
 
+	// Create a normal wrapper
+	let wrapper1_value = 1;
 	wrap_front(A.prototype, 'x', function(original) {
-		t.equal(original(), originalValue, 'xWrapper 1');
-		return 10;
+		const result = original();
+		t.equal(result, wrapper1_value, 'xWrapper 1');
+		return result + 1;
 	});
-	t.equal(a.x(), 10, "Wrapped with 10");
+	t.equal(a.x(), 2, "Wrapped with 10");
 
 
 	// Assign directly to a, not to A.prototype
 	a.x = function() { return 20; };
-	originalValue = 20;
-	t.equal(a.x(), 10, 'Instance assign #1');
+	wrapper1_value = 20;
+	t.equal(a.x(), 21, 'Instance assign #1');
 
 
 	// Calling another instance should return the old value
 	let b = new A();
-	originalValue = 1;
-	t.equal(b.x(), 10, 'Instance assign #2');
+	wrapper1_value = 1;
+	t.equal(b.x(), 2, 'Instance assign #2');
+
+
+	// Use a manual wrapper of the instance instead
+	const instancewrapper_value = 1;
+	wrapper1_value = 2;
+	const b_original = b.x;
+	b.x = function() {
+		const result = b_original();
+		t.equal(result, instancewrapper_value, 'Instance manual wrapper #1');
+		return result + 1;
+	};
+	t.equal(b.x(), 3, 'Instance manual wrapper call');
 
 
 	// Done
 	t.end();
 });
+
+
 
 test('Wrapper: Inherited Class', function(t) {
 	setup();

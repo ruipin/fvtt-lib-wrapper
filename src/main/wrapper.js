@@ -390,13 +390,6 @@ export class Wrapper {
 	}
 
 	set_nonproperty(value, obj=null, reuse_handler=false) {
-		// If assigning to an instance directly, create a wrapper for the instance
-		if(obj != this.object) {
-			let objWrapper = new this.constructor(obj, this.fn_name, `instanceof ${this.name}`);
-			objWrapper.set_nonproperty(value, obj, true);
-			return;
-		}
-
 		// Redirect current handler to directly call the wrapped method
 		if(!reuse_handler)
 		{
@@ -407,6 +400,13 @@ export class Wrapper {
 			});
 
 			this._create_handler();
+		}
+
+		// If assigning to an instance directly, create a wrapper for the instance
+		if(obj != this.object) {
+			let objWrapper = new this.constructor(obj, this.fn_name, `instanceof ${this.name}`);
+			objWrapper.set_nonproperty(value, obj, true);
+			return;
 		}
 
 		// Wrap the new value and create a new handler

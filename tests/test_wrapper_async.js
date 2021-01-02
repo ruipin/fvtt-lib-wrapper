@@ -17,6 +17,7 @@ function setup() {
 }
 
 
+
 test('Wrapper Async: Basic functionality', async function (t) {
 	setup();
 
@@ -155,7 +156,7 @@ test('Wrapper Async: Prototype redirection', async function(t) {
 
 
 
-test('Wrapper Async: Replace on instance', async function(t) {
+test('Wrapper: Replace on instance', async function(t) {
 	setup();
 
 
@@ -166,30 +167,42 @@ test('Wrapper Async: Replace on instance', async function(t) {
 	}
 
 
-	let originalValue = 1;
 	let a = new A();
-	t.equal(await a.x(), originalValue, 'Original');
+	t.equal(await a.x(), 1, 'Original');
 
 
+	// Create a normal wrapper
+	let wrapper1_value = 1;
 	wrap_front(A.prototype, 'x', async function(original) {
-		t.equal(await original(), originalValue, 'xWrapper 1');
-		return 10;
+		const result = await original();
+		t.equal(result, wrapper1_value, 'xWrapper 1');
+		return result + 1;
 	});
-	t.equal(await a.x(), 10, "Wrapped with 10");
+	t.equal(await a.x(), 2, "Wrapped with 10");
 
 
 	// Assign directly to a, not to A.prototype
-	a.x = async function() {
-		return async_retval(20);
-	};
-	originalValue = 20;
-	t.equal(await a.x(), 10, 'Instance assign #1');
+	a.x = function() { return async_retval(20); };
+	wrapper1_value = 20;
+	t.equal(await a.x(), 21, 'Instance assign #1');
 
 
 	// Calling another instance should return the old value
 	let b = new A();
-	originalValue = 1;
-	t.equal(await b.x(), 10, 'Instance assign #2');
+	wrapper1_value = 1;
+	t.equal(await b.x(), 2, 'Instance assign #2');
+
+
+	// Use a manual wrapper of the instance instead
+	const instancewrapper_value = 1;
+	wrapper1_value = 2;
+	const b_original = b.x;
+	b.x = async function() {
+		const result = await b_original();
+		t.equal(result, instancewrapper_value, 'Instance manual wrapper #1');
+		return result + 1;
+	};
+	t.equal(await b.x(), 3, 'Instance manual wrapper call');
 
 
 	// Done
