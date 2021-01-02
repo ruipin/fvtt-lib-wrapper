@@ -5,7 +5,7 @@
 
 import {MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, parse_manifest_version, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug, TYPES, TYPES_REVERSE, TYPES_LIST} from '../consts.js';
 import {Wrapper} from './wrapper.js';
-import {AlreadyOverriddenError, InvalidWrapperChainError, get_global_variable, WRAPPERS} from './utilities.js';
+import {AlreadyOverriddenError, InvalidWrapperChainError, get_global_variable, WRAPPERS, notify_gm} from './utilities.js';
 import {LibWrapperStats} from '../stats.js';
 import {LibWrapperSettings} from '../settings.js';
 
@@ -245,13 +245,16 @@ export class libWrapper {
 			const existing = wrapper.get_fn_data(is_setter).find((x) => { return x.type == TYPES.OVERRIDE });
 
 			if(existing) {
+				const err_msg = `Conflict detected between '${module}' and '${existing.module}'.`;
+				notify_gm(err_msg);
+
 				if(priority <= existing.priority) {
 					LibWrapperStats.register_conflict(existing.module, module, wrapper.name);
 					throw new AlreadyOverriddenError(module, target, existing.module);
 				}
 				else {
 					LibWrapperStats.register_conflict(module, existing.module, wrapper.name);
-					console.warn(`libWrapper: Conflict detected between '${module}' and '${existing.module}'. The former has higher priority, and is replacing the OVERRIDE registered by the latter for '${wrapper.name}'.`);
+					console.warn(`libWrapper: ${err_msg} The former has higher priority, and is replacing the OVERRIDE registered by the latter for '${wrapper.name}'.`);
 				}
 			}
 		}

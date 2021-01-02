@@ -1,3 +1,10 @@
+# 1.1.0.0 (2021-01-02)
+
+* Fix 'WRAPPER'-type wrappers that chain asynchronously. These will no longer be incorrectly unregistered for not chaining. (See [issue #7](https://github.com/ruipin/fvtt-lib-wrapper/issues/7))
+* Fix wrappers being called twice when a module wraps an instance member without libWrapper, if libWrapper is used to wrap the class prototype. (See [issue #7](https://github.com/ruipin/fvtt-lib-wrapper/issues/8))
+* Notify GM when potential issues/conflicts are detected. This can be disabled in the module settings menu.
+* Removed option to disable runtime data collection used for the settings menu. After benchmarking, this being enabled does not seem to impact performance at all.
+
 # 1.0.8.0 (2021-01-01)
 
 * Allow modules to chain wrappers asynchronously ([issue #7](https://github.com/ruipin/fvtt-lib-wrapper/issues/7)).

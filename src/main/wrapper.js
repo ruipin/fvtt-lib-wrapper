@@ -4,7 +4,7 @@
 'use strict';
 
 import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG} from '../consts.js';
-import {InvalidWrapperChainError, get_current_module_name} from './utilities.js';
+import {InvalidWrapperChainError, get_current_module_name, notify_gm} from './utilities.js';
 import {LibWrapperStats} from '../stats.js';
 
 
@@ -249,10 +249,15 @@ export class Wrapper {
 
 		// Keep track of call state
 		if(state) {
-			let err_msg = null;
+			if('valid' in state && !state.valid) {
+				let err_msg = `This wrapper function for '${this.name}' is no longer valid, and must not be called.`;
 
-			if('valid' in state && !state.valid)
-				throw new InvalidWrapperChainError(this, `This wrapper function for '${this.name}' is no longer valid, and must not be called.`);
+				if(state.prev_data?.module)
+					err_msg += ` This error is most likely caused by an issue in module '${state.prev_data.module}'.`;
+
+				throw new InvalidWrapperChainError(this, err_msg);
+			}
+
 			if('modification_counter' in state && state.modification_counter != this._modification_counter)
 				throw new InvalidWrapperChainError(this, `The wrapper '${this.name}' was modified while a call chain was in progress. The chain is not allowed proceed.`);
 
@@ -287,6 +292,7 @@ export class Wrapper {
 			called: false,
 			valid : true,
 			index : index + 1,
+			prev_data: data,
 			modification_counter: this._modification_counter
 		};
 
@@ -338,12 +344,12 @@ export class Wrapper {
 		next_state.valid = false;
 
 		// This method may be called asynchronously! There is no guarantee data/fn_data are still valid.
-		// As such, we check 'modification_counter' before doing any complex logic.
+		// As such, we check 'modification_counter' before running any complex logic.
 		if(next_state.modification_counter == this._modification_counter) {
 
 			// Check that next_fn was called
 			if(!next_state.called && next_state.modification_counter == this._modification_counter) {
-				let collect_information = (LibWrapperStats.collect_stats || !data.warned_conflict);
+				let collect_information = LibWrapperStats.collect_stats;
 				let affectedModules = null;
 				let is_last_wrapper = false;
 
@@ -355,11 +361,9 @@ export class Wrapper {
 					});
 					is_last_wrapper = (affectedModules.length == 0);
 
-					if(LibWrapperStats.collect_stats) {
-						affectedModules.forEach((affected) => {
-							LibWrapperStats.register_conflict(data.module, affected, this.name);
-						});
-					}
+					affectedModules.forEach((affected) => {
+						LibWrapperStats.register_conflict(data.module, affected, this.name);
+					});
 				}
 
 				// WRAPPER-type functions that do this are breaking an API requirement, as such we need to be loud about this.
@@ -379,10 +383,13 @@ export class Wrapper {
 
 				// Other TYPES only get a single log line
 				else if(collect_information && (DEBUG || !data.warned_conflict) && !is_last_wrapper) {
-					console.warn(`libWrapper: Possible conflict detected between '${data.module}' and [${affectedModules.join(', ')}]. The former did not chain the wrapper for '${data.target}'.`);
+					const err_msg = `Possible conflict detected between '${data.module}' and [${affectedModules.join(', ')}].`;
+					notify_gm(err_msg);
+					console.warn(`libWrapper: ${err_msg} The former did not chain the wrapper for '${data.target}'.`);
 					data.warned_conflict = true;
 				}
 			}
+
 		}
 
 		// Done
@@ -420,18 +427,25 @@ export class Wrapper {
 			const module_name = prepare_module_name ? get_current_module_name() : null;
 			const user_friendly_module_name = module_name ? `<likely '${module_name}'>` : '<unknown>';
 
-			if(collect_stats) {
-				const affectedModules = this.getter_data.map((x) => {
+			let affectedModules = null;
+			if(collect_stats || warn_in_console) {
+				affectedModules = this.getter_data.map((x) => {
 					return x.module;
 				});
 
-				affectedModules.forEach((affected) => {
-					LibWrapperStats.register_conflict(affected, user_friendly_module_name, this.name);
-				});
+				if(collect_stats) {
+					affectedModules.forEach((affected) => {
+						LibWrapperStats.register_conflict(affected, user_friendly_module_name, this.name);
+					});
+				}
 			}
 
 			if(warn_in_console) {
-				console.warn(`libWrapper: Detected non-libWrapper wrapping of '${this.name}'${ module_name ? `, likely by module '${module_name}'` : ' by an unknown module' }. This will potentially lead to conflicts.`);
+				const affectedModules_str = (affectedModules.length > 1) ? `[${affectedModules.join(', ')}]` : `'${affectedModules[0]}'`;
+				const err_module = module_name ? `module '${module_name}'` : 'an unknown module';
+
+				notify_gm(`Detected potential conflict between ${err_module} and ${affectedModules_str}.`, 'warn');
+				console.warn(`libWrapper: Detected non-libWrapper wrapping of '${this.name}' by ${err_module}. This will potentially lead to conflicts with ${affectedModules_str}.`);
 
 				if(DEBUG && console.trace)
 					console.trace();

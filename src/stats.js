@@ -7,9 +7,7 @@ import {MODULE_ID} from './consts.js';
 
 export class LibWrapperStats {
 	static init() {
-		this.collect_stats = game.settings.get(MODULE_ID, 'collect-stats');
-		if(!this.collect_stats)
-			return;
+		this.collect_stats = true;
 
 		// This method is called before game.user initializes, so we need to look at game.data.users manually
 		const userid = game.userId;

@@ -91,3 +91,16 @@ export function get_global_variable(varname) {
 
 // Shared list of active wrappers
 export const WRAPPERS = new Set();
+
+
+
+// Notify GM
+export function notify_gm(msg, fn='error') {
+	if(!game.settings.get(MODULE_ID, 'notify-issues'))
+		return;
+
+	if(!game.user.isGM)
+		return;
+
+	ui.notifications[fn](`libWrapper: ${msg}`);
+}

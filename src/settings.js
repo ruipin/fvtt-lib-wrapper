@@ -10,14 +10,13 @@ import {WRAPPERS} from './main/utilities.js';
 
 export class LibWrapperSettings extends FormApplication {
 	static init() {
-		game.settings.register(MODULE_ID, 'collect-stats', {
-			name: 'Collect Runtime Information',
+		game.settings.register(MODULE_ID, 'notify-issues', {
+			name: 'Notify GM of Issues',
 			default: true,
 			type: Boolean,
 			scope: 'world',
 			config: true,
-			onChange: value => globalThis.libWrapper.load_priorities(),
-			hint: 'Whether to collect runtime information. The libWrapper settings menu relies on this being enabled, and will be mostly non-functional otherwise. Note: Changing this option requires a reload.'
+			hint: 'Whether to notify GMs when an issue is detected, for example a conflict.'
 		});
 
 		game.settings.registerMenu(MODULE_ID, 'menu', {
@@ -38,6 +37,8 @@ export class LibWrapperSettings extends FormApplication {
 		});
 	}
 
+
+	// Settings UI
 	static get defaultOptions() {
 		return {
 			...super.defaultOptions,

@@ -15,11 +15,13 @@ class Hooks {
 globalThis.Hooks = Hooks;
 
 
+// Empty FormApplication
 class FormApplication {
 }
 globalThis.FormApplication = FormApplication;
 
 
+// Game
 class GameSettings {
 	register() {
 	}
@@ -53,6 +55,22 @@ globalThis.game = new Game();
 globalThis.game.clear_modules();
 
 
+// UI Notifications
+class UiNotifications {
+	error(msg) {
+		console.error(`(UI) ${msg}`);
+	}
+
+	warn(msg) {
+		console.warn(`(UI) ${msg}`);
+	}
+}
+globalThis.ui = { notifications: new UiNotifications() };
+
+
+
+
+// Wrap helpers to bypass libWrapper public API
 export let wrap_front = function(obj, fn_name, fn, is_setter=false) {
 	const wrapper = libWrapper._create_wrapper_from_object(obj, fn_name);
 	wrapper.get_fn_data(is_setter).splice(0, 0, {
