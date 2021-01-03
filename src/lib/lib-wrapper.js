@@ -61,7 +61,12 @@ export class libWrapper {
 		return [_target, is_setter];
 	}
 
+	static _valid_identifier(ident) {
+		return /^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(ident);
+	}
+
 	static _get_target_object(_target, module=undefined) {
+		// Parse the target
 		const target = this._split_target_and_setter(_target)[0];
 
 		const split = target.split('.');
@@ -69,16 +74,21 @@ export class libWrapper {
 
 		// Get root object
 		const root_nm = split.splice(0,1)[0];
+		if(!this._valid_identifier(root_nm))
+			throw new LibWrapperModuleError(`Invalid target '${target}.'`, module);
 		if(root_nm == 'libWrapper')
-			throw 'libWrapper: Not allowed to wrap libWrapper internals';
+			throw new LibWrapperModuleError(`Not allowed to wrap libWrapper internals.`, module);
 		const root = get_global_variable(root_nm);
 
 		// Get target object
 		let obj = root;
 		for(let scope of split) {
+			if(!this._valid_identifier(scope))
+				throw new LibWrapperModuleError(`Invalid target '${target}'.`, module);
+
 			obj = obj[scope];
 			if(!obj)
-				throw new LibWrapperModuleError(`Invalid target '${target}'`, module);
+				throw new LibWrapperModuleError(`Could not find target '${target}'.`, module);
 		}
 
 		return [obj, fn_name, target];
@@ -382,6 +392,7 @@ if(!IS_UNITTEST) {
 		parse_manifest_version();
 		LibWrapperSettings.init();
 		LibWrapperStats.init();
+		LibWrapperNotifications.init();
 		libWrapper.load_priorities();
 
 		console.info(`libWrapper ${VERSION}: Ready.`);

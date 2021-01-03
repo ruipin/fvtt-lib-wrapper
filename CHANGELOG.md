@@ -1,3 +1,9 @@
+# 1.2.1.0 (2021-01-03)
+
+* Freeze all libWrapper classes after defining them.
+* Remove use of '<' and '>' to avoid them being treated as HTML.
+* Make error notifications permanent.
+
 # 1.2.0.0 (2021-01-03)
 
 * Refactor source code directory structure.

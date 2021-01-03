@@ -6,7 +6,6 @@
 import {MODULE_ID} from '../consts.js';
 
 
-
 // Find currently executing module name (that is not libWrapper)
 export function get_current_module_name() {
 	const stack_trace = Error().stack;
@@ -34,10 +33,6 @@ export function get_current_module_name() {
 // We declare this helper here so that the eval does not have access to the anonymous function scope
 const __eval_copy = eval;
 export function get_global_variable(varname) {
-	// Basic check to make sure we don't do anything too crazy by accident
-	if(varname == 'varname' || !/^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(varname))
-		throw `libWrapper: Invalid identifier ${varname}`;
-
 	return globalThis[varname] ?? __eval_copy(varname);
 }
 

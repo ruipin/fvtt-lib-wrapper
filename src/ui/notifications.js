@@ -33,13 +33,17 @@ export class LibWrapperNotifications {
 		if(!this.ui_enabled)
 			return;
 
+
+		// Check if we've already notified the user of this
 		if(!this.NOTIFICATION_SET)
 			this.NOTIFICATION_SET = new Set();
 		else if(this.NOTIFICATION_SET.has(msg))
 			return;
 
 		this.NOTIFICATION_SET.add(msg);
-		ui.notifications[fn](`libWrapper: ${msg}`);
+
+		// Notify
+		ui.notifications[fn](`libWrapper: ${msg}`, {permanent: fn == 'error'});
 	}
 
 
@@ -52,6 +56,8 @@ export class LibWrapperNotifications {
 	static conflict(module, other, potential, console_msg) {
 		if(!module)
 			module = 'an unknown module';
+		else if(module.startsWith("\u00AB") && module.endsWith("\u00BB"))
+			module = `module ${module}`;
 		else
 			module = `module '${module}'`;
 

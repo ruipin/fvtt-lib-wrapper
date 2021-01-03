@@ -6,22 +6,27 @@
 import {MODULE_ID} from '../consts.js';
 
 export class LibWrapperStats {
-	static init() {
-		this.collect_stats = true;
-
+	static _collect_stats() {
 		// This method is called before game.user initializes, so we need to look at game.data.users manually
 		const userid = game.userId;
 		if(!userid)
-			return;
+			return false;
 
 		const user = game.data.users.find((x) => { return x._id == userid });
 
-		if(!user || user.role !== 4) {
-			this.collect_stats = false;
-			return;
-		}
+		if(!user || user.role !== 4)
+			return false;
+
+		return true;
+	}
+
+	static init() {
+		this.collect_stats = this._collect_stats();
 
 		// If we got this far, we're going to be collecting statistics, so initialize the containers
+		if(!this.collect_stats)
+			return;
+
 		this.MODULES   = new Set();
 		this.CONFLICTS = new Map();
 	}

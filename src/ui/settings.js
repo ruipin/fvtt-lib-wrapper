@@ -407,3 +407,4 @@ export class LibWrapperSettings extends FormApplication {
 		LibWrapperSettings.showYesNoDialog("<p>It is recommended you reload this page to apply the new module priorities. Do you wish to reload?</p>", () => location.reload());
 	}
 }
+Object.freeze(LibWrapperSettings);

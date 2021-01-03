@@ -471,13 +471,13 @@ export class Wrapper {
 
 	warn_classic_wrapper() {
 		let module_name = get_current_module_name();
-		module_name = module_name ? `<${module_name}>` : '<unknown>';
+		module_name = module_name ? `\u00AB${module_name}\u00BB` : '\u00ABunknown\u00BB';
 
 		const affectedModules = this.get_affected_modules();
 		LibWrapperStats.register_conflict(module_name, affectedModules, this.name);
 
 		if(affectedModules.length > 0) {
-			LibWrapperNotifications.conflict(module_name, affectedModules, true, `Detected non-libWrapper wrapping of '${this.name}' by '${module_name}'. This will potentially lead to conflicts.`);
+			LibWrapperNotifications.conflict(module_name, affectedModules, true, `Detected non-libWrapper wrapping of '${this.name}' by ${module_name}. This will potentially lead to conflicts.`);
 
 			if(DEBUG && console.trace)
 				console.trace();

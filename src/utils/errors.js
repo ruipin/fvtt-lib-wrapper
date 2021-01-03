@@ -30,6 +30,7 @@ export class LibWrapperError extends Error {
 	onUnhandled() {
 	}
 }
+Object.freeze(LibWrapperError);
 
 // Internal error
 export class LibWrapperInternalError extends LibWrapperError {
@@ -49,6 +50,7 @@ export class LibWrapperInternalError extends LibWrapperError {
 		this.module = module;
 	}
 }
+Object.freeze(LibWrapperInternalError);
 
 // Error caused by a module
 export class LibWrapperModuleError extends LibWrapperError {
@@ -76,6 +78,7 @@ export class LibWrapperModuleError extends LibWrapperError {
 		this.module = module;
 	}
 }
+Object.freeze(LibWrapperModuleError);
 
 // Already Overridden Error
 export class LibWrapperAlreadyOverriddenError extends LibWrapperError {
@@ -109,6 +112,7 @@ export class LibWrapperAlreadyOverriddenError extends LibWrapperError {
 		LibWrapperStats.register_conflict(this.module, this.conflicting_module, this.target);
 	}
 }
+Object.freeze(LibWrapperAlreadyOverriddenError);
 
 // Invalid Wrapper Chain Error
 export class LibWrapperInvalidWrapperChainError extends LibWrapperError {
@@ -134,6 +138,7 @@ export class LibWrapperInvalidWrapperChainError extends LibWrapperError {
 		return this._wrapper.name;
 	}
 }
+Object.freeze(LibWrapperInvalidWrapperChainError);
 
 
 
