@@ -54,6 +54,8 @@ export class libWrapper {
 
 		// Get root object
 		const root_nm = split.splice(0,1)[0];
+		if(root_nm == 'libWrapper')
+			throw 'libWrapper: Not allowed to wrap libWrapper internals';
 		const root = get_global_variable(root_nm);
 
 		// Get target object
