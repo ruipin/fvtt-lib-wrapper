@@ -1,3 +1,7 @@
+# 1.1.4.0 (2021-01-03)
+
+* Hotfix release. Reverts changes in 1.1.3.0, which broke some things.
+
 # 1.1.3.0 (2021-01-03)
 
 * Fix instance/inherited wrapping when there are more than 2 layers, e.g. C inherits from B which inherits from A. Some corner cases were broken.
