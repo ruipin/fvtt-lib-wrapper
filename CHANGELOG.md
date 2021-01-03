@@ -1,3 +1,8 @@
+# 1.1.5.0 (2021-01-03)
+
+* Reintroduce changes from v1.1.3.0.
+* Fix 'super' usage inside wrapped methods, which was causing multiple modules to malfunction when using libWrapper.
+
 # 1.1.4.0 (2021-01-03)
 
 * Hotfix release. Reverts changes in 1.1.3.0, which broke some things.

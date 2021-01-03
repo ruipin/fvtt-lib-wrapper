@@ -217,12 +217,31 @@ test('Wrapper: Inherited Class', function(t) {
 		x() {
 			return 1;
 		}
+
+		y() {
+			return 1000;
+		}
 	}
 
 	class A extends B {
 	}
 
 	class C extends B {
+	}
+
+	class D extends B {
+	}
+
+	class E extends D {
+		x() {
+			return 100;
+		}
+	}
+
+	class F extends B {
+		x() {
+			return super.x() + 999;
+		}
 	}
 
 	let originalValue = 1;
@@ -247,13 +266,17 @@ test('Wrapper: Inherited Class', function(t) {
 	t.equal(a2.x(), 1, 'Instance assign #2');
 
 
-	// Overriding C's prototype will wrap 'undefined'
+	// Calling C will work
+	let c = new C();
+	t.equal(c.x(), 1, "Original C");
+
+
+	// Overriding C's prototype will work
 	let originalValue2 = 1;
 	wrap_front(C.prototype, 'x', function(original) {
 		t.equal(original(), originalValue2, 'xWrapper 2');
 		return 8;
 	});
-	let c = new C();
 	t.equal(c.x(), 8, "Wrapped with 8");
 
 
@@ -272,6 +295,28 @@ test('Wrapper: Inherited Class', function(t) {
 		return 7;
 	});
 	t.equal(a2.x(), 7, "Wrapped with 7");
+
+
+	// Overriding E's prototype will work
+	let originalValue3 = 5;
+	wrap_front(E.prototype, 'x', function(original) {
+		t.equal(original(), originalValue3, 'xWrapper 5');
+		return 9;
+	});
+	let e = new E();
+	originalValue2 = 100;
+	t.equal(e.x(), 9, "Wrapped with 9");
+
+
+	// Super
+	let originalValue4 = 5;
+	wrap_front(F.prototype, 'x', function(original) {
+		t.equal(original(), originalValue4, 'xWrapper 6');
+		return 2000;
+	});
+	let f = new F();
+	originalValue2 = 1000;
+	t.equal(f.x(), 2000, "Wrapped with 2000");
 
 
 	// Done

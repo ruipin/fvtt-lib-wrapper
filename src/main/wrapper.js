@@ -39,7 +39,11 @@ export class Wrapper {
 
 	// Constructor
 	constructor (obj, fn_name, name=undefined) {
-		// Check if this object is already wrapped
+		// Basic instance variables
+		this.fn_name = fn_name;
+		this.object  = obj;
+
+		// Calidate whether we can wrap this object
 		let descriptor = Object.getOwnPropertyDescriptor(obj, fn_name);
 
 		if(descriptor) {
@@ -66,16 +70,14 @@ export class Wrapper {
 			}
 		}
 		else {
-			if(!this._get_inherited(obj, fn_name))
+			if(!Object.getPrototypeOf(obj)[this.fn_name])
 				throw `libWrapper: Can't wrap '${name}', target does not exist or could not be found.`;
 
 			this._wrapped = undefined;
 		}
 
 		// Setup instance variables
-		this.object  = obj;
 		this.names   = [];
-		this.fn_name = fn_name;
 
 		this.getter_data = [];
 		if(this.is_property)
@@ -193,43 +195,46 @@ export class Wrapper {
 
 
 	// Getter/setters
-	_get_parent_wrapper() {
-		let descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this.object), this.fn_name);
-		let wrapper = descriptor?.get?._lib_wrapper;
+	_get_wrapper_for_object(obj) {
+		if(obj === this.object)
+			return this;
 
-		if(wrapper && wrapper != this)
-			return wrapper;
+		let iObj = obj;
+		let wrapper = null;
+
+		while(iObj) {
+			const descriptor = Object.getOwnPropertyDescriptor(iObj, this.fn_name);
+
+			wrapper = descriptor?.get?._lib_wrapper;
+			if(wrapper)
+				return wrapper;
+
+			iObj = Object.getPrototypeOf(iObj);
+		}
 
 		return null;
 	}
 
-	_get_inherited(obj, fn_name) {
-		let proto = Object.getPrototypeOf(obj);
-		if(proto === this.object) proto = Object.getPrototypeOf(proto); // In case this is an inherited wrapper
+	_get_parent_wrapper() {
+		return this._get_wrapper_for_object(Object.getPrototypeOf(this.object));
+	}
 
-		if(proto && proto != this.object)
-			return proto[fn_name];
+	_is_top_wrapper(obj) {
+		if(obj === this.object)
+			return true;
 
-		return undefined;
+		const wrapper = this._get_wrapper_for_object(obj);
+		return wrapper === this;
 	}
 
 	get_wrapped(obj, setter=false) {
-		// If 'obj' is not this.object, then we need to see if it has a local wrapper
-		if(obj && obj != this.object) {
-			let descriptor = Object.getOwnPropertyDescriptor(obj, this.fn_name);
-
-			let wrapper = descriptor?.get?._lib_wrapper;
-			if(wrapper)
-				return wrapper.get_wrapped(obj);
-		}
-
 		// Properties return the getter or setter, depending on what is requested
 		if(this.is_property)
 			return setter ? this._wrapped_setter : this._wrapped_getter;
 
-		// If the wrapper is 'empty', this is probably an instance wrapper and we should check our instance's prototype first
+		// If this wrapper is 'empty', we need to search up the inheritance hierarchy for the return value
 		if(this._wrapped === undefined) {
-			let result = this._get_inherited(obj, this.fn_name);
+			const result = Object.getPrototypeOf(this.object)[this.fn_name];
 
 			if(result === undefined)
 				console.warn(`libWrapper: There is no wrapped method for '${this.name}', returning 'undefined'.`);
@@ -245,10 +250,15 @@ export class Wrapper {
 		// Set up basic information about this wrapper
 		const index = state?.index ?? 0;
 		const is_setter = state?.setter ?? false;
-		const fn_data = is_setter ? this.setter_data : this.getter_data;
+		const fn_data = is_setter ? this.setter_data : this.getter_data
+
+		// The top wrapper will always chain parents. The remaining wrappers will be skipped unless state.chain_parent is true.
+		const top_wrapper = state?.top_wrapper ?? this._get_wrapper_for_object(obj);
+		const chain_parent = state?.chain_parent ?? (this === top_wrapper);
+		const skip_wrappers = (top_wrapper !== this) && !chain_parent;
 
 		// Keep track of call state
-		if(state) {
+		if(!skip_wrappers && state) {
 			if('valid' in state && !state.valid) {
 				let err_msg = `This wrapper function for '${this.name}' is no longer valid, and must not be called.`;
 
@@ -264,21 +274,33 @@ export class Wrapper {
 			state.called = true;
 		}
 
-		// Grab the next function from the function data array
+		// Grab the next function data from the function data array
 		const data = fn_data[index];
-		let fn = data?.fn;
 
 		// If no more methods exist, then finish the chain
-		if(!data) {
+		if(skip_wrappers || !data) {
 			// We need to call parent wrappers if they exist
 			// Otherwise, we can immediately return the wrapped value
-			const parent_wrapper = this._get_parent_wrapper();
+			if(chain_parent) {
+				const parent_wrapper = this._get_parent_wrapper();
 
-			if(parent_wrapper && parent_wrapper != this)
-				return parent_wrapper.call_wrapper(null, obj, ...args);
-			else
-				return this.get_wrapped(obj, is_setter)?.apply(obj, args);
+				if(parent_wrapper) {
+					const parent_state = {
+						chain_parent: true,
+						top_wrapper: top_wrapper
+					};
+
+					return parent_wrapper.call_wrapper(parent_state, obj, ...args);
+				}
+			}
+
+			// We've finished all wrappers. Return the wrapped value from the top wrapper.
+			const wrapped = (skip_wrappers ? this.get_wrapped(obj, is_setter) : top_wrapper.get_wrapped(obj, is_setter));
+			return wrapped?.apply(obj, args);
 		}
+
+		// Grab wrapper function from function data object
+		const fn = data.fn;
 
 		// OVERRIDE type does not continue the chain
 		if(data.type >= TYPES.OVERRIDE) {
@@ -288,11 +310,13 @@ export class Wrapper {
 
 		// Prepare the continuation of the chain
 		const next_state = {
-			setter: is_setter,
-			called: false,
-			valid : true,
-			index : index + 1,
+			setter   : is_setter,
+			called   : false,
+			valid    : true,
+			index    : index + 1,
 			prev_data: data,
+			top_wrapper : top_wrapper,
+			chain_parent: chain_parent,
 			modification_counter: this._modification_counter
 		};
 
