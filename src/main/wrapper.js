@@ -445,10 +445,7 @@ export class Wrapper {
 		const collect_stats = LibWrapperStats.collect_stats;
 		const prepare_module_name = (warn_in_console || collect_stats);
 		const module_name = prepare_module_name ? get_current_module_name() : null;
-		const user_friendly_module_name = module_name ? `<likely '${module_name}'>` : '<unknown>';
-
-		if(!DEBUG)
-			warn_in_console &= !(this.detected_classic_wrapper?.includes(user_friendly_module_name) ?? false);
+		const user_friendly_module_name = module_name ? `<${module_name}>` : '<unknown>';
 
 		let affectedModules = null;
 		if(collect_stats || warn_in_console) {
