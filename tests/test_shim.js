@@ -14,7 +14,7 @@ function setup() {
 }
 
 
-test('Shim: Basic functionality', async function (t) {
+test('Shim: Basic functionality', function (t) {
 	setup();
 
 	// Definitions
@@ -85,5 +85,62 @@ test('Shim: Basic functionality', async function (t) {
 	libWrapper.unregister('module1', 'A.prototype.x');
 
 
+	// Test invalid getter
+	t.throws(() => { libWrapperShim.register('module1', 'A.prototype.xyz', ()=>{}); }, undefined, "Wrap invalid getter");
+
+	// Test invalid setter
+	t.throws(() => { libWrapperShim.register('module1', 'A.prototype.x#set', ()=>{}); }, undefined, "Wrap invalid setter");
+
+
+	// Inherited method wrapping
+	class B {
+		x() {
+			return 1;
+		}
+	}
+	globalThis.B = B;
+
+	class C extends B {
+	}
+	globalThis.C = C;
+
+	let bxValue = 1;
+	let c = new C();
+	t.equal(c.x(), bxValue, 'Original');
+
+	// Register wrapper for inherited class
+	libWrapperShim.register('module1', 'C.prototype.x', function(original) {
+		t.equal(original(), bxValue, 'xWrapper 1');
+		return 10;
+	});
+	t.equal(c.x(), 10, "Wrapped with 10");
+
+
+	// Setter
+	let __dx = 1;
+	class D {
+		get x() {
+			return __dx;
+		}
+
+		set x(value) {
+			__dx = value;
+		}
+	}
+	globalThis.D = D;
+	let d = new D();
+	t.equal(d.x, 1, 'Original');
+
+	// Register wrapper for setter
+	libWrapperShim.register('module1', 'D.prototype.x#set', function(wrapped, value) {
+		return wrapped.call(this, value + 1);
+	});
+	t.equal(d.x, 1, 'Wrapped Setter #1');
+
+	d.x = 3;
+	t.equal(d.x, 4, 'Set 3 (+1)');
+
+
+	// Done
 	t.end();
 });

@@ -27,25 +27,34 @@ Hooks.once('init', () => {
 			const _eval = eval; // The browser doesn't expose all global variables (e.g. 'Game') inside globalThis, but it does to an eval. We copy it to a variable to have it run in global scope.
 			const obj = split.reduce((x,y)=>x[y], globalThis[root_nm] ?? _eval(root_nm));
 
-			const descriptor = Object.getOwnPropertyDescriptor(obj, fn_name);
-			if(!descriptor) throw `libWrapper Shim: "${target}" does not exist or could not be found.`;
+			let iObj = obj;
+			let descriptor = null;
+			while(iObj) {
+				descriptor = Object.getOwnPropertyDescriptor(iObj, fn_name);
+				if(descriptor) break;
+				iObj = Object.getPrototypeOf(iObj);
+			}
+			if(!descriptor) throw `libWrapper Shim: '${target}' does not exist or could not be found.`;
 
 			let original = null;
 			const wrapper = (type == 'OVERRIDE') ? function() { return fn.call(this, ...arguments); } : function() { return fn.call(this, original.bind(this), ...arguments); }
-			if(descriptor.value) {
-				original = obj[fn_name];
-				obj[fn_name] = wrapper;
-				return;
-			}
 
 			if(!is_setter) {
-				original = descriptor.get;
-				descriptor.get = wrapper;
+				if(descriptor.value) {
+					original = descriptor.value;
+					descriptor.value = wrapper;
+				}
+				else {
+					original = descriptor.get;
+					descriptor.get = wrapper;
+				}
 			}
 			else {
+				if(!descriptor.set) throw `libWrapper Shim: '${target}' does not have a setter`;
 				original = descriptor.set;
 				descriptor.set = wrapper;
 			}
+
 			descriptor.configurable = true;
 			Object.defineProperty(obj, fn_name, descriptor);
 		}

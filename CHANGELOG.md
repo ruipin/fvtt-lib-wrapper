@@ -1,3 +1,8 @@
+# 1.1.2.0 (2021-01-03)
+
+* Prevent wrapping of libWrapper internals
+* Update shim. Now supports very basic inherited method wrapping using static dispatch.
+
 # 1.1.1.0 (2021-01-03)
 
 * Fix parameters when instance-specific wrappers chain to class-specific wrappers.
