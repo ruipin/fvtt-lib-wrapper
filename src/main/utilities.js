@@ -95,6 +95,7 @@ export const WRAPPERS = new Set();
 
 
 // Notify GM
+let GM_NOTIFICATION_SET = null;
 export function notify_gm(msg, fn='error') {
 	if(!game.settings.get(MODULE_ID, 'notify-issues'))
 		return;
@@ -102,5 +103,11 @@ export function notify_gm(msg, fn='error') {
 	if(!game.user.isGM)
 		return;
 
+	if(!GM_NOTIFICATION_SET)
+		GM_NOTIFICATION_SET = new Set();
+	else if(GM_NOTIFICATION_SET.has(msg))
+		return;
+
+	GM_NOTIFICATION_SET.add(msg);
 	ui.notifications[fn](`libWrapper: ${msg}`);
 }

@@ -1,3 +1,8 @@
+# 1.1.1.0 (2021-01-03)
+
+* Fix parameters when instance-specific wrappers chain to class-specific wrappers.
+* Notify of conflicts when a module wraps instances directly without using libWrapper, but the class has a libWrapper wrapper.
+
 # 1.1.0.0 (2021-01-02)
 
 * Fix 'WRAPPER'-type wrappers that chain asynchronously. These will no longer be incorrectly unregistered for not chaining. (See [issue #7](https://github.com/ruipin/fvtt-lib-wrapper/issues/7))

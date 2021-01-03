@@ -272,10 +272,10 @@ export class Wrapper {
 		if(!data) {
 			// We need to call parent wrappers if they exist
 			// Otherwise, we can immediately return the wrapped value
-			let parent_wrapper = this._get_parent_wrapper();
+			const parent_wrapper = this._get_parent_wrapper();
 
 			if(parent_wrapper && parent_wrapper != this)
-				return parent_wrapper.call_wrapper(null, obj, ...arguments);
+				return parent_wrapper.call_wrapper(null, obj, ...args);
 			else
 				return this.get_wrapped(obj, is_setter)?.apply(obj, args);
 		}
@@ -359,6 +359,11 @@ export class Wrapper {
 					}).map((x) => {
 						return x.module;
 					});
+
+					const parent_wrapper = this._get_parent_wrapper();
+					if(parent_wrapper)
+						affectedModules.push(...parent_wrapper.get_affected_modules());
+
 					is_last_wrapper = (affectedModules.length == 0);
 
 					affectedModules.forEach((affected) => {
@@ -420,42 +425,56 @@ export class Wrapper {
 		this._wrapped = value;
 
 		// Warn user and/or log conflict
-		if(this.getter_data.length) {
-			const warn_in_console = (DEBUG || !this.detected_classic_wrapper);
-			const collect_stats = LibWrapperStats.collect_stats;
-			const prepare_module_name = (warn_in_console || collect_stats);
-			const module_name = prepare_module_name ? get_current_module_name() : null;
-			const user_friendly_module_name = module_name ? `<likely '${module_name}'>` : '<unknown>';
+		this.warn_classic_wrapper();
+	}
 
-			let affectedModules = null;
-			if(collect_stats || warn_in_console) {
-				affectedModules = this.getter_data.map((x) => {
-					return x.module;
+	get_affected_modules() {
+		const affectedModules = this.getter_data.map((x) => {
+			return x.module;
+		});
+
+		const parent_wrapper = this._get_parent_wrapper();
+		if(parent_wrapper)
+			affectedModules.push(...parent_wrapper.get_affected_modules());
+
+		return affectedModules;
+	}
+
+	warn_classic_wrapper() {
+		let warn_in_console = true;
+		const collect_stats = LibWrapperStats.collect_stats;
+		const prepare_module_name = (warn_in_console || collect_stats);
+		const module_name = prepare_module_name ? get_current_module_name() : null;
+		const user_friendly_module_name = module_name ? `<likely '${module_name}'>` : '<unknown>';
+
+		if(!DEBUG)
+			warn_in_console &= !(this.detected_classic_wrapper?.includes(user_friendly_module_name) ?? false);
+
+		let affectedModules = null;
+		if(collect_stats || warn_in_console) {
+			affectedModules = this.get_affected_modules();
+
+			if(collect_stats) {
+				affectedModules.forEach((affected) => {
+					LibWrapperStats.register_conflict(affected, user_friendly_module_name, this.name);
 				});
-
-				if(collect_stats) {
-					affectedModules.forEach((affected) => {
-						LibWrapperStats.register_conflict(affected, user_friendly_module_name, this.name);
-					});
-				}
 			}
-
-			if(warn_in_console) {
-				const affectedModules_str = (affectedModules.length > 1) ? `[${affectedModules.join(', ')}]` : `'${affectedModules[0]}'`;
-				const err_module = module_name ? `module '${module_name}'` : 'an unknown module';
-
-				notify_gm(`Detected potential conflict between ${err_module} and ${affectedModules_str}.`, 'warn');
-				console.warn(`libWrapper: Detected non-libWrapper wrapping of '${this.name}' by ${err_module}. This will potentially lead to conflicts with ${affectedModules_str}.`);
-
-				if(DEBUG && console.trace)
-					console.trace();
-			}
-
-			if(!this.detected_classic_wrapper)
-				this.detected_classic_wrapper = []
-
-			this.detected_classic_wrapper.push(user_friendly_module_name);
 		}
+
+		if(warn_in_console && affectedModules.length > 0) {
+			const affectedModules_str = (affectedModules.length > 1) ? `[${affectedModules.join(', ')}]` : `'${affectedModules[0]}'`;
+			const err_module = module_name ? `module '${module_name}'` : 'an unknown module';
+
+			notify_gm(`Detected potential conflict between ${err_module} and ${affectedModules_str}.`, 'warn');
+			console.warn(`libWrapper: Detected non-libWrapper wrapping of '${this.name}' by ${err_module}. This will potentially lead to conflicts with ${affectedModules_str}.`);
+
+			if(DEBUG && console.trace)
+				console.trace();
+		}
+
+		if(!this.detected_classic_wrapper)
+			this.detected_classic_wrapper = []
+		this.detected_classic_wrapper.push(user_friendly_module_name);
 	}
 
 
