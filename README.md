@@ -127,8 +127,8 @@ You can also specify the type of wrapper you want in the fourth (optional) param
 - `OVERRIDE`:
 
     - Use if your wrapper will *never* call the next function in the chain. This type has the lowest priority, and will always be called last.
-    - If another module already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <AlreadyOverriddenError> exception.
-      Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
+    - If another module already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <libWrapper.LibWrapperAlreadyOverriddenError> exception.
+      This exception can be caught by your module in order to fail gracefully and activate fallback code.
     - Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
 
 If using `WRAPPER` or `MIXED`, the first parameter passed to your wrapper will be the next wrapper in the wrapper chain, which you can use to continue the call.
@@ -164,7 +164,7 @@ Due to libWrapper limitations (see [issue #7](https://github.com/ruipin/fvtt-lib
 ```javascript
 libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', function (wrapped, ...args) {
     libWrapper.unregister('my-fvtt-module', 'Foo.prototype.bar');
-    return wrapped(...args); // throws libWrapper.InvalidWrapperChainError
+    return wrapped(...args); // throws libWrapper.LibWrapperInvalidWrapperChainError
 });
 ```
 
@@ -205,8 +205,6 @@ To register a wrapper function, you should call the method `libWrapper.register(
  * In addition to wrapping class methods, there is also support for wrapping methods on specific object instances, as well as class methods inherited from parent classes.
  * However, it is recommended to wrap methods directly in the class that defines them whenever possible, as inheritance/instance wrapping is less thoroughly tested and will incur a performance penalty.
  *
- * Note: The provided compatibility shim does not support instance-specific nor inherited-method wrapping.
- *
  * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.
  * @param {string} target  A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
  *                         This works for both normal methods, as well as properties with getters. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
@@ -225,7 +223,7 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *
  *   'OVERRIDE':
  *     Use if your wrapper will *never* call the next function in the chain. This type has the lowest priority, and will always be called last.
- *     If another module already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <AlreadyOverriddenError> exception.
+ *     If another module already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <libWrapper.LibWrapperAlreadyOverriddenError> exception.
  *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
  *     Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
  *
@@ -244,7 +242,6 @@ To unregister a wrapper function, you should call the method `libWrapper.unregis
 ```javascript
 /**
  * Unregister an existing wrapper.
- * Please do not use this to remove other module's wrappers.
  *
  * @param {string} module    The module identifier, i.e. the 'name' field in your module's manifest.
  * @param {string} target    A string containing the path to the function you wish to remove the wrapper from, starting at global scope. For example: 'SightLayer.prototype.updateToken'
@@ -261,7 +258,6 @@ To unregister all wrapper functions belonging to a given module, you should call
 ```javascript
 /**
  * Clear all wrappers created by a given module.
- * Please do not use this to remove other module's wrappers.
  *
  * @param {string} module    The module identifier, i.e. the 'name' field in your module's manifest.
  */

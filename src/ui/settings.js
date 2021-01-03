@@ -3,20 +3,29 @@
 
 'use strict';
 
-import {MODULE_ID, MODULE_TITLE, VERSION, TYPES_REVERSE} from './consts.js';
+import {MODULE_ID, MODULE_TITLE, VERSION, TYPES_REVERSE} from '../consts.js';
 import {LibWrapperStats} from './stats.js';
-import {WRAPPERS} from './main/utilities.js';
+import {WRAPPERS} from '../utils/misc.js';
 
 
 export class LibWrapperSettings extends FormApplication {
 	static init() {
-		game.settings.register(MODULE_ID, 'notify-issues', {
+		game.settings.register(MODULE_ID, 'notify-issues-gm', {
 			name: 'Notify GM of Issues',
 			default: true,
 			type: Boolean,
 			scope: 'world',
 			config: true,
 			hint: 'Whether to notify GMs when an issue is detected, for example a conflict.'
+		});
+
+		game.settings.register(MODULE_ID, 'notify-issues-player', {
+			name: 'Notify Players of Issues',
+			default: false,
+			type: Boolean,
+			scope: 'world',
+			config: true,
+			hint: 'Whether to notify Players when an issue is detected, for example a conflict.'
 		});
 
 		game.settings.registerMenu(MODULE_ID, 'menu', {
@@ -98,6 +107,9 @@ export class LibWrapperSettings extends FormApplication {
 				};
 
 				wrapper.get_fn_data(is_setter).forEach((fn_data) => {
+					if(fn_data.module == MODULE_ID)
+						return;
+
 					_d.modules.push({
 						name    : fn_data.module,
 						type    : TYPES_REVERSE[fn_data.type]

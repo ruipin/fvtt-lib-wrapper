@@ -1,3 +1,18 @@
+# 1.2.0.0 (2021-01-03)
+
+* Refactor source code directory structure.
+* **[BREAKING]** Clean-up API parameter validation.
+  * The `module` and `target` API parameter types are now validated, and these must be strings.
+  * The `module` API parameter will now undergo more extensive validation - attempts to wrap using a different module name than the caller may fail.
+  * Library now attempts to forbid wrapping libWrapper code and APIs.
+* Refactor error handling.
+  * All libWrapper errors now extend the `LibWrapperError` class.
+  * **[BREAKING]** For consistency, the previous libWrapper exception classes have been renamed.
+    * `AlreadyOverriddenError` and `InvalidWrapperChainError` have been renamed to `LibWrapperAlreadyOverriddenError` and `LibWrapperInvalidWrapperChainError` respectively.
+    * To aid compatibility, these can still be found in `libWrapper.AlreadyOverriddenError` and `libWrapper.InvalidWrapperChainError` as before, in addition to their new names.
+  * Add option to visually notify non-GM players of issues, in addition to the GM.
+  * No longer notifies user if libWrapper exceptions are handled by a given module.
+
 # 1.1.5.0 (2021-01-03)
 
 * Reintroduce changes from v1.1.3.0.

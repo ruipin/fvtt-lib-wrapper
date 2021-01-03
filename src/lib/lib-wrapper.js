@@ -5,9 +5,11 @@
 
 import {MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, parse_manifest_version, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug, TYPES, TYPES_REVERSE, TYPES_LIST} from '../consts.js';
 import {Wrapper} from './wrapper.js';
-import {AlreadyOverriddenError, InvalidWrapperChainError, get_global_variable, WRAPPERS, notify_gm} from './utilities.js';
-import {LibWrapperStats} from '../stats.js';
-import {LibWrapperSettings} from '../settings.js';
+import {LibWrapperError, LibWrapperModuleError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError} from '../utils/errors.js';
+import {get_global_variable, get_current_module_name, WRAPPERS} from '../utils/misc.js';
+import {LibWrapperNotifications} from '../ui/notifications.js'
+import {LibWrapperStats} from '../ui/stats.js';
+import {LibWrapperSettings} from '../ui/settings.js';
 
 // Local variables
 let libwrapper_ready = false;
@@ -25,16 +27,29 @@ export class libWrapper {
 	static get debug() { return DEBUG; }
 	static set debug(value) { setDebug(value) }
 
-	static get AlreadyOverriddenError() { return AlreadyOverriddenError; };
-	static get InvalidWrapperChainError() { return InvalidWrapperChainError; };
+	// Errors
+	static get LibWrapperError() { return LibWrapperError; };
+	static get Error() { return LibWrapperError; }
+
+	static get LibWrapperInternalError() { return LibWrapperInternalError; };
+	static get InternalError() { return LibWrapperInternalError; }
+	
+	static get LibWrapperModuleError() { return LibWrapperModuleError; };
+	static get ModuleError() { return LibWrapperModuleError; };
+	
+	static get LibWrapperAlreadyOverriddenError() { return LibWrapperAlreadyOverriddenError; };
+	static get AlreadyOverriddenError() { return LibWrapperAlreadyOverriddenError; };
+	
+	static get LibWrapperInvalidWrapperChainError() { return LibWrapperInvalidWrapperChainError; };
+	static get InvalidWrapperChainError() { return LibWrapperInvalidWrapperChainError; };
 
 
 	// Variables
 	static wrappers = WRAPPERS;
 
 	// Utilities
-	static _create_wrapper_from_object(obj, fn_name, name=undefined) {
-		const wrapper = new Wrapper(obj, fn_name, name);
+	static _create_wrapper_from_object(obj, fn_name, name=undefined, module=undefined) {
+		const wrapper = new Wrapper(obj, fn_name, name, module);
 		this.wrappers.add(wrapper);
 		return wrapper;
 	}
@@ -46,7 +61,7 @@ export class libWrapper {
 		return [_target, is_setter];
 	}
 
-	static _get_target_object(_target) {
+	static _get_target_object(_target, module=undefined) {
 		const target = this._split_target_and_setter(_target)[0];
 
 		const split = target.split('.');
@@ -63,15 +78,15 @@ export class libWrapper {
 		for(let scope of split) {
 			obj = obj[scope];
 			if(!obj)
-				throw `libWrapper: Invalid target '${target}'`;
+				throw new LibWrapperModuleError(`Invalid target '${target}'`, module);
 		}
 
 		return [obj, fn_name, target];
 	}
 
-	static _create_wrapper(target) {
+	static _create_wrapper(target, module=null) {
 		// Create wrapper
-		return this._create_wrapper_from_object(...this._get_target_object(target));
+		return this._create_wrapper_from_object(...this._get_target_object(target), module);
 	}
 
 	static _find_wrapper_by_name(_name) {
@@ -169,6 +184,23 @@ export class libWrapper {
 	}
 
 
+	static _validate_module(module) {
+		const real_module = get_current_module_name();
+
+		if(!module || typeof module !== 'string')
+			throw new LibWrapperModuleError('Parameter \'module\' must be a string.', real_module);
+
+		if(module != MODULE_ID && !game.modules.get(module)?.active)
+			throw new LibWrapperModuleError(`Module '${module}' is not a valid module.`, real_module);
+
+		if(module == MODULE_ID && !allow_libwrapper_registrations)
+			throw new LibWrapperModuleError(`Not allowed to call libWrapper with module='${module}'.`, real_module);
+
+		if(real_module && module != real_module)
+			throw new LibWrapperModuleError(`Module '${real_module}' is not allowed to call libWrapper with module='${module}'.`, real_module);
+	}
+
+
 	// Public interface
 
 	/**
@@ -177,8 +209,6 @@ export class libWrapper {
 	 *
 	 * In addition to wrapping class methods, there is also support for wrapping methods on specific object instances, as well as class methods inherited from parent classes.
 	 * However, it is recommended to wrap methods directly in the class that defines them whenever possible, as inheritance/instance wrapping is less thoroughly tested and will incur a performance penalty.
-	 *
-	 * Note: The provided compatibility shim does not support instance-specific nor inherited-method wrapping.
 	 *
 	 * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.
 	 * @param {string} target  A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
@@ -198,30 +228,30 @@ export class libWrapper {
 	 *
 	 *   'OVERRIDE':
 	 *     Use if your wrapper will *never* call the next function in the chain. This type has the lowest priority, and will always be called last.
-	 *     If another module already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <AlreadyOverriddenError> exception.
+	 *     If another module already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <libWrapper.LibWrapperAlreadyOverriddenError> exception.
 	 *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
 	 *     Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
 	 *
 	 *
 	 */
 	static register(module, target, fn, type='MIXED') {
-		if(module != MODULE_ID && !libwrapper_ready)
-			throw `libWrapper: Not allowed to register wrappers before the 'libWrapperReady' hook fires`;
-
 		// Validate module
-		if(module != MODULE_ID && !game.modules.get(module)?.active)
-			throw `libWrapper: '${module}' is not a valid module`;
+		this._validate_module(module);
 
-		if(module == MODULE_ID && !allow_libwrapper_registrations)
-			throw `libWrapper: Not allowed to register wrappers using '${module}'.`;
+		// Validate we're allowed to register wrappers at this moment
+		if(module != MODULE_ID && !libwrapper_ready)
+			throw new LibWrapperModuleError('Not allowed to register wrappers before the \'libWrapperReady\' hook fires', module);
 
-		// Validate arguments
+		// Validate other arguments
+		if(!target || typeof target !== 'string')
+			throw new LibWrapperModuleError('Parameter \'target\' must be a string.', module);
+
 		if(!fn || !(fn instanceof Function))
-			throw `libWrapper: Parameter 'fn' must be a function.`;
+			throw new LibWrapperModuleError('Parameter \'fn\' must be a function.', module);
 
 		type = TYPES[type.toUpperCase()];
 		if(typeof type === 'undefined' || !(type in TYPES_REVERSE))
-			throw `libWrapper: Parameter 'type' must be one of [${TYPES_LIST.join(', ')}].`;
+			throw new LibWrapperModuleError(`Parameter 'type' must be one of [${TYPES_LIST.join(', ')}].`, module);
 
 		// Split '#set' from the target
 		const target_and_setter  = this._split_target_and_setter(target);
@@ -229,15 +259,15 @@ export class libWrapper {
 		const is_setter          = target_and_setter[1];
 
 		// Create wrapper
-		let wrapper = this._create_wrapper(target);
+		let wrapper = this._create_wrapper(target, module);
 
 		// Check if this wrapper is already registered
 		if(this._find_module_data_in_wrapper(module, wrapper, is_setter))
-			throw `libWrapper: '${module}' has already registered a wrapper for '${target}'.`;
+			throw new LibWrapperModuleError(`Module '${module}' has already registered a wrapper for '${target}'.`, module);
 
 		// Only allow '#set' when the wrapper is wrapping a property
 		if(is_setter && !wrapper.is_property)
-			throw `libWrapper: Cannot register a wrapper for '${target}' by '${module}' because '${target_without_set}' is not a property, and therefore has no setter.`
+			throw new LibWrapperModuleError(`Cannot register a wrapper for '${target}' by '${module}' because '${target_without_set}' is not a property, and therefore has no setter.`, module);
 
 		// Get priority
 		const priority = this._get_default_priority(module, target);
@@ -247,16 +277,14 @@ export class libWrapper {
 			const existing = wrapper.get_fn_data(is_setter).find((x) => { return x.type == TYPES.OVERRIDE });
 
 			if(existing) {
-				const err_msg = `Conflict detected between '${module}' and '${existing.module}'.`;
-				notify_gm(err_msg);
-
 				if(priority <= existing.priority) {
-					LibWrapperStats.register_conflict(existing.module, module, wrapper.name);
-					throw new AlreadyOverriddenError(module, target, existing.module);
+					throw new LibWrapperAlreadyOverriddenError(module, existing.module, wrapper.name);
 				}
 				else {
 					LibWrapperStats.register_conflict(module, existing.module, wrapper.name);
-					console.warn(`libWrapper: ${err_msg} The former has higher priority, and is replacing the OVERRIDE registered by the latter for '${wrapper.name}'.`);
+					LibWrapperNotifications.conflict(existing.module, module, false,
+						`Module '${module}' has higher priority, and is replacing the OVERRIDE registered by '${existing.module}' for '${wrapper.name}'.`
+					);
 				}
 			}
 		}
@@ -285,18 +313,20 @@ export class libWrapper {
 
 	/**
 	 * Unregister an existing wrapper.
-	 * Please do not use this to remove other module's wrappers.
 	 *
 	 * @param {string} module    The module identifier, i.e. the 'name' field in your module's manifest.
 	 * @param {string} target    A string containing the path to the function you wish to remove the wrapper from, starting at global scope. For example: 'SightLayer.prototype.updateToken'
 	 * @param {function} fail    [Optional] If true, this method will throw an exception if it fails to find the method to unwrap. Default is 'true'.
 	 */
 	static unregister(module, target, fail=true) {
+		// Validate module
+		this._validate_module(module);
+
 		// Find wrapper
 		const data = this._find_module_data_with_target(module, target);
 		if(!data) {
 			if(fail)
-				throw `libWrapper: Cannot unregister '${target}' by '${module}' as no such wrapper has been registered`;
+				throw new LibWrapperModuleError(`Cannot unregister '${target}' by '${module}' as no such wrapper has been registered`, module);
 			return;
 		}
 
@@ -313,11 +343,14 @@ export class libWrapper {
 
 	/**
 	 * Clear all wrappers created by a given module.
-	 * Please do not use this to remove other module's wrappers.
 	 *
 	 * @param {string} module    The module identifier, i.e. the 'name' field in your module's manifest.
 	 */
 	static clear_module(module) {
+		// Validate module
+		this._validate_module(module);
+
+		// Clear module wrappers
 		for(let wrapper of this.wrappers) {
 			this.unregister(module, wrapper.name, false);
 
@@ -355,8 +388,6 @@ if(!IS_UNITTEST) {
 		Hooks.callAll('libWrapperReady', libWrapper);
 
 		const result = wrapped(...args);
-
-		libWrapper.unregister('lib-wrapper', 'Game.prototype.initialize');
 
 		return result;
 	}, 'WRAPPER');

@@ -4,8 +4,10 @@
 'use strict';
 
 import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG} from '../consts.js';
-import {InvalidWrapperChainError, get_current_module_name, notify_gm} from './utilities.js';
-import {LibWrapperStats} from '../stats.js';
+import {get_current_module_name} from '../utils/misc.js';
+import {LibWrapperInternalError, LibWrapperModuleError, LibWrapperInvalidWrapperChainError} from '../utils/errors.js';
+import {LibWrapperNotifications} from '../ui/notifications.js';
+import {LibWrapperStats} from '../ui/stats.js';
 
 
 // Handler class - owns the function that is returned by the wrapper class
@@ -38,7 +40,7 @@ export class Wrapper {
 	}
 
 	// Constructor
-	constructor (obj, fn_name, name=undefined) {
+	constructor (obj, fn_name, name=undefined, module=undefined) {
 		// Basic instance variables
 		this.fn_name = fn_name;
 		this.object  = obj;
@@ -58,7 +60,7 @@ export class Wrapper {
 			}
 
 			if(descriptor.configurable === false) {
-				throw `libWrapper: '${name}' cannot be wrapped, the corresponding descriptor has 'configurable=false'.`;
+				throw new LibWrapperModuleError(`libWrapper: '${name}' cannot be wrapped, the corresponding descriptor has 'configurable=false'.`, module);
 			}
 			else {
 				if(descriptor.get) {
@@ -71,7 +73,7 @@ export class Wrapper {
 		}
 		else {
 			if(!Object.getPrototypeOf(obj)[this.fn_name])
-				throw `libWrapper: Can't wrap '${name}', target does not exist or could not be found.`;
+				throw new LibWrapperModuleError(`libWrapper: Can't wrap '${name}', target does not exist or could not be found.`, module);
 
 			this._wrapped = undefined;
 		}
@@ -160,7 +162,7 @@ export class Wrapper {
 			return;
 
 		if(!PROPERTIES_CONFIGURABLE)
-			throw `libWrapper: Cannot unwrap when PROPERTIES_CONFIGURABLE==false`;
+			throw new LibWrapperInternalError('libWrapper: Cannot unwrap when PROPERTIES_CONFIGURABLE==false');
 
 
 		// Kill the handler
@@ -259,17 +261,19 @@ export class Wrapper {
 
 		// Keep track of call state
 		if(!skip_wrappers && state) {
+			let module = null;
+			let err_msg = null;
+
 			if('valid' in state && !state.valid) {
-				let err_msg = `This wrapper function for '${this.name}' is no longer valid, and must not be called.`;
-
-				if(state.prev_data?.module)
-					err_msg += ` This error is most likely caused by an issue in module '${state.prev_data.module}'.`;
-
-				throw new InvalidWrapperChainError(this, err_msg);
+				err_msg = `This wrapper function for '${this.name}' is no longer valid, and must not be called.`;
+				module = state.prev_data?.module;
 			}
 
 			if('modification_counter' in state && state.modification_counter != this._modification_counter)
-				throw new InvalidWrapperChainError(this, `The wrapper '${this.name}' was modified while a call chain was in progress. The chain is not allowed proceed.`);
+				err_msg = `The wrapper '${this.name}' was modified while a call chain was in progress. The chain is not allowed proceed.`;
+
+			if(err_msg)
+				throw new LibWrapperInvalidWrapperChainError(this, module, err_msg);
 
 			state.called = true;
 		}
@@ -373,11 +377,12 @@ export class Wrapper {
 
 			// Check that next_fn was called
 			if(!next_state.called && next_state.modification_counter == this._modification_counter) {
-				let collect_information = LibWrapperStats.collect_stats;
+				// We need to collect affected modules information if we're collecting statistics, or we haven't warned the user of this conflict yet.
+				let collect_affected = (!data.warned_conflict || LibWrapperStats.collect_stats);
 				let affectedModules = null;
 				let is_last_wrapper = false;
 
-				if(collect_information) {
+				if(collect_affected) {
 					affectedModules = fn_data.slice(next_state.index).filter((x) => {
 						return x.module != data.module;
 					}).map((x) => {
@@ -387,18 +392,20 @@ export class Wrapper {
 					const parent_wrapper = this._get_parent_wrapper();
 					if(parent_wrapper)
 						affectedModules.push(...parent_wrapper.get_affected_modules());
-
 					is_last_wrapper = (affectedModules.length == 0);
 
-					affectedModules.forEach((affected) => {
-						LibWrapperStats.register_conflict(data.module, affected, this.name);
-					});
+					LibWrapperStats.register_conflict(data.module, affectedModules, this.name);
 				}
 
 				// WRAPPER-type functions that do this are breaking an API requirement, as such we need to be loud about this.
 				// As a "punishment" of sorts, we forcefully unregister them and ignore whatever they did.
 				if(data.type == TYPES.WRAPPER) {
-					console.error(`libWrapper: The wrapper for '${data.target}' registered by module '${data.module}' with type WRAPPER did not chain the call to the next wrapper, which breaks a libWrapper API requirement. This wrapper will be unregistered.`);
+					LibWrapperNotifications.console_ui(
+						`Error detected in module '${data.module}'.`,
+						`The wrapper for '${data.target}' registered by module '${data.module}' with type WRAPPER did not chain the call to the next wrapper, which breaks a libWrapper API requirement. This wrapper will be unregistered.`,
+						'error'
+					);
+
 					globalThis.libWrapper.unregister(data.module, data.target);
 
 					// Manually chain to the next wrapper if there are more in the chain
@@ -410,11 +417,9 @@ export class Wrapper {
 					}
 				}
 
-				// Other TYPES only get a single log line
-				else if(collect_information && (DEBUG || !data.warned_conflict) && !is_last_wrapper) {
-					const err_msg = `Possible conflict detected between '${data.module}' and [${affectedModules.join(', ')}].`;
-					notify_gm(err_msg);
-					console.warn(`libWrapper: ${err_msg} The former did not chain the wrapper for '${data.target}'.`);
+				// Other TYPES get a generic 'conflict' message
+				else if(!data.warned_conflict && !is_last_wrapper) {
+					LibWrapperNotifications.conflict(data.module, affectedModules, true, `Module '${data.module}' did not chain the wrapper for '${data.target}'.`);
 					data.warned_conflict = true;
 				}
 			}
@@ -465,29 +470,14 @@ export class Wrapper {
 	}
 
 	warn_classic_wrapper() {
-		let warn_in_console = true;
-		const collect_stats = LibWrapperStats.collect_stats;
-		const prepare_module_name = (warn_in_console || collect_stats);
-		const module_name = prepare_module_name ? get_current_module_name() : null;
-		const user_friendly_module_name = module_name ? `<${module_name}>` : '<unknown>';
+		let module_name = get_current_module_name();
+		module_name = module_name ? `<${module_name}>` : '<unknown>';
 
-		let affectedModules = null;
-		if(collect_stats || warn_in_console) {
-			affectedModules = this.get_affected_modules();
+		const affectedModules = this.get_affected_modules();
+		LibWrapperStats.register_conflict(module_name, affectedModules, this.name);
 
-			if(collect_stats) {
-				affectedModules.forEach((affected) => {
-					LibWrapperStats.register_conflict(affected, user_friendly_module_name, this.name);
-				});
-			}
-		}
-
-		if(warn_in_console && affectedModules.length > 0) {
-			const affectedModules_str = (affectedModules.length > 1) ? `[${affectedModules.join(', ')}]` : `'${affectedModules[0]}'`;
-			const err_module = module_name ? `module '${module_name}'` : 'an unknown module';
-
-			notify_gm(`Detected potential conflict between ${err_module} and ${affectedModules_str}.`, 'warn');
-			console.warn(`libWrapper: Detected non-libWrapper wrapping of '${this.name}' by ${err_module}. This will potentially lead to conflicts with ${affectedModules_str}.`);
+		if(affectedModules.length > 0) {
+			LibWrapperNotifications.conflict(module_name, affectedModules, true, `Detected non-libWrapper wrapping of '${this.name}' by '${module_name}'. This will potentially lead to conflicts.`);
 
 			if(DEBUG && console.trace)
 				console.trace();
@@ -495,7 +485,7 @@ export class Wrapper {
 
 		if(!this.detected_classic_wrapper)
 			this.detected_classic_wrapper = []
-		this.detected_classic_wrapper.push(user_friendly_module_name);
+		this.detected_classic_wrapper.push(module_name);
 	}
 
 
@@ -503,7 +493,7 @@ export class Wrapper {
 	// NOTE: These should only ever be called from libWrapper, they do not clean up after themselves
 	get_fn_data(setter) {
 		if(setter && !this.is_property)
-			throw `libWrapper: '${this.name}' does not wrap a property, thus setter=true is illegal.`;
+			throw new LibWrapperInternalError(`libWrapper: '${this.name}' does not wrap a property, thus setter=true is illegal.`);
 
 		return setter ? this.setter_data : this.getter_data;
 	}

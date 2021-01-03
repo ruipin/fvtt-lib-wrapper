@@ -3,9 +3,11 @@
 
 'use strict';
 
+// Initialize error listeners
+import {} from './utils/errors.js';
 
 // Import the main library
-import {} from './main/lib-wrapper.js';
+import {} from './lib/lib-wrapper.js';
 
 // Settings dialog
-import {} from './settings.js';
+import {} from './ui/settings.js';

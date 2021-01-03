@@ -3,7 +3,7 @@
 
 'use strict';
 
-import {MODULE_ID} from './consts.js';
+import {MODULE_ID} from '../consts.js';
 
 export class LibWrapperStats {
 	static init() {
@@ -30,12 +30,22 @@ export class LibWrapperStats {
 		if(!this.collect_stats)
 			return;
 
+		if(module == MODULE_ID)
+			return;
+
 		this.MODULES.add(module);
 	}
 
 	static register_conflict(module, other, target) {
 		if(!this.collect_stats)
 			return;
+
+		if(Array.isArray(other)) {
+			other.forEach((m) => {
+				LibWrapperStats.register_conflict(module, m, target);
+			});
+			return;
+		}
 
 		const key = `${module}/${other}`;
 
