@@ -232,6 +232,15 @@ test('Wrapper Async: Inherited Class', async function(t) {
 	class C extends B {
 	}
 
+	class D extends B {
+	}
+
+	class E extends D {
+		x() {
+			return 100;
+		}
+	}
+
 	let originalValue = 1;
 	let a = new A();
 	t.equal(await a.x(), originalValue, 'Original');
@@ -281,6 +290,17 @@ test('Wrapper Async: Inherited Class', async function(t) {
 		return 7;
 	});
 	t.equal(await a2.x(), 7, "Wrapped with 7");
+
+
+	// Overriding E's prototype will work
+	let originalValue3 = 5;
+	wrap_front(E.prototype, 'x', async function(original) {
+		t.equal(await original(), originalValue3, 'xWrapper 5');
+		return 9;
+	});
+	let e = new E();
+	originalValue2 = 100;
+	t.equal(await e.x(), 9, "Wrapped with 9");
 
 
 	// Done
