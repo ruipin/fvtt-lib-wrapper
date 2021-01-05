@@ -11,7 +11,7 @@ export default {
 		globals: {
 			jquery: '$'
 		},
-		banner: "// SPDX-License-Identifier: LGPL-3.0-or-later\n// Copyright © 2020 fvtt-lib-wrapper Rui Pinheiro\n",
+		banner: "// SPDX-License-Identifier: LGPL-3.0-or-later\n// Copyright © 2021 fvtt-lib-wrapper Rui Pinheiro\n",
 		compact: true,
 		interop: false,
 		sourcemap: 'dist/lib-wrapper.js.map'
