@@ -3,144 +3,66 @@
 
 'use strict';
 
-
-import test from 'tape';
-import {wrap_front, unwrap_all_from_obj} from './utilities.js';
+import {CallOrderChecker} from './call_order_checker.js';
+import {wrap_front, unwrap_all_from_obj, test_sync_async, async_retval} from './utilities.js';
 import '../src/lib/lib-wrapper.js';
+
 
 function setup() {
 	libWrapper._unwrap_all();
 
 	game.modules.clear();
-	global.A = undefined;
+	globalThis.A = undefined;
 }
 
 
-
-test('Wrapper: Basic functionality', function (t) {
+// Test the basic functionality of libWrapper
+test_sync_async('Wrapper: Basic functionality', async function (t) {
 	setup();
-
-	class A {
-		x() {
-			return 1;
-		}
-	}
+	const chkr = new CallOrderChecker(t);
 
 
-	let originalValue = 1;
+	// Define class
+	class A {};
+	A.prototype.x = chkr.gen_fn('A:Orig');
+
+
+	// Instantiate
 	let a = new A();
-	t.equal(a.x(), originalValue, 'Original');
+	await chkr.call(a, 'x', ['A:Orig'], 'a.Orig');
+
+	// First wrapper
+	wrap_front(A.prototype, 'x', chkr.gen_wr('A:1'));
+	await chkr.call(a, 'x', ['A:1','A:Orig'], 'a.A:1');
+
+	// Second wrapper
+	wrap_front(A.prototype, 'x', chkr.gen_wr('A:2'));
+	await chkr.call(a, 'x', ['A:2','A:1','A:Orig'], 'a.A:2');
+
+	// Manual wrapper
+	A.prototype.x = chkr.gen_fn('Man:A:1');
+	await chkr.call(a, 'x', ['A:2','A:1','Man:A:1'], 'a.Man:A:1');
+
+	// Third wrapper
+	wrap_front(A.prototype, 'x', chkr.gen_wr('A:3'));
+	await chkr.call(a, 'x', ['A:3','A:2','A:1','Man:A:1'], 'a.A:3');
+
+	// Second Manual Wrapper
+	A.prototype.x = chkr.gen_fn('Man:A:2');
+	await chkr.call(a, 'x', ['A:3','A:2','A:1','Man:A:2'], 'a.Man:A:2');
 
 
-	wrap_front(A.prototype, 'x', function(original) {
-		t.equal(original(), originalValue, 'xWrapper 1');
-		return 10;
-	});
-	t.equal(a.x(), 10, "Wrapped with 10");
-
-
-	wrap_front(A.prototype, 'x', function(original) {
-		t.equal(original(), 10, 'xWrapper 2');
-		return 20;
-	});
-	t.equal(a.x(), 20, "Wrapped with 20");
-
-
-	A.prototype.x = function() { return 2; };
-	originalValue = 2;
-	t.equal(a.x(), 20, "Replaced with 2");
-
-
-	wrap_front(A.prototype, 'x', function(original) {
-		t.equal(original(), 20, 'xWrapper 3');
-		return 30;
-	});
-	t.equal(a.x(), 30, "Wrapped with 30");
-
-
-	A.prototype.x = function() { return 3; };
-	originalValue = 3;
-	t.equal(a.x(), 30, "Replaced with 3");
-
-
-	// Done
-	t.end();
-});
-
-
-
-test('Wrapper: Parameters', function(t) {
-	setup();
-
-	class A {
-		y(ret=1) {
-			return ret;
-		}
-	}
-
-
-	let originalValue = 1;
-	let a = new A();
-	t.equal(a.y(), originalValue, 'Original');
-	t.equal(a.y(100), 100, 'Original(100)');
-
-
-	wrap_front(A.prototype, 'y', function(original, ret=originalValue) {
-		t.equal(original(ret), ret, 'yWrapper 1');
-		return 1000;
-	});
-
-	t.equal(a.y( ), 1000, "Wrapped (1)");
-	t.equal(a.y(3), 1000, "Wrapped (2)");
-	t.equal(a.y(5), 1000, "Wrapped (3)");
-
-
-	// Done
-	t.end();
-});
-
-
-
-test('Wrapper: Prototype redirection', function(t) {
-	setup();
-
-	class A {
-		z(y) {
-			return y;
-		}
-	}
-
-
-	let originalValue = 1;
-	let a = new A();
-	t.equal(a.z(1), originalValue, 'Original');
-
-
-	// Wrap normally first
-	wrap_front(A.prototype, 'z', function(original, ...args) {
-		t.equal(original.apply(this, args), originalValue, 'zWrapper 1');
-		return 100;
-	});
-	t.equal(a.z(1), 100, "Wrapped with 100");
-
-
-	// Wrap in the traditional way, by modifying prototype
-	let wrappedValue = 1;
-	A.prototype.z = (function() {
-		let original = A.prototype.z;
-
-		return function() {
-			t.equal(original.apply(this, arguments), wrappedValue, 'Prototype Wrapper 1');
-			return 2;
-		};
+	// Wrap in the traditional way, by storing the prototype, and then modifying it
+	A.prototype.x = (function() {
+		const wrapped = A.prototype.x;
+		return chkr.gen_fn('Man:A:3', wrapped);
 	})();
-	originalValue = 2;
+	await chkr.call(a, 'x', ['A:3','A:2','A:1','Man:A:3','Man:A:2'], 'a.Man:A:3');
 
 
-	// Confirm it's working properly
-	t.equal(a.z(1), 100, "Wrapped with prototype (1)");
-	wrappedValue = 2;
-	t.equal(a.z(2), 100, "Wrapped with prototype (2)");
+	// Fourth wrapper
+	wrap_front(A.prototype, 'x', chkr.gen_wr('A:4'));
+	await chkr.call(a, 'x', ['A:4','A:3','A:2','A:1','Man:A:3','Man:A:2'], 'a.Man:A:4');
 
 
 	// Done
@@ -149,59 +71,72 @@ test('Wrapper: Prototype redirection', function(t) {
 
 
 
-test('Wrapper: Replace on instance', function(t) {
+// Test the usual libWrapper syntax, i.e. do not use automations from CallOrderChecker
+test_sync_async('Wrapper: libWrapper syntax', async function (t) {
 	setup();
 
 
+	// Define class
 	class A {
-		x(y=1) {
-			return y;
+		x(y,z) {
+			return t.test_async ? async_retval(y + z) : (y + z);
 		}
 	}
 
 
+	// Instantiate
+
 	let a = new A();
-	t.equal(a.x(), 1, 'Original');
+	t.equal(await a.x(0,1), 1, 'Original #1');
+	t.equal(await a.x(1,1), 2, 'Original #2');
 
 
-	// Create a normal wrapper
-	let wrapper1_value = 1;
-	wrap_front(A.prototype, 'x', function(original, ...args) {
-		const result = original(...args);
-		t.equal(result, wrapper1_value, 'xWrapper 1');
-		return result + 1;
+	// Test 'wrapped(...args)'
+	let wrapper1_check;
+	wrap_front(A.prototype, 'x', async function(wrapped, ...args) {
+		t.equal(await wrapped(...args), wrapper1_check, 'xWrapper 1');
+		return args[0] - args[1];
 	});
-	t.equal(a.x(), 2, "Wrapped prototype #1");
-	wrapper1_value = 11;
-	t.equal(a.x(11), 12, "Wrapped prototype #2");
+
+	wrapper1_check = 5;
+	t.equal(await a.x(3,2), 1, "Wrapper1 #1");
+
+	wrapper1_check = 20;
+	t.equal(await a.x(10,10), 0, "Wrapper1 #2");
 
 
-	// Assign directly to a, not to A.prototype
-	a.x = function() { return 20; };
-	wrapper1_value = 20;
-	t.equal(a.x(), 21, 'Instance assign #1');
+	// Test 'wrapped.apply(this, args)'
+	let wrapper2_check;
+	wrap_front(A.prototype, 'x', async function(wrapped, ...args) {
+		t.equal(await wrapped.apply(this, args), wrapper2_check, 'xWrapper 2');
+		return args[0] * args[1];
+	});
+
+	wrapper1_check = 15;
+	wrapper2_check = 5;
+	t.equal(await a.x(10,5), 50, "Wrapper2 #1");
+
+	wrapper1_check = 6;
+	wrapper2_check = -2;
+	t.equal(await a.x(2,4), 8, "Wrapper2 #2");
 
 
-	// Calling another instance should return the old value
-	let b = new A();
-	wrapper1_value = 1;
-	t.equal(b.x(), 2, 'Instance assign #2');
+	// Test 'wrapped.call(this, ...args)'
+	let wrapper3_check;
+	wrap_front(A.prototype, 'x', async function(wrapped, ...args) {
+		t.equal(await wrapped.call(this, ...args), wrapper3_check, 'xWrapper 3');
+		return Math.floor(args[0] / args[1]);
+	});
 
+	wrapper1_check = 6;
+	wrapper2_check = 0;
+	wrapper3_check = 9;
+	t.equal(await a.x(3,3), 1, "Wrapper3 #1");
 
-	// Use a manual wrapper of the instance instead
-	let instancewrapper_value = 1;
-	const b_original = b.x;
-	b.x = function(...args) {
-		const result = b_original(...args);
-		t.equal(result, instancewrapper_value, 'Instance manual wrapper #1');
-		return result + 1;
-	};
-	wrapper1_value = 2;
-	instancewrapper_value = 1;
-	t.equal(b.x(), 3, 'Instance manual wrapper call #1');
-	wrapper1_value = 12;
-	instancewrapper_value = 11;
-	t.equal(b.x(11), 13, 'Instance manual wrapper call #2');
+	wrapper1_check = 15;
+	wrapper2_check = 1;
+	wrapper3_check = 56;
+	t.equal(await a.x(8,7), 1, "Wrapper3 #2");
 
 
 	// Done
@@ -210,113 +145,153 @@ test('Wrapper: Replace on instance', function(t) {
 
 
 
-test('Wrapper: Inherited Class', function(t) {
+// Assign directly to an instance after wrapping the prototype
+test_sync_async('Wrapper: Instance assignment', async function(t) {
 	setup();
+	const chkr = new CallOrderChecker(t);
 
-	class B {
-		x() {
-			return 1;
-		}
 
-		y() {
-			return 1000;
-		}
-	}
+	// Define class
+	class A {};
+	A.prototype.x = chkr.gen_fn('A:Orig');
 
-	class A extends B {
-	}
 
-	class C extends B {
-	}
-
-	class D extends B {
-	}
-
-	class E extends D {
-		x() {
-			return 100;
-		}
-	}
-
-	class F extends B {
-		x() {
-			return super.x() + 999;
-		}
-	}
-
-	let originalValue = 1;
+	// Instantiate
 	let a = new A();
-	t.equal(a.x(), originalValue, 'Original');
+	await chkr.call(a, 'x', ['A:Orig'], 'a.Orig');
 
-	wrap_front(a, 'x', function(original) {
-		t.equal(original(), originalValue, 'xWrapper 1');
-		return 10;
-	});
-	t.equal(a.x(), 10, "Wrapped with 10");
+
+	// Create a normal class wrapper
+	wrap_front(A.prototype, 'x', chkr.gen_wr('A:1'));
+	await chkr.call(a, 'x', ['A:1','A:Orig'], 'a.A:1');
 
 
 	// Assign directly to a, not to A.prototype
-	a.x = function() { return 20; };
-	originalValue = 20;
-	t.equal(a.x(), 10, 'Instance assign #1');
+	a.x = chkr.gen_fn('a:1');
+	await chkr.call(a, 'x', ['A:1','a:1'], 'a.a:1');
 
 
-	// Calling another instance should return the old value
-	let a2 = new A();
-	t.equal(a2.x(), 1, 'Instance assign #2');
+	// Calling another instance should not include wrapper 'a1' in the wrapper chain
+	let b = new A();
+	await chkr.call(b, 'x', ['A:1','A:Orig'], 'b.Orig');
 
 
-	// Calling C will work
+	// Create manual instance wrapper
+	b.x = (function() {
+		const wrapped = b.x;
+		return chkr.gen_fn('Man:b:1', wrapped);
+	})();
+	await chkr.call(b, 'x', ['A:1','Man:b:1','A:Orig'], 'b.Man:b:1');
+
+
+	// Done
+	t.end();
+});
+
+
+
+// Test wrapping inherited methods
+test_sync_async('Wrapper: Inherited Methods', async function(t) {
+	setup();
+	const chkr = new CallOrderChecker(t);
+
+
+	// Define class
+	class A {};
+	A.prototype.x = chkr.gen_fn('A:Orig');
+
+	class B extends A {};
+
+	class C extends A {};
+
+	class D extends A {};
+
+	class E extends D {};
+	E.prototype.x = chkr.gen_fn('E:Orig');
+
+	class F extends A {
+		// Long-form since we need to be inside the method to be able to use 'super'
+		x(...args) {
+			return chkr.gen_fn('F:Orig', super.x).apply(this, args);
+		}
+	}
+
+
+	// Instantiate A
+	let a = new A();
+	await chkr.call(a, 'x', ['A:Orig'], 'a.Orig');
+
+
+	// Instantiate B
+	let b = new B();
+	await chkr.call(b, 'x', ['A:Orig'], 'b.Orig');
+
+
+	// Wrap class B
+	wrap_front(B.prototype, 'x', chkr.gen_wr('B:1'));
+	await chkr.call(b, 'x', ['B:1','A:Orig'], 'b.B:1');
+
+
+	// Assign directly to b, not to B.prototype
+	b.x = chkr.gen_fn('b:1');
+	await chkr.call(b, 'x', ['B:1','b:1'], 'b.b:1');
+
+
+	// Create manual instance wrapper
+	b.x = (function() {
+		const wrapped = b.x;
+		return chkr.gen_fn('Man:b:1', wrapped);
+	})();
+	await chkr.call(b, 'x', ['B:1','Man:b:1','b:1'], 'b.Man:b:1');
+
+
+	// Using another instance should not call b's instance wrappers
+	let b2 = new B();
+	await chkr.call(b2, 'x', ['B:1','A:Orig'], 'b2.Orig');
+
+
+	// Using C will work correctly
 	let c = new C();
-	t.equal(c.x(), 1, "Original C");
+	await chkr.call(c, 'x', ['A:Orig'], 'c.Orig');
 
 
-	// Overriding C's prototype will work
-	let originalValue2 = 1;
-	wrap_front(C.prototype, 'x', function(original) {
-		t.equal(original(), originalValue2, 'xWrapper 2');
-		return 8;
-	});
-	t.equal(c.x(), 8, "Wrapped with 8");
+	// Wrapping C's prototype will work
+	wrap_front(C.prototype, 'x', chkr.gen_wr('C:1'));
+	await chkr.call(c, 'x', ['C:1','A:Orig'], 'c.C:1');
 
 
-	// Overriding B's prototype will work
-	wrap_front(B.prototype, 'x', function(original) {
-		t.equal(original(), originalValue2, 'xWrapper 3');
-		return 5;
-	});
-	originalValue = 5;
-	t.equal(a2.x(), 5, "Wrapped with 5");
+	// Wrapping A's prototype will work
+	wrap_front(A.prototype, 'x', chkr.gen_wr('A:1'));
+	await chkr.call(a, 'x', ['A:1','A:Orig'], 'a.A:1');
+	// And be seen by inherited classes
+	await chkr.call(b2, 'x', ['B:1','A:1','A:Orig'], 'b2.A:1');
+	await chkr.call(c, 'x', ['C:1','A:1','A:Orig'], 'c.A:1');
 
 
-	// Overriding A's prototype will use B's wrapper
-	wrap_front(A.prototype, 'x', function(original) {
-		t.equal(original(), originalValue, 'xWrapper 4');
-		return 7;
-	});
-	t.equal(a2.x(), 7, "Wrapped with 7");
-
-
-	// Overriding E's prototype will work
-	let originalValue3 = 5;
-	wrap_front(E.prototype, 'x', function(original) {
-		t.equal(original(), originalValue3, 'xWrapper 5');
-		return 9;
-	});
+	// Instantiate E
 	let e = new E();
-	originalValue2 = 100;
-	t.equal(e.x(), 9, "Wrapped with 9");
+	await chkr.call(e, 'x', ['E:Orig'], 'e.Orig');
 
 
-	// Super
-	let originalValue4 = 5;
-	wrap_front(F.prototype, 'x', function(original) {
-		t.equal(original(), originalValue4, 'xWrapper 6');
-		return 2000;
-	});
+	// Wrapping E's prototype will work
+	// NOTE: This is inconsistent... Compare 'e.E:1' with 'e.Orig' above. 'A:1' only shows up once E is wrapped by libWrapper.
+	//       This is because currently, inherited wrappers get priority over the original method of the child class. See github issue #13.
+	wrap_front(E.prototype, 'x', chkr.gen_wr('E:1'));
+	await chkr.call(e, 'x', ['E:1','A:1','E:Orig'], 'e.E:1');
+
+
+	// Instantiate F
+	// Using the 'super' construct will work, even if the inherited method is wrapped
 	let f = new F();
-	originalValue2 = 1000;
-	t.equal(f.x(), 2000, "Wrapped with 2000");
+	await chkr.call(f, 'x', ['F:Orig','A:1','A:Orig'], 'f.Orig');
+
+
+	// Using the 'super' construct will work, even if the method itself is wrapped
+	// NOTE: As before, there is an inconsistency here due to inherited wrappers getting priority. Perhaps this should be ['F:1','F:Orig','A:1','A:Orig']?
+	//       This is because currently, inherited wrappers get priority over the original method of the child class. See github issue #13.
+	wrap_front(F.prototype, 'x', chkr.gen_wr('F:1'));
+	await chkr.call(f, 'x', ['F:1','A:1','F:Orig','A:Orig'], 'f.F:1');
+
 
 
 	// Done

@@ -3,6 +3,7 @@
 
 import test from 'tape';
 
+
 // Emulate hooks
 class Hooks {
 	static callAll() {}
@@ -88,6 +89,16 @@ export let unwrap_all_from_obj = function(obj, fn_name, is_setter=false) {
 
 
 // Async helpers
+export async function test_sync_async(title, fn) {
+	for(let is_async of [false, true]) {
+		test(is_async ? `${title} (async)` : title, async function(t) {
+			t.test_async = is_async;
+
+			return fn(t);
+		});
+	}
+}
+
 export const ASYNC_TIMEOUT = 1;
 
 export let async_retval = function(in_value) {
