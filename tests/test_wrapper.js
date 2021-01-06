@@ -16,6 +16,7 @@ function setup() {
 }
 
 
+
 // Test the basic functionality of libWrapper
 test_sync_async('Wrapper: Basic functionality', async function (t) {
 	setup();
@@ -24,45 +25,45 @@ test_sync_async('Wrapper: Basic functionality', async function (t) {
 
 	// Define class
 	class A {};
-	A.prototype.x = chkr.gen_fn('A:Orig');
+	A.prototype.x = chkr.gen_rt('A:Orig');
 
 
 	// Instantiate
 	let a = new A();
-	await chkr.call(a, 'x', ['A:Orig'], 'a.Orig');
+	await chkr.call(a, 'x', ['A:Orig',-1], {title: 'a.Orig'});
 
 	// First wrapper
 	wrap_front(A.prototype, 'x', chkr.gen_wr('A:1'));
-	await chkr.call(a, 'x', ['A:1','A:Orig'], 'a.A:1');
+	await chkr.call(a, 'x', ['A:1','A:Orig',-2], {title: 'a.A:1'});
 
 	// Second wrapper
 	wrap_front(A.prototype, 'x', chkr.gen_wr('A:2'));
-	await chkr.call(a, 'x', ['A:2','A:1','A:Orig'], 'a.A:2');
+	await chkr.call(a, 'x', ['A:2','A:1','A:Orig',-3], {title: 'a.A:2'});
 
 	// Manual wrapper
-	A.prototype.x = chkr.gen_fn('Man:A:1');
-	await chkr.call(a, 'x', ['A:2','A:1','Man:A:1'], 'a.Man:A:1');
+	A.prototype.x = chkr.gen_rt('Man:A:1');
+	await chkr.call(a, 'x', ['A:2','A:1','Man:A:1',-3], {title: 'a.Man:A:1'});
 
 	// Third wrapper
 	wrap_front(A.prototype, 'x', chkr.gen_wr('A:3'));
-	await chkr.call(a, 'x', ['A:3','A:2','A:1','Man:A:1'], 'a.A:3');
+	await chkr.call(a, 'x', ['A:3','A:2','A:1','Man:A:1',-4], {title: 'a.A:3'});
 
 	// Second Manual Wrapper
-	A.prototype.x = chkr.gen_fn('Man:A:2');
-	await chkr.call(a, 'x', ['A:3','A:2','A:1','Man:A:2'], 'a.Man:A:2');
+	A.prototype.x = chkr.gen_rt('Man:A:2');
+	await chkr.call(a, 'x', ['A:3','A:2','A:1','Man:A:2',-4], {title: 'a.Man:A:2'});
 
 
 	// Wrap in the traditional way, by storing the prototype, and then modifying it
 	A.prototype.x = (function() {
 		const wrapped = A.prototype.x;
-		return chkr.gen_fn('Man:A:3', wrapped);
+		return chkr.gen_rt('Man:A:3', {next: wrapped});
 	})();
-	await chkr.call(a, 'x', ['A:3','A:2','A:1','Man:A:3','Man:A:2'], 'a.Man:A:3');
+	await chkr.call(a, 'x', ['A:3','A:2','A:1','Man:A:3','Man:A:2',-5], {title: 'a.Man:A:3'});
 
 
 	// Fourth wrapper
 	wrap_front(A.prototype, 'x', chkr.gen_wr('A:4'));
-	await chkr.call(a, 'x', ['A:4','A:3','A:2','A:1','Man:A:3','Man:A:2'], 'a.Man:A:4');
+	await chkr.call(a, 'x', ['A:4','A:3','A:2','A:1','Man:A:3','Man:A:2',-6], {title: 'a.Man:A:4'});
 
 
 	// Done
@@ -153,35 +154,35 @@ test_sync_async('Wrapper: Instance assignment', async function(t) {
 
 	// Define class
 	class A {};
-	A.prototype.x = chkr.gen_fn('A:Orig');
+	A.prototype.x = chkr.gen_rt('A:Orig');
 
 
 	// Instantiate
 	let a = new A();
-	await chkr.call(a, 'x', ['A:Orig'], 'a.Orig');
+	await chkr.call(a, 'x', ['A:Orig',-1], {title: 'a.Orig'});
 
 
 	// Create a normal class wrapper
 	wrap_front(A.prototype, 'x', chkr.gen_wr('A:1'));
-	await chkr.call(a, 'x', ['A:1','A:Orig'], 'a.A:1');
+	await chkr.call(a, 'x', ['A:1','A:Orig',-2], {title: 'a.A:1'});
 
 
 	// Assign directly to a, not to A.prototype
-	a.x = chkr.gen_fn('a:1');
-	await chkr.call(a, 'x', ['A:1','a:1'], 'a.a:1');
+	a.x = chkr.gen_rt('a:1');
+	await chkr.call(a, 'x', ['A:1','a:1',-2], {title: 'a.a:1'});
 
 
 	// Calling another instance should not include wrapper 'a1' in the wrapper chain
 	let b = new A();
-	await chkr.call(b, 'x', ['A:1','A:Orig'], 'b.Orig');
+	await chkr.call(b, 'x', ['A:1','A:Orig',-2], {title: 'b.Orig'});
 
 
 	// Create manual instance wrapper
 	b.x = (function() {
 		const wrapped = b.x;
-		return chkr.gen_fn('Man:b:1', wrapped);
+		return chkr.gen_rt('Man:b:1', {next: wrapped});
 	})();
-	await chkr.call(b, 'x', ['A:1','Man:b:1','A:Orig'], 'b.Man:b:1');
+	await chkr.call(b, 'x', ['A:1','Man:b:1','A:Orig',-3], {title: 'b.Man:b:1'});
 
 
 	// Done
@@ -198,7 +199,7 @@ test_sync_async('Wrapper: Inherited Methods', async function(t) {
 
 	// Define class
 	class A {};
-	A.prototype.x = chkr.gen_fn('A:Orig');
+	A.prototype.x = chkr.gen_rt('A:Orig');
 
 	class B extends A {};
 
@@ -207,90 +208,90 @@ test_sync_async('Wrapper: Inherited Methods', async function(t) {
 	class D extends A {};
 
 	class E extends D {};
-	E.prototype.x = chkr.gen_fn('E:Orig');
+	E.prototype.x = chkr.gen_rt('E:Orig');
 
 	class F extends A {
 		// Long-form since we need to be inside the method to be able to use 'super'
 		x(...args) {
-			return chkr.gen_fn('F:Orig', super.x).apply(this, args);
+			return chkr.gen_rt('F:Orig', {next: super.x}).apply(this, args);
 		}
 	}
 
 
 	// Instantiate A
 	let a = new A();
-	await chkr.call(a, 'x', ['A:Orig'], 'a.Orig');
+	await chkr.call(a, 'x', ['A:Orig',-1], {title: 'a.Orig'});
 
 
 	// Instantiate B
 	let b = new B();
-	await chkr.call(b, 'x', ['A:Orig'], 'b.Orig');
+	await chkr.call(b, 'x', ['A:Orig',-1], {title: 'b.Orig'});
 
 
 	// Wrap class B
 	wrap_front(B.prototype, 'x', chkr.gen_wr('B:1'));
-	await chkr.call(b, 'x', ['B:1','A:Orig'], 'b.B:1');
+	await chkr.call(b, 'x', ['B:1','A:Orig',-2], {title: 'b.B:1'});
 
 
 	// Assign directly to b, not to B.prototype
-	b.x = chkr.gen_fn('b:1');
-	await chkr.call(b, 'x', ['B:1','b:1'], 'b.b:1');
+	b.x = chkr.gen_rt('b:1');
+	await chkr.call(b, 'x', ['B:1','b:1',-2], {title: 'b.b:1'});
 
 
 	// Create manual instance wrapper
 	b.x = (function() {
 		const wrapped = b.x;
-		return chkr.gen_fn('Man:b:1', wrapped);
+		return chkr.gen_rt('Man:b:1', {next: wrapped});
 	})();
-	await chkr.call(b, 'x', ['B:1','Man:b:1','b:1'], 'b.Man:b:1');
+	await chkr.call(b, 'x', ['B:1','Man:b:1','b:1',-3], {title: 'b.Man:b:1'});
 
 
 	// Using another instance should not call b's instance wrappers
 	let b2 = new B();
-	await chkr.call(b2, 'x', ['B:1','A:Orig'], 'b2.Orig');
+	await chkr.call(b2, 'x', ['B:1','A:Orig',-2], {title: 'b2.Orig'});
 
 
 	// Using C will work correctly
 	let c = new C();
-	await chkr.call(c, 'x', ['A:Orig'], 'c.Orig');
+	await chkr.call(c, 'x', ['A:Orig',-1], {title: 'c.Orig'});
 
 
 	// Wrapping C's prototype will work
 	wrap_front(C.prototype, 'x', chkr.gen_wr('C:1'));
-	await chkr.call(c, 'x', ['C:1','A:Orig'], 'c.C:1');
+	await chkr.call(c, 'x', ['C:1','A:Orig',-2], {title: 'c.C:1'});
 
 
 	// Wrapping A's prototype will work
 	wrap_front(A.prototype, 'x', chkr.gen_wr('A:1'));
-	await chkr.call(a, 'x', ['A:1','A:Orig'], 'a.A:1');
+	await chkr.call(a, 'x', ['A:1','A:Orig',-2], {title: 'a.A:1'});
 	// And be seen by inherited classes
-	await chkr.call(b2, 'x', ['B:1','A:1','A:Orig'], 'b2.A:1');
-	await chkr.call(c, 'x', ['C:1','A:1','A:Orig'], 'c.A:1');
+	await chkr.call(b2, 'x', ['B:1','A:1','A:Orig',-3], {title: 'b2.A:1'});
+	await chkr.call(c, 'x', ['C:1','A:1','A:Orig',-3], {title: 'c.A:1'});
 
 
 	// Instantiate E
 	let e = new E();
-	await chkr.call(e, 'x', ['E:Orig'], 'e.Orig');
+	await chkr.call(e, 'x', ['E:Orig', -1], {title: 'e.Orig'});
 
 
 	// Wrapping E's prototype will work
 	// NOTE: This is inconsistent... Compare 'e.E:1' with 'e.Orig' above. 'A:1' only shows up once E is wrapped by libWrapper.
 	//       This is because currently, inherited wrappers get priority over the original method of the child class. See github issue #13.
 	wrap_front(E.prototype, 'x', chkr.gen_wr('E:1'));
-	await chkr.call(e, 'x', ['E:1','A:1','E:Orig'], 'e.E:1');
+	await chkr.call(e, 'x', ['E:1','A:1','E:Orig',-3], {title: 'e.E:1'});
 
 
 	// Instantiate F
 	// Using the 'super' construct will work, even if the inherited method is wrapped
 	let f = new F();
-	await chkr.call(f, 'x', ['F:Orig','A:1','A:Orig'], 'f.Orig');
+	await chkr.call(f, 'x', ['F:Orig','A:1','A:Orig',-3], {title: 'f.Orig'});
 
 
 	// Using the 'super' construct will work, even if the method itself is wrapped
 	// NOTE: As before, there is an inconsistency here due to inherited wrappers getting priority. Perhaps this should be ['F:1','F:Orig','A:1','A:Orig']?
 	//       This is because currently, inherited wrappers get priority over the original method of the child class. See github issue #13.
 	wrap_front(F.prototype, 'x', chkr.gen_wr('F:1'));
-	await chkr.call(f, 'x', ['F:1','A:1','F:Orig','A:Orig'], 'f.F:1');
+	await chkr.call(f, 'x', ['F:1','A:1','F:Orig','A:Orig',-4], {title: 'f.F:1'});
 
 
 

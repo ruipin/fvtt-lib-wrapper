@@ -4,113 +4,114 @@
 'use strict';
 
 import test from 'tape';
-import './utilities.js';
+import {CallOrderChecker} from './call_order_checker.js';
+import {wrap_front, unwrap_all_from_obj, test_sync_async, async_retval, is_promise, sync_async_then} from './utilities.js';
 import '../src/lib/lib-wrapper.js';
+
 
 function setup() {
 	libWrapper._unwrap_all();
+	libWrapper.load_priorities();
 
 	game.clear_modules();
-	global.A = undefined;
+	globalThis.A = undefined;
 }
 
 
-test('Library: Main', function (t) {
+
+// Main functionality of libWrapper
+test_sync_async('Library: Main', async function (t) {
 	setup();
+	const chkr = new CallOrderChecker(t);
 
-	class A {
-		x(in_value) {
-			return in_value;
-		}
-	}
+
+	// Define class
+	class A {};
+	A.prototype.x = chkr.gen_rt('Orig');
 	globalThis.A = A;
-	let a = new A();
-	t.equal(a.x(1), 1, 'Original');
 
-	// Register NORMAL
-	game.add_module('module1');
-	let module1_check = 1;
-	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
-		t.equal(wrapped.apply(this, args), module1_check, 'Module 1');
-		return 1000;
-	});
-	t.equal(a.x(1), 1000, 'Wrapped #1');
+
+	// Instantiate
+	let a = new A();
+	await chkr.call(a, 'x', ['Orig',-1]);
+
+	// Register MIXED (default value)
+	game.add_module('m1');
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_wr('m1:Mix:1'));
+	await chkr.call(a, 'x', ['m1:Mix:1','Orig',-2]);
 
 	// Registering the same method twice with the same module should fail
 	t.throws(function() {
 		libWrapper.register('module1', 'A.prototype.x', () => {});
-	}, null, 'Registering twice with same module should fail');
+	}, libWrapper.Error, 'Registering twice with same module should fail');
+	await chkr.call(a, 'x', ['m1:Mix:1','Orig',-2]);
 
 	// Register WRAPPER
-	game.add_module('module2');
-	let module2_check = 1000;
-	libWrapper.register('module2', 'A.prototype.x', function(wrapped, ...args) {
-		t.equal(wrapped.apply(this, args), module2_check, 'Module 1');
-		return 20000;
-	}, 'WRAPPER');
-	t.equal(a.x(1), 20000, 'Wrapped #2');
+	game.add_module('m2');
+	libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('m2:Wrp:2'), 'WRAPPER');
+	await chkr.call(a, 'x', ['m2:Wrp:2','m1:Mix:1','Orig',-3]);
 
 	// Register OVERRIDE
-	game.add_module('module3');
-	let module3_check = 1;
-	libWrapper.register('module3', 'A.prototype.x', function() {
-		t.equal(arguments.length, 1, 'Module 3 arguments');
-		t.equal(arguments[0], module3_check, 'Module 3 argument 0');
-		return 30000;
-	}, 'OVERRIDE');
-
-	module1_check = 30000;
-	t.equal(a.x(1), 20000, 'Wrapped #3');
+	game.add_module('m3');
+	libWrapper.register('m3', 'A.prototype.x', chkr.gen_wr('m3:Ovr:3', {override: true}), 'OVERRIDE');
+	await chkr.call(a, 'x', ['m2:Wrp:2','m1:Mix:1','m3:Ovr:3',-3]);
 
 	// Registing another OVERRIDE should fail
-	game.add_module('double-override');
+	game.add_module('m4');
 	t.throws(function() {
-		libWrapper.register('double-override', 'A.prototype.x', () => {}, 'OVERRIDE');
+		libWrapper.register('m4', 'A.prototype.x', () => {}, 'OVERRIDE');
 	}, libWrapper.AlreadyOverriddenError, 'Registering second override should fail');
+	await chkr.call(a, 'x', ['m2:Wrp:2','m1:Mix:1','m3:Ovr:3',-3]);
 
-	// Try removing module2
-	libWrapper.unregister('module2', 'A.prototype.x');
-	module1_check = 30000;
-	module2_check = -1;
-	t.equal(a.x(1), 1000, 'Wrapped #3');
+	// Unless the module has a higher priority
+	libWrapper.load_priorities({
+		prioritized: {
+			'm4': {index: 0}
+		}
+	});
+	libWrapper.register('m4', 'A.prototype.x', chkr.gen_wr('m4:Ovr:4', {override: true}), 'OVERRIDE');
+	await chkr.call(a, 'x', ['m2:Wrp:2','m1:Mix:1','m4:Ovr:4',-3]);
+
+	// Removing this override should bring back the previous override
+	libWrapper.unregister('m4', 'A.prototype.x');
+	await chkr.call(a, 'x', ['m2:Wrp:2','m1:Mix:1','m3:Ovr:3',-3]);
+
+	// Remove prioritization
+	libWrapper.load_priorities();
+
+	// Try removing m2
+	libWrapper.unregister('m2', 'A.prototype.x');
+	await chkr.call(a, 'x', ['m1:Mix:1','m3:Ovr:3',-2]);
 
 	// Add a WRAPPER that does not chain
-	libWrapper.register('module2', 'A.prototype.x', function(wrapped, ...args) {
-		return -2;
-	}, 'WRAPPER');
-	t.equal(a.x(1), 1000, 'WRAPPER priority without chaining');
+	libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('m2:Wrp:5', {nochain: true}), 'WRAPPER');
+	await chkr.call(a, 'x', ['m2:Wrp:5',-1,'m1:Mix:1','m3:Ovr:3',-2]);
 
-	// Add a NORMAL that does not chain
-	libWrapper.register('module2', 'A.prototype.x', function(wrapped, ...args) {
-		return 20000;
-	});
-	t.equal(a.x(1), 20000, 'NORMAL priority without chaining');
+	// WRAPPERs that don't chain get unregistered automatically
+	await chkr.call(a, 'x', ['m1:Mix:1','m3:Ovr:3',-2]);
+
+	// Add a MIXED that does not chain, this time not relying on the default parameter
+	libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('m2:Mix:6'), 'MIXED');
+	await chkr.call(a, 'x', ['m2:Mix:6','m1:Mix:1','m3:Ovr:3',-3]);
+
 
 	// Try clearing 'A.prototype.x'
-	let pre_clear = A.prototype.x;
+	const pre_clear = A.prototype.x;
 	libWrapper._clear('A.prototype.x');
-	t.equal(a.x(1), 1, 'Unwrapped');
-	t.equal(pre_clear.call(a, 1), 1, 'Unwrapped, pre-clear');
+	await chkr.call(a, 'x', ['Orig',-1], {title: 'A.prototype.X cleared #1'});
+	await chkr.check(pre_clear.call(a), ['Orig',-1], {title: 'A.prototype.X cleared #2'});
 
 	// Try to wrap again
-	let rewrap_check = 1;
-	libWrapper.register('module2', 'A.prototype.x', function(wrapped, ...args) {
-		t.equal(wrapped.apply(this, args), rewrap_check, 'Wrapper: Rewrap after clear');
-		return 500;
-	});
-	t.equal(a.x(1), 500, 'Rewrap after clear');
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_wr('m1:Mix:7'));
+	await chkr.call(a, 'x', ['m1:Mix:7','Orig',-2]);
 
 	// Test manual wrapping
 	A.prototype.x = (function() {
-		const original = A.prototype.x;
-
-		return function () {
-			original.apply(this, arguments);
-			return 5000;
-		};
+		const wrapped = A.prototype.x;
+		return chkr.gen_rt('Man:8', {next: wrapped});
 	})();
-	rewrap_check = 5000;
-	t.equal(a.x(1), 500, 'Rewrap after clear');
+	await chkr.call(a, 'x', ['m1:Mix:7','Man:8','Orig',-3]);
+
 
 	// Done
 	t.end();
@@ -118,60 +119,70 @@ test('Library: Main', function (t) {
 
 
 
-test('Library: Special', function (t) {
+// Special functionality / corner cases
+test_sync_async('Library: Special', async function (t) {
 	setup();
+	const chkr = new CallOrderChecker(t);
 
-	class A {
-		get xvalue() {
-			return 1;
-		}
 
-		x() {
-			return this.xvalue;
-		}
-	}
+	// Define class
+	class A {};
+	A.prototype.x = chkr.gen_rt('Orig');
 	globalThis.A = A;
+
+
+	// Instantiate
 	let a = new A();
-	t.equal(a.x(), 1, 'Original');
+	await chkr.call(a, 'x', ['Orig',-1]);
 
 
-	// Call wrapper twice
-	game.add_module('module1');
-	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
-		t.equal(wrapped.apply(this, ...args), 1, 'Wrapper that calls twice #1');
-		t.equal(wrapped.apply(this, ...args), 1, 'Wrapper that calls twice #2');
-		return 10000;
-	}, 'WRAPPER');
-	t.equal(a.x(), 10000, 'Wrapped #1');
+	// Chain wrapper twice
+	game.add_module('m1');
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:1',
+		(frm, chain) => sync_async_then(chain(), v => chain())
+	), 'WRAPPER');
+	await chkr.call(a, 'x', ['m1:Wrp:1','Orig',-1,'Orig',-2]);
 
 	// Unregister
-	libWrapper.unregister('module1', 'A.prototype.x');
-	t.equal(a.x(), 1, 'Unregistered');
+	libWrapper.unregister('m1', 'A.prototype.x');
+	await chkr.call(a, 'x', ['Orig',-1]);
+
 
 	// Clear inside wrapper (before call)
-	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
-		libWrapper.clear_module('module1');
-		t.throws(() => { wrapped.apply(this, ...args) }, libWrapper.InvalidWrapperChainError, 'Clear inside wrapper (before call)');
-		return 20000;
-	}, 'WRAPPER');
-	t.equal(a.x(), 20000, 'Wrapped #2');
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:1',
+		function(frm, chain) {
+			libWrapper.clear_module('m1');
+			return chain();
+		}
+	), 'WRAPPER');
+
+	await t.throws(() => a.x(0,'TOP',1,2,3), libWrapper.InvalidWrapperChainError, 'Clear inside wrapper');
+	await chkr.check(null, ['m1:Wrp:1', -1, 'THROWN'], {param_in: [0,'TOP',1,2,3]});
+
 
 	// Clear inside wrapper (after call)
-	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
-		t.equal(wrapped.apply(this, ...args), 1, 'Clear inside wrapper (after call)');
-		libWrapper.clear_module('module1');
-		return 30000;
-	}, 'WRAPPER');
-	t.equal(a.x(), 30000, 'Wrapped #2');
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:2',
+		function(frm, chain) {
+			return sync_async_then(chain(), v => {
+				libWrapper.clear_module('m1');
+				return v;
+			})
+		}
+	), 'WRAPPER');
+	await chkr.call(a, 'x', ['m1:Wrp:2','Orig',-2]);
+
 
 	// Call from outside wrapper
-	let stored_wrapped = undefined;
-	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
-		stored_wrapped = wrapped;
-		return 40000;
-	});
-	t.equal(a.x(), 40000, 'Wrapped #3');
-	t.throws(() => { stored_wrapped.apply(a) }, libWrapper.InvalidWrapperChainError, 'Call from outside wrapper');
+	let stored_wrapped = null;
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:3',
+		function(frm, chain) {
+			stored_wrapped = chain;
+			return chain();
+		}
+	), 'WRAPPER');
+	await chkr.call(a, 'x', ['m1:Wrp:3','Orig',-2]);
+	t.throws(() => stored_wrapped(), libWrapper.InvalidWrapperChainError, 'Call from outside wrapper');
+
 
 	// Done
 	t.end();
@@ -179,59 +190,91 @@ test('Library: Special', function (t) {
 
 
 
-test('Library: Setter', function (t) {
+// Functionality related to wrapping a setter
+// Sync-only as it makes no sense to call a setter asynchronously
+test('Library: Setter', async function (t) {
 	setup();
+	const chkr = new CallOrderChecker(t);
 
-	let __x = 1;
+
+	// Define class
+	let x_id = 'Orig1';
 	class A {
-		get x() {
-			return __x;
+		constructor() {
+			this.x_id = 'Orig1';
 		}
+	};
 
-		set x(value) {
-			__x = value;
+	Object.defineProperty(
+		A.prototype,
+		'x',
+		{
+			get: function(...args) {
+				return chkr.gen_rt(this.x_id).apply(this, args);
+			},
+			set: function(...args) {
+				const retval = chkr.gen_rt(`${this.x_id}#set`).apply(this, args);
+				this.x_id = args[0];
+				return retval;
+			},
+			configurable: true
 		}
-	}
+	);
+
 	globalThis.A = A;
+
+
+	// Instantiate
 	let a = new A();
-	t.equal(a.x, 1, 'Original');
+	chkr.check(a.x, ['Orig1',-1]);
+
+	a.x = 'Orig2';
+	chkr.check('Orig1#set', ['Orig1#set',-1], {param_in: ['Orig2']});
+
+	t.equals(a.x_id, 'Orig2', 'Post-setter #1');
+	chkr.check(a.x, ['Orig2',-1]);
 
 
-	// Register NORMAL
-	game.add_module('module1');
-	let module1_check = 1;
-	libWrapper.register('module1', 'A.prototype.x', function(wrapped, ...args) {
-		t.equal(wrapped.apply(this, args), module1_check, 'Module 1');
-		return 1000;
-	});
-	t.equal(a.x, 1000, 'Wrapped #1');
 
-	a.x = 2;
-	module1_check = 2;
-	t.equal(a.x, 1000, 'Set 2');
+	// Register MIXED
+	game.add_module('m1');
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_wr('m1:Mix:1'));
+	chkr.check(a.x, ['m1:Mix:1','Orig2',-2]);
 
-	// Register NORMAL wrapper for setter
-	libWrapper.register('module1', 'A.prototype.x#set', function(wrapped, value) {
-		return wrapped.call(this, value + 1);
-	});
-	t.equal(a.x, 1000, 'Wrapped Setter #1');
 
-	a.x = 3;
-	module1_check = 4;
-	t.equal(a.x, 1000, 'Set 3 (+1)');
+	// Register MIXED wrapper for setter
+	libWrapper.register('m1', 'A.prototype.x#set', chkr.gen_wr('m1:Mix:1#set'));
+
+	a.x = 'Orig3';
+	chkr.check('m1:Mix:1#set', ['m1:Mix:1#set','Orig2#set',-2], {param_in: ['Orig3']});
+
+	t.equals(a.x_id, 'Orig3', 'Post-setter #2');
+	chkr.check(a.x, ['m1:Mix:1','Orig3',-2]);
+
+
+	a.x = 'Orig4';
+	chkr.check('m1:Mix:1#set', ['m1:Mix:1#set','Orig3#set',-2], {param_in: ['Orig4']});
+	t.equals(a.x_id, 'Orig4', 'Post-setter #3');
+	chkr.check(a.x, ['m1:Mix:1','Orig4',-2]);
 
 
 	// Unregister getter wrapper
-	libWrapper.unregister('module1', 'A.prototype.x');
-	t.equal(a.x, 4, 'Unregistered getter wrapper');
-	a.x = 5;
-	t.equal(a.x, 6, 'Set 5 (+1)');
+	libWrapper.unregister('m1', 'A.prototype.x');
+
+	a.x = 'Orig5';
+	chkr.check('m1:Mix:1#set', ['m1:Mix:1#set','Orig4#set',-2], {param_in: ['Orig5']});
+	t.equals(a.x_id, 'Orig5', 'Post-setter #4');
+	chkr.check(a.x, ['Orig5',-1]);
+
 
 	// Unregister setter wrapper
-	libWrapper.unregister('module1', 'A.prototype.x#set');
-	t.equal(a.x, 6, 'Unregistered setter wrapper');
-	a.x = 7;
-	t.equal(a.x, 7, 'Set 7');
+	libWrapper.unregister('m1', 'A.prototype.x#set');
+
+	a.x = 'Orig6';
+	chkr.check('Orig5#set', ['Orig5#set',-1], {param_in: ['Orig6']});
+	t.equals(a.x_id, 'Orig6', 'Post-setter #5');
+	chkr.check(a.x, ['Orig6',-1]);
+
 
 	// Done
 	t.end();

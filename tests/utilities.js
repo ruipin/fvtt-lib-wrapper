@@ -24,11 +24,19 @@ globalThis.FormApplication = FormApplication;
 
 // Game
 class GameSettings {
+	constructor() {
+		this.SETTINGS = new Map();
+	}
+
 	register() {
 	}
 
-	get() {
-		return true;
+	set(module, setting, value) {
+		this.SETTINGS.set(`${module}.${setting}`, value);
+	}
+
+	get(module, setting) {
+		return this.SETTINGS.get(`${module}.${setting}`);
 	}
 }
 
@@ -72,7 +80,7 @@ globalThis.ui = { notifications: new UiNotifications() };
 
 
 // Wrap helpers to bypass libWrapper public API
-export let wrap_front = function(obj, fn_name, fn, is_setter=false) {
+export const wrap_front = function(obj, fn_name, fn, is_setter=false) {
 	const wrapper = libWrapper._create_wrapper_from_object(obj, fn_name);
 	wrapper.get_fn_data(is_setter).splice(0, 0, {
 		fn: fn,
@@ -81,7 +89,7 @@ export let wrap_front = function(obj, fn_name, fn, is_setter=false) {
 	});
 };
 
-export let unwrap_all_from_obj = function(obj, fn_name, is_setter=false) {
+export const unwrap_all_from_obj = function(obj, fn_name, is_setter=false) {
 	const wrapper = libWrapper._create_wrapper_from_object(obj, fn_name);
 	wrapper.get_fn_data(is_setter).splice(0);
 }
@@ -89,7 +97,7 @@ export let unwrap_all_from_obj = function(obj, fn_name, is_setter=false) {
 
 
 // Async helpers
-export async function test_sync_async(title, fn) {
+export const test_sync_async = async function(title, fn) {
 	for(let is_async of [false, true]) {
 		test(is_async ? `${title} (async)` : title, async function(t) {
 			t.test_async = is_async;
@@ -99,8 +107,19 @@ export async function test_sync_async(title, fn) {
 	}
 }
 
-export const ASYNC_TIMEOUT = 1;
+export const ASYNC_TIMEOUT = 10;
 
-export let async_retval = function(in_value) {
+export const async_retval = function(in_value) {
 	return new Promise(resolve => setTimeout(() => { resolve(in_value) }, ASYNC_TIMEOUT));
+}
+
+export const is_promise = function(obj) {
+	return (typeof obj?.then === 'function')
+}
+
+export const sync_async_then = function(obj, fn) {
+	if(is_promise(obj))
+		return obj.then(fn);
+
+	return fn(obj);
 }

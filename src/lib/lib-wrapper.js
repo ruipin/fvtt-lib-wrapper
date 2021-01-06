@@ -167,33 +167,6 @@ export class libWrapper {
 	}
 
 
-	static load_priorities(value=null) {
-		PRIORITIES.clear();
-
-		// Parse config
-		const priority_cfg = value ?? game?.settings?.get(MODULE_ID, 'module-priorities');
-		if(!priority_cfg)
-			return;
-
-		for(let type of ['prioritized', 'deprioritized']) {
-			const current = priority_cfg[type];
-			const base_priority = (type == 'prioritized') ? 10000 : -10000;
-
-			if(!current)
-				continue;
-
-			Object.entries(current).forEach(entry => {
-				const [module_id, module_info] = entry;
-
-				if(PRIORITIES.has(module_id))
-					return;
-
-				PRIORITIES.set(module_id, base_priority - module_info.index);
-			});
-		}
-	}
-
-
 	static _validate_module(module) {
 		const real_module = get_current_module_name();
 
@@ -208,6 +181,38 @@ export class libWrapper {
 
 		if(real_module && module != real_module)
 			throw new LibWrapperModuleError(`Module '${real_module}' is not allowed to call libWrapper with module='${module}'.`, real_module);
+	}
+
+
+	static load_priorities(value=null) {
+		const module = get_current_module_name();
+		if(module)
+			throw new LibWrapperModuleError(`Module '${module}' is not allowed to call libWrapper.load_priorities()`, module);
+
+		// Create existing priorities
+		PRIORITIES.clear();
+
+		// Parse config
+		const priority_cfg = value ?? game?.settings?.get(MODULE_ID, 'module-priorities');
+		if(!priority_cfg)
+			return;
+
+		for(let type of ['prioritized', 'deprioritized']) {
+			const current = priority_cfg[type];
+			if(!current)
+				continue;
+
+			const base_priority = (type == 'prioritized') ? 10000 : -10000;
+
+			Object.entries(current).forEach(entry => {
+				const [module_id, module_info] = entry;
+
+				if(PRIORITIES.has(module_id))
+					return;
+
+				PRIORITIES.set(module_id, base_priority - module_info.index);
+			});
+		}
 	}
 
 
