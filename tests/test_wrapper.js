@@ -25,45 +25,45 @@ test_sync_async('Wrapper: Basic functionality', async function (t) {
 
 	// Define class
 	class A {};
-	A.prototype.x = chkr.gen_rt('A:Orig');
+	A.prototype.x = chkr.gen_rt('Orig');
 
 
 	// Instantiate
 	let a = new A();
-	await chkr.call(a, 'x', ['A:Orig',-1], {title: 'a.Orig'});
+	await chkr.call(a, 'x', ['Orig',-1]);
 
 	// First wrapper
-	wrap_front(A.prototype, 'x', chkr.gen_wr('A:1'));
-	await chkr.call(a, 'x', ['A:1','A:Orig',-2], {title: 'a.A:1'});
+	wrap_front(A.prototype, 'x', chkr.gen_wr('1'));
+	await chkr.call(a, 'x', ['1','Orig',-2]);
 
 	// Second wrapper
-	wrap_front(A.prototype, 'x', chkr.gen_wr('A:2'));
-	await chkr.call(a, 'x', ['A:2','A:1','A:Orig',-3], {title: 'a.A:2'});
+	wrap_front(A.prototype, 'x', chkr.gen_wr('2'));
+	await chkr.call(a, 'x', ['2','1','Orig',-3]);
 
 	// Manual wrapper
-	A.prototype.x = chkr.gen_rt('Man:A:1');
-	await chkr.call(a, 'x', ['A:2','A:1','Man:A:1',-3], {title: 'a.Man:A:1'});
+	A.prototype.x = chkr.gen_rt('Man3');
+	await chkr.call(a, 'x', ['2','1','Man3',-3]);
 
 	// Third wrapper
-	wrap_front(A.prototype, 'x', chkr.gen_wr('A:3'));
-	await chkr.call(a, 'x', ['A:3','A:2','A:1','Man:A:1',-4], {title: 'a.A:3'});
+	wrap_front(A.prototype, 'x', chkr.gen_wr('4'));
+	await chkr.call(a, 'x', ['4','2','1','Man3',-4]);
 
 	// Second Manual Wrapper
-	A.prototype.x = chkr.gen_rt('Man:A:2');
-	await chkr.call(a, 'x', ['A:3','A:2','A:1','Man:A:2',-4], {title: 'a.Man:A:2'});
+	A.prototype.x = chkr.gen_rt('Man5');
+	await chkr.call(a, 'x', ['4','2','1','Man5',-4]);
 
 
 	// Wrap in the traditional way, by storing the prototype, and then modifying it
 	A.prototype.x = (function() {
 		const wrapped = A.prototype.x;
-		return chkr.gen_rt('Man:A:3', {next: wrapped});
+		return chkr.gen_rt('Man6', {next: wrapped});
 	})();
-	await chkr.call(a, 'x', ['A:3','A:2','A:1','Man:A:3','Man:A:2',-5], {title: 'a.Man:A:3'});
+	await chkr.call(a, 'x', ['4','2','1','Man6','Man5',-5]);
 
 
 	// Fourth wrapper
-	wrap_front(A.prototype, 'x', chkr.gen_wr('A:4'));
-	await chkr.call(a, 'x', ['A:4','A:3','A:2','A:1','Man:A:3','Man:A:2',-6], {title: 'a.Man:A:4'});
+	wrap_front(A.prototype, 'x', chkr.gen_wr('7'));
+	await chkr.call(a, 'x', ['7','4','2','1','Man6','Man5',-6]);
 
 
 	// Done

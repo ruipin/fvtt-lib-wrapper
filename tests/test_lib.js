@@ -192,7 +192,7 @@ test_sync_async('Library: Special', async function (t) {
 
 // Functionality related to wrapping a setter
 // Sync-only as it makes no sense to call a setter asynchronously
-test('Library: Setter', async function (t) {
+test('Library: Setter', function (t) {
 	setup();
 	const chkr = new CallOrderChecker(t);
 
@@ -258,22 +258,42 @@ test('Library: Setter', async function (t) {
 	chkr.check(a.x, ['m1:Mix:1','Orig4',-2]);
 
 
+	// Register second set of wrappers
+	game.add_module('m2');
+	libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('m2:Mix:2'));
+	chkr.check(a.x, ['m2:Mix:2','m1:Mix:1','Orig4',-3]);
+
+	libWrapper.register('m2', 'A.prototype.x#set', chkr.gen_wr('m2:Mix:2#set'));
+
+	a.x = 'Orig5';
+	chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','m1:Mix:1#set','Orig4#set',-3], {param_in: ['Orig5']});
+
+	t.equals(a.x_id, 'Orig5', 'Post-setter #4');
+	chkr.check(a.x, ['m2:Mix:2','m1:Mix:1','Orig5',-3]);
+
+
+	a.x = 'Orig6';
+	chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','m1:Mix:1#set','Orig5#set',-3], {param_in: ['Orig6']});
+	t.equals(a.x_id, 'Orig6', 'Post-setter #5');
+	chkr.check(a.x, ['m2:Mix:2','m1:Mix:1','Orig6',-3]);
+
+
 	// Unregister getter wrapper
 	libWrapper.unregister('m1', 'A.prototype.x');
 
-	a.x = 'Orig5';
-	chkr.check('m1:Mix:1#set', ['m1:Mix:1#set','Orig4#set',-2], {param_in: ['Orig5']});
-	t.equals(a.x_id, 'Orig5', 'Post-setter #4');
-	chkr.check(a.x, ['Orig5',-1]);
+	a.x = 'Orig7';
+	chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','m1:Mix:1#set','Orig6#set',-3], {param_in: ['Orig7']});
+	t.equals(a.x_id, 'Orig7', 'Post-setter #6');
+	chkr.check(a.x, ['m2:Mix:2','Orig7',-2]);
 
 
 	// Unregister setter wrapper
 	libWrapper.unregister('m1', 'A.prototype.x#set');
 
-	a.x = 'Orig6';
-	chkr.check('Orig5#set', ['Orig5#set',-1], {param_in: ['Orig6']});
-	t.equals(a.x_id, 'Orig6', 'Post-setter #5');
-	chkr.check(a.x, ['Orig6',-1]);
+	a.x = 'Orig8';
+	chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','Orig7#set',-2], {param_in: ['Orig8']});
+	t.equals(a.x_id, 'Orig8', 'Post-setter #7');
+	chkr.check(a.x, ['m2:Mix:2','Orig8',-2]);
 
 
 	// Done

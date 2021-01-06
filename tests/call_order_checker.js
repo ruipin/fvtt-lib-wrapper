@@ -383,8 +383,7 @@ export class CallOrderChecker {
 			error: {stack: errors.join('\n')}
 		})
 
-		if(!is_ok)
-			console.debug(this.call_order);
+		//if(!is_ok) console.debug(this.call_order);
 
 		// Done
 		if(clear)
