@@ -100,8 +100,10 @@ export class CallOrderChecker {
 	}
 
 	validate_id(id) {
-		if(!this._validate_id(id))
+		if(!this._validate_id(id)) {
+			console.trace();
 			throw `Invalid id '${id}'`;
+		}
 	}
 
 	simplify() {
@@ -258,7 +260,7 @@ export class CallOrderChecker {
 			frm.result = frm.id;
 		}
 
-		return function(...args) {
+		const rt = function(...args) {
 			return _checker._on_call(
 				id,
 				this,
@@ -270,6 +272,11 @@ export class CallOrderChecker {
 				}
 			);
 		}
+
+		// Set field in function object so it is obvious from logs which function this is
+		rt.id = id;
+
+		return rt;
 	}
 
 	gen_wr(id, {override=false, nochain=false}={}) {

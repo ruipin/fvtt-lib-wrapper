@@ -35,10 +35,6 @@ export class Wrapper {
 		return this.names[0];
 	}
 
-	get is_property() {
-		return (this._wrapped_getter !== undefined);
-	}
-
 	// Constructor
 	constructor (obj, fn_name, name=undefined, module=undefined) {
 		// Basic instance variables
@@ -64,18 +60,33 @@ export class Wrapper {
 			}
 			else {
 				if(descriptor.get) {
+					this.is_property = true;
 					this._wrapped_getter = descriptor.get;
 					this._wrapped_setter = descriptor.set;
 				}
-				else
+				else {
+					this.is_property = false;
 					this._wrapped = descriptor.value;
+				}
 			}
 		}
 		else {
-			if(!Object.getPrototypeOf(obj)[this.fn_name])
+			descriptor = this._get_inherited_descriptor();
+
+			if(!descriptor)
 				throw new LibWrapperModuleError(`libWrapper: Can't wrap '${name}', target does not exist or could not be found.`, module);
 
-			this._wrapped = undefined;
+			const wrapper = descriptor.get?._lib_wrapper;
+
+			if(wrapper) {
+				this.is_property = wrapper.is_property;
+			}
+			else {
+				if(descriptor.get ?? descriptor.set)
+					this.is_property = true;
+				else
+					this.is_property = false;
+			}
 		}
 
 		// Setup instance variables
@@ -133,12 +144,12 @@ export class Wrapper {
 			// Setup setter / getter
 			let _this = this;
 
-			getter = function() {
-				return _this.call_wrapper(null, this);
+			getter = function(...args) {
+				return _this.call_wrapper(null, this, ...args);
 			}
 
-			setter = function(value) {
-				return _this.call_wrapper({setter: true}, this, value);
+			setter = function(...args) {
+				return _this.call_wrapper({setter: true}, this, ...args);
 			};
 		}
 
@@ -197,19 +208,14 @@ export class Wrapper {
 
 
 	// Getter/setters
-	_get_wrapper_for_object(obj) {
-		if(obj === this.object)
-			return this;
-
-		let iObj = obj;
-		let wrapper = null;
+	_get_inherited_descriptor() {
+		let iObj = Object.getPrototypeOf(this.object);
+		let descriptor = null;
 
 		while(iObj) {
-			const descriptor = Object.getOwnPropertyDescriptor(iObj, this.fn_name);
-
-			wrapper = descriptor?.get?._lib_wrapper;
-			if(wrapper)
-				return wrapper;
+			descriptor = Object.getOwnPropertyDescriptor(iObj, this.fn_name);
+			if(descriptor)
+				return descriptor;
 
 			iObj = Object.getPrototypeOf(iObj);
 		}
@@ -217,35 +223,40 @@ export class Wrapper {
 		return null;
 	}
 
-	_get_parent_wrapper() {
-		return this._get_wrapper_for_object(Object.getPrototypeOf(this.object));
-	}
-
-	_is_top_wrapper(obj) {
-		if(obj === this.object)
-			return true;
-
-		const wrapper = this._get_wrapper_for_object(obj);
-		return wrapper === this;
-	}
-
 	get_wrapped(obj, setter=false) {
+		let result;
+
 		// Properties return the getter or setter, depending on what is requested
 		if(this.is_property)
-			return setter ? this._wrapped_setter : this._wrapped_getter;
+			result = setter ? this._wrapped_setter : this._wrapped_getter;
+		else
+			result = this._wrapped;
 
 		// If this wrapper is 'empty', we need to search up the inheritance hierarchy for the return value
-		if(this._wrapped === undefined) {
-			const result = Object.getPrototypeOf(this.object)[this.fn_name];
+		if(result === undefined) {
+			const descriptor = this._get_inherited_descriptor();
 
-			if(result === undefined)
-				console.warn(`libWrapper: There is no wrapped method for '${this.name}', returning 'undefined'.`);
+			if(descriptor) {
+				if(this.is_property) {
+					if(!(descriptor.get ?? descriptor.set))
+						throw new LibWrapperInternalError(`This wrapper is set up to wrap a property, but the inherited descriptor is a method.`);
 
-			return result;
+					if(setter)
+						result = descriptor.set;
+					else
+						result = descriptor.get;
+				}
+				else {
+					result = descriptor.value ?? descriptor.get.apply(obj);
+				}
+			}
 		}
 
-		// Otherwise we just return our wrapped value
-		return this._wrapped;
+		// Done
+		if(result === undefined)
+			console.warn(`libWrapper: There is no wrapped method for '${this.name}', returning 'undefined'.`);
+
+		return result;
 	}
 
 	call_wrapper(state, obj, ...args) {
@@ -254,13 +265,8 @@ export class Wrapper {
 		const is_setter = state?.setter ?? false;
 		const fn_data = is_setter ? this.setter_data : this.getter_data
 
-		// The top wrapper will always chain parents. The remaining wrappers will be skipped unless state.chain_parent is true.
-		const top_wrapper = state?.top_wrapper ?? this._get_wrapper_for_object(obj);
-		const chain_parent = state?.chain_parent ?? (this === top_wrapper);
-		const skip_wrappers = (top_wrapper !== this) && !chain_parent;
-
 		// Keep track of call state
-		if(!skip_wrappers && state) {
+		if(state) {
 			let module = null;
 			let err_msg = null;
 
@@ -282,24 +288,9 @@ export class Wrapper {
 		const data = fn_data[index];
 
 		// If no more methods exist, then finish the chain
-		if(skip_wrappers || !data) {
-			// We need to call parent wrappers if they exist
-			// Otherwise, we can immediately return the wrapped value
-			if(chain_parent) {
-				const parent_wrapper = this._get_parent_wrapper();
-
-				if(parent_wrapper) {
-					const parent_state = {
-						chain_parent: true,
-						top_wrapper: top_wrapper
-					};
-
-					return parent_wrapper.call_wrapper(parent_state, obj, ...args);
-				}
-			}
-
+		if(!data) {
 			// We've finished all wrappers. Return the wrapped value from the top wrapper.
-			const wrapped = (skip_wrappers ? this.get_wrapped(obj, is_setter) : top_wrapper.get_wrapped(obj, is_setter));
+			const wrapped = this.get_wrapped(this.object, is_setter);
 			return wrapped?.apply(obj, args);
 		}
 
@@ -319,8 +310,6 @@ export class Wrapper {
 			valid    : true,
 			index    : index + 1,
 			prev_data: data,
-			top_wrapper : top_wrapper,
-			chain_parent: chain_parent,
 			modification_counter: this._modification_counter
 		};
 
@@ -389,9 +378,6 @@ export class Wrapper {
 						return x.module;
 					});
 
-					const parent_wrapper = this._get_parent_wrapper();
-					if(parent_wrapper)
-						affectedModules.push(...parent_wrapper.get_affected_modules());
 					is_last_wrapper = (affectedModules.length == 0);
 
 					LibWrapperStats.register_conflict(data.module, affectedModules, this.name);
@@ -431,21 +417,29 @@ export class Wrapper {
 	}
 
 	set_nonproperty(value, obj=null, reuse_handler=false) {
+		if(this.is_property)
+			throw new LibWrapperInternalError('Must not call \'set_nonproperty\' when wrapping a property');
+
+		const inherited = (obj != this.object);
+
 		// Redirect current handler to directly call the wrapped method
 		if(!reuse_handler)
 		{
-			let wrapped = this._wrapped;
+			if(!inherited) {
+				const wrapped = this._wrapped;
 
-			this.handler.set(function(obj, ...args) {
-				return wrapped.apply(obj, args);
-			});
+				this.handler.set(function(obj, ...args) {
+					return wrapped.apply(obj, args);
+				});
+			}
 
 			this._create_handler();
 		}
 
 		// If assigning to an instance directly, create a wrapper for the instance
-		if(obj != this.object) {
-			let objWrapper = new this.constructor(obj, this.fn_name, `instanceof ${this.name}`);
+		if(inherited) {
+			// TODO: Do we need to use libWrapper?
+			const objWrapper = new this.constructor(obj, this.fn_name, `instanceof ${this.name}`);
 			objWrapper.set_nonproperty(value, obj, true);
 			return;
 		}
@@ -461,10 +455,6 @@ export class Wrapper {
 		const affectedModules = this.getter_data.map((x) => {
 			return x.module;
 		});
-
-		const parent_wrapper = this._get_parent_wrapper();
-		if(parent_wrapper)
-			affectedModules.push(...parent_wrapper.get_affected_modules());
 
 		return affectedModules;
 	}

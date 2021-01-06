@@ -13,13 +13,13 @@ import '../src/lib/lib-wrapper.js';
 
 function setup(to_clear=['A']) {
 	libWrapper._unwrap_all();
+	libWrapper.load_priorities();
 
-	game.modules.clear();
+	game.clear_modules();
 
 	for(let prop of to_clear)
 		globalThis[prop] = undefined;
 }
-'use strict';
 
 
 
@@ -94,6 +94,7 @@ test_sync_async('Shim: Main', async function (t) {
 
 	// Test invalid setter
 	t.throws(() => libWrapperShim.register('m1', 'A.prototype.x#set', ()=>{}), undefined, "Wrap invalid setter");
+	t.throws(() => libWrapperShim.register('m1', 'A.prototype.xyz#set', ()=>{}), undefined, "Wrap invalid setter");
 
 
 	// Done

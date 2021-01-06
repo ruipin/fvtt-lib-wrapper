@@ -5,7 +5,7 @@
 
 import {MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, parse_manifest_version, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug, TYPES, TYPES_REVERSE, TYPES_LIST} from '../consts.js';
 import {Wrapper} from './wrapper.js';
-import {LibWrapperError, LibWrapperModuleError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError} from '../utils/errors.js';
+import {LibWrapperError, LibWrapperModuleError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError, LibWrapperInternalError} from '../utils/errors.js';
 import {get_global_variable, get_current_module_name, WRAPPERS} from '../utils/misc.js';
 import {LibWrapperNotifications} from '../ui/notifications.js'
 import {LibWrapperStats} from '../ui/stats.js';
@@ -33,13 +33,13 @@ export class libWrapper {
 
 	static get LibWrapperInternalError() { return LibWrapperInternalError; };
 	static get InternalError() { return LibWrapperInternalError; }
-	
+
 	static get LibWrapperModuleError() { return LibWrapperModuleError; };
 	static get ModuleError() { return LibWrapperModuleError; };
-	
+
 	static get LibWrapperAlreadyOverriddenError() { return LibWrapperAlreadyOverriddenError; };
 	static get AlreadyOverriddenError() { return LibWrapperAlreadyOverriddenError; };
-	
+
 	static get LibWrapperInvalidWrapperChainError() { return LibWrapperInvalidWrapperChainError; };
 	static get InvalidWrapperChainError() { return LibWrapperInvalidWrapperChainError; };
 
@@ -78,7 +78,10 @@ export class libWrapper {
 			throw new LibWrapperModuleError(`Invalid target '${target}.'`, module);
 		if(root_nm == 'libWrapper')
 			throw new LibWrapperModuleError(`Not allowed to wrap libWrapper internals.`, module);
+
 		const root = get_global_variable(root_nm);
+		if(!root)
+			throw new LibWrapperModuleError(`Could not find target '${target}'.`, module);
 
 		// Get target object
 		let obj = root;
@@ -276,13 +279,13 @@ export class libWrapper {
 		// Create wrapper
 		let wrapper = this._create_wrapper(target, module);
 
-		// Check if this wrapper is already registered
-		if(this._find_module_data_in_wrapper(module, wrapper, is_setter))
-			throw new LibWrapperModuleError(`Module '${module}' has already registered a wrapper for '${target}'.`, module);
-
 		// Only allow '#set' when the wrapper is wrapping a property
 		if(is_setter && !wrapper.is_property)
 			throw new LibWrapperModuleError(`Cannot register a wrapper for '${target}' by '${module}' because '${target_without_set}' is not a property, and therefore has no setter.`, module);
+
+		// Check if this wrapper is already registered
+		if(this._find_module_data_in_wrapper(module, wrapper, is_setter))
+			throw new LibWrapperModuleError(`Module '${module}' has already registered a wrapper for '${target}'.`, module);
 
 		// Get priority
 		const priority = this._get_default_priority(module, target);

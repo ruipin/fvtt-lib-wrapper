@@ -9,12 +9,14 @@ import {wrap_front, unwrap_all_from_obj, test_sync_async, async_retval, is_promi
 import '../src/lib/lib-wrapper.js';
 
 
-function setup() {
+function setup(to_clear=['A']) {
 	libWrapper._unwrap_all();
 	libWrapper.load_priorities();
 
 	game.clear_modules();
-	globalThis.A = undefined;
+
+	for(let prop of to_clear)
+		globalThis[prop] = undefined;
 }
 
 
@@ -113,6 +115,14 @@ test_sync_async('Library: Main', async function (t) {
 	await chkr.call(a, 'x', ['m1:Mix:7','Man:8','Orig',-3]);
 
 
+	// Test invalid getter
+	t.throws(() => libWrapper.register('m1', 'A.prototype.xyz', ()=>{}), libWrapper.ModuleError, "Wrap invalid getter");
+
+	// Test invalid setter
+	t.throws(() => libWrapper.register('m1', 'A.prototype.x#set', ()=>{}), libWrapper.ModuleError, "Wrap invalid setter");
+	t.throws(() => libWrapper.register('m1', 'A.prototype.xyz#set', ()=>{}), libWrapper.ModuleError, "Wrap invalid setter");
+
+
 	// Done
 	t.end();
 });
@@ -201,6 +211,7 @@ test('Library: Setter', function (t) {
 	let x_id = 'Orig1';
 	class A {
 		constructor() {
+			console.log('construct', this.constructor.name);
 			this.x_id = 'Orig1';
 		}
 	};
@@ -222,6 +233,10 @@ test('Library: Setter', function (t) {
 	);
 
 	globalThis.A = A;
+
+
+	class B extends A {};
+	globalThis.B = B;
 
 
 	// Instantiate
@@ -294,6 +309,34 @@ test('Library: Setter', function (t) {
 	chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','Orig7#set',-2], {param_in: ['Orig8']});
 	t.equals(a.x_id, 'Orig8', 'Post-setter #7');
 	chkr.check(a.x, ['m2:Mix:2','Orig8',-2]);
+
+
+	// B sees A's wrappers
+	let b = new B();
+	chkr.check(b.x, ['m2:Mix:2','Orig1',-2]);
+
+	// After wrapping B, it still sees A's wrappers
+	libWrapper.register('m1', 'B.prototype.x', chkr.gen_wr('m1:Mix:3'));
+	chkr.check(b.x, ['m1:Mix:3','m2:Mix:2','Orig1',-3]);
+
+	// Now wrap B's setter
+	libWrapper.register('m1', 'B.prototype.x#set', chkr.gen_wr('m1:Mix:3#set'));
+
+	b.x = 'Orig9';
+	chkr.check('m1:Mix:3#set', ['m1:Mix:3#set','m2:Mix:2#set','Orig1#set',-3], {param_in: ['Orig9']});
+	t.equals(b.x_id, 'Orig9', 'Post-setter #8');
+	chkr.check(b.x, ['m1:Mix:3','m2:Mix:2','Orig9',-3]);
+
+	// Now wrap A and see if B sees the change
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_wr('m1:Mix:4'));
+	chkr.check(b.x, ['m1:Mix:3','m1:Mix:4', 'm2:Mix:2','Orig9',-4]);
+
+	libWrapper.register('m1', 'A.prototype.x#set', chkr.gen_wr('m1:Mix:4#set'));
+	b.x = 'Orig10';
+	chkr.check('m1:Mix:3#set', ['m1:Mix:3#set','m1:Mix:4#set','m2:Mix:2#set','Orig9#set',-4], {param_in: ['Orig10']});
+	t.equals(b.x_id, 'Orig10', 'Post-setter #9');
+	chkr.check(b.x, ['m1:Mix:3','m1:Mix:4', 'm2:Mix:2','Orig10',-4]);
+
 
 
 	// Done

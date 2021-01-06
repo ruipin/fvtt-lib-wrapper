@@ -169,7 +169,7 @@ test_sync_async('Wrapper: Instance assignment', async function(t) {
 
 	// Assign directly to a, not to A.prototype
 	a.x = chkr.gen_rt('a:1');
-	await chkr.call(a, 'x', ['A:1','a:1',-2], {title: 'a.a:1'});
+	await chkr.call(a, 'x', ['a:1',-1], {title: 'a.a:1'});
 
 
 	// Calling another instance should not include wrapper 'a1' in the wrapper chain
@@ -182,7 +182,7 @@ test_sync_async('Wrapper: Instance assignment', async function(t) {
 		const wrapped = b.x;
 		return chkr.gen_rt('Man:b:1', {next: wrapped});
 	})();
-	await chkr.call(b, 'x', ['A:1','Man:b:1','A:Orig',-3], {title: 'b.Man:b:1'});
+	await chkr.call(b, 'x', ['Man:b:1','A:1','A:Orig',-3], {title: 'b.Man:b:1'});
 
 
 	// Done
@@ -217,6 +217,8 @@ test_sync_async('Wrapper: Inherited Methods', async function(t) {
 		}
 	}
 
+	class G extends A {}
+
 
 	// Instantiate A
 	let a = new A();
@@ -235,7 +237,7 @@ test_sync_async('Wrapper: Inherited Methods', async function(t) {
 
 	// Assign directly to b, not to B.prototype
 	b.x = chkr.gen_rt('b:1');
-	await chkr.call(b, 'x', ['B:1','b:1',-2], {title: 'b.b:1'});
+	await chkr.call(b, 'x', ['b:1',-1], {title: 'b.b:1'});
 
 
 	// Create manual instance wrapper
@@ -243,7 +245,7 @@ test_sync_async('Wrapper: Inherited Methods', async function(t) {
 		const wrapped = b.x;
 		return chkr.gen_rt('Man:b:1', {next: wrapped});
 	})();
-	await chkr.call(b, 'x', ['B:1','Man:b:1','b:1',-3], {title: 'b.Man:b:1'});
+	await chkr.call(b, 'x', ['Man:b:1','b:1',-2], {title: 'b.Man:b:1'});
 
 
 	// Using another instance should not call b's instance wrappers
@@ -266,19 +268,18 @@ test_sync_async('Wrapper: Inherited Methods', async function(t) {
 	await chkr.call(a, 'x', ['A:1','A:Orig',-2], {title: 'a.A:1'});
 	// And be seen by inherited classes
 	await chkr.call(b2, 'x', ['B:1','A:1','A:Orig',-3], {title: 'b2.A:1'});
+/*
 	await chkr.call(c, 'x', ['C:1','A:1','A:Orig',-3], {title: 'c.A:1'});
 
-
+/*
 	// Instantiate E
 	let e = new E();
 	await chkr.call(e, 'x', ['E:Orig', -1], {title: 'e.Orig'});
 
 
 	// Wrapping E's prototype will work
-	// NOTE: This is inconsistent... Compare 'e.E:1' with 'e.Orig' above. 'A:1' only shows up once E is wrapped by libWrapper.
-	//       This is because currently, inherited wrappers get priority over the original method of the child class. See github issue #13.
 	wrap_front(E.prototype, 'x', chkr.gen_wr('E:1'));
-	await chkr.call(e, 'x', ['E:1','A:1','E:Orig',-3], {title: 'e.E:1'});
+	await chkr.call(e, 'x', ['E:1','E:Orig',-2], {title: 'e.E:1'});
 
 
 	// Instantiate F
@@ -288,12 +289,32 @@ test_sync_async('Wrapper: Inherited Methods', async function(t) {
 
 
 	// Using the 'super' construct will work, even if the method itself is wrapped
-	// NOTE: As before, there is an inconsistency here due to inherited wrappers getting priority. Perhaps this should be ['F:1','F:Orig','A:1','A:Orig']?
-	//       This is because currently, inherited wrappers get priority over the original method of the child class. See github issue #13.
 	wrap_front(F.prototype, 'x', chkr.gen_wr('F:1'));
-	await chkr.call(f, 'x', ['F:1','A:1','F:Orig','A:Orig',-4], {title: 'f.F:1'});
+	await chkr.call(f, 'x', ['F:1','F:Orig','A:1','A:Orig',-4], {title: 'f.F:1'});
 
 
+	// Instantiate G
+	let g = new G();
+	await chkr.call(g, 'x', ['A:1','A:Orig',-2], {title: 'g.Orig'});
+
+	// Wrap G manually
+	g.x = (function() {
+		const wrapped = g.x;
+		return chkr.gen_rt('Man:g:1', {next: wrapped});
+	})();
+	await chkr.call(g, 'x', ['Man:g:1','A:1','A:Orig',-3], {title: 'g.Man:g:1'});
+
+	// Wrap A again
+	wrap_front(A.prototype, 'x', chkr.gen_wr('A:2'));
+	await chkr.call(a, 'x', ['A:2','A:1','A:Orig',-3], {title: 'a.A:2'});
+	// Should be seen by inherited classes
+	await chkr.call(b2, 'x', ['B:1','A:2','A:1','A:Orig',-4], {title: 'b2.A:2'});
+	await chkr.call(c, 'x', ['C:1','A:2','A:1','A:Orig',-4], {title: 'c.A:2'});
+
+
+	// Confirm G still sees A's wrappers
+	await chkr.call(g, 'x', ['Man:g:1','A:2','A:1','A:Orig',-4], {title: 'g.A:2'});
+*/
 
 	// Done
 	t.end();

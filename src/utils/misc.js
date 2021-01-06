@@ -33,7 +33,12 @@ export function get_current_module_name() {
 // We declare this helper here so that the eval does not have access to the anonymous function scope
 const __eval_copy = eval;
 export function get_global_variable(varname) {
-	return globalThis[varname] ?? __eval_copy(varname);
+	try {
+		return globalThis[varname] ?? __eval_copy(varname);
+	}
+	catch (e) {
+		return undefined;
+	}
 }
 
 
