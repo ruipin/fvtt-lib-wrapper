@@ -110,26 +110,26 @@ You should clone this repository and symlink it inside Foundry VTT's `Data/modul
 
 ### Summary
 
-Using this library is very simple. All you need to do is to call the `libWrapper.register` method and provide your module ID, the scope of the method you want to override, and a wrapper function.
+In order to wrap a method, you should call the `libWrapper.register` method and provide your module ID, the scope of the method you want to override, and a wrapper function.
 You can also specify the type of wrapper you want in the fourth (optional) parameter:
 
 - `WRAPPER`:
 
     - Use if your wrapper will *always* call the next function in the chain.
     - This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
-    - Note that the library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
+    - ⚠ The library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
 
 - `MIXED` (default):
 
     - Your wrapper will be allowed to decide whether it should call the next function in the chain or not.
-    - These will always come after 'WRAPPER'-type wrappers. Order is not guaranteed, but conflicts will be auto-detected.
+    - These will always come after `WRAPPER`-type wrappers. Order is not guaranteed, but conflicts will be auto-detected.
 
 - `OVERRIDE`:
 
     - Use if your wrapper will *never* call the next function in the chain. This type has the lowest priority, and will always be called last.
-    - If another module already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <libWrapper.LibWrapperAlreadyOverriddenError> exception.
-      This exception can be caught by your module in order to fail gracefully and activate fallback code.
-    - Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
+    - If another module already has an `OVERRIDE` wrapper registered to the same method:
+        - If the GM has explicitly given your module priority over the existing one, your wrapper will take over.
+        - Otherwise, libWrapper will throw a `libWrapper.AlreadyOverriddenError` exception. This exception can be caught by your module in order to fail gracefully and activate fallback code.
 
 If using `WRAPPER` or `MIXED`, the first parameter passed to your wrapper will be the next wrapper in the wrapper chain, which you can use to continue the call.
 
@@ -155,40 +155,6 @@ libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', function (...args) { 
     console.log('Foo.prototype.bar was overridden');
     return;
 }, 'OVERRIDE');
-```
-
-#### Registering or unregistering a wrapper invalidates any pending wrapper chains for a given method
-
-Due to libWrapper limitations (see [issue #7](https://github.com/ruipin/fvtt-lib-wrapper/issues/7)), currently executing wrapper chains may be invalidated any time a wrapper is registered or unregistered for a given method.
-
-```javascript
-libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', function (wrapped, ...args) {
-    libWrapper.unregister('my-fvtt-module', 'Foo.prototype.bar');
-    return wrapped(...args); // throws libWrapper.LibWrapperInvalidWrapperChainError
-});
-```
-
-The majority of modules will not have to worry about this, as wrappers will typically be fully synchronous, or will be alone wrapping a given method. However, if modules chain wrappers asynchronously (e.g. inside a `Promise`), they should expect the possibility that the chaining will throw. The likelihood of such invalidation increases the more modules are wrapping the same method and doing things asynchronously.
-
-For example, the following code will execute `wrapped` asynchronously, and therefore could, in rare situations, throw:
-
-```javascript
-libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', async function (wrapped, ...args) {
-    const a = await some_async_function(); // <- Returns a Promise to the caller
-    const b = wrapped(...args); // This runs asynchronously, only after the Promise above completes, and could throw
-    // ... do things ...
-});
-```
-
-As a result, it is recommended to avoid chaining wrappers asynchronously. If at all possible, the `await` should be delayed until after the call to `wrapped`, in order to avoid this issue.
-
-Note that if the first and only asynchronous call is the wrapped method itself, then there is nothing to worry about. For example, the following will not chain asynchronously, and therefore is completely fine:
-
-```javascript
-libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', async function (wrapped, ...args) {
-    const a = await wrapped(...args); // The call to 'wrapped' happens synchronously, returning a Promise. Only the code below this line runs asynchronously
-    // ... do things ...
-});
 ```
 
 

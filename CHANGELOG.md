@@ -1,3 +1,9 @@
+# 1.3.1.0 (2021-01-07)
+
+* Remove need for invalidation of outstanding asynchronous wrappers, when wrappers are modified. (Fixes [Issue #7](https://github.com/ruipin/fvtt-lib-wrapper/issues/7))
+* Optimize instance assignment.
+* Misc. bug fixes.
+
 # 1.3.0.0 (2021-01-06)
 
 * **[BREAKING]** Fix inconsistent wrapping order (see [Issue #13](https://github.com/ruipin/fvtt-lib-wrapper/issues/13)).
