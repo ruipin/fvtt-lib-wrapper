@@ -415,7 +415,7 @@ export class Wrapper {
 		if(this.is_property)
 			throw new LibWrapperInternalError('Must not call \'set_nonproperty\' when wrapping a property');
 
-		const inherited = (obj != this.object);
+		const inherited = (obj !== this.object);
 
 		// Redirect current handler to directly call the wrapped method
 		if(!reuse_handler)
@@ -431,12 +431,15 @@ export class Wrapper {
 			this._create_handler();
 		}
 
-		// If assigning to an instance directly, create a wrapper for the instance
+		// If assigning to an instance directly, assign directly to instance
 		if(inherited) {
-			// We need to create a local wrapper instance. Otherwise, we cannot use defineProperty to set a value-property
-			// as the inherited property (from libWrapper) has a get/set.
-			const objWrapper = new this.constructor(obj, this.fn_name, `instanceof ${this.name}`);
-			objWrapper.set_nonproperty(value, obj, true);
+			Object.defineProperty(obj, this.fn_name, {
+				value: value,
+				configurable: true,
+				enumerable: true,
+				writable: true
+			});
+
 			return;
 		}
 
