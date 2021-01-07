@@ -9,14 +9,11 @@ import {wrap_front, unwrap_all_from_obj, test_sync_async, async_retval, is_promi
 import '../src/lib/lib-wrapper.js';
 
 
-function setup(to_clear=['A']) {
+function setup() {
 	libWrapper._unwrap_all();
 	libWrapper.load_priorities();
 
 	game.clear_modules();
-
-	for(let prop of to_clear)
-		globalThis[prop] = undefined;
 }
 
 
@@ -159,19 +156,20 @@ test_sync_async('Library: Special', async function (t) {
 
 
 	// Clear inside wrapper (before call)
-	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:1',
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:2',
 		function(frm, chain) {
 			libWrapper.clear_module('m1');
 			return chain();
 		}
 	), 'WRAPPER');
-
-	await t.throws(() => a.x(0,'TOP',1,2,3), libWrapper.InvalidWrapperChainError, 'Clear inside wrapper');
-	await chkr.check(null, ['m1:Wrp:1', -1, 'THROWN'], {param_in: [0,'TOP',1,2,3]});
+	// First call runs as if nothing was unregistered
+	await chkr.call(a, 'x', ['m1:Wrp:2','Orig',-2]);
+	// Second call sees the fact that the wrapper was unregistered
+	await chkr.call(a, 'x', ['Orig',-1]);
 
 
 	// Clear inside wrapper (after call)
-	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:2',
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:3',
 		function(frm, chain) {
 			return sync_async_then(chain(), v => {
 				libWrapper.clear_module('m1');
@@ -179,18 +177,18 @@ test_sync_async('Library: Special', async function (t) {
 			})
 		}
 	), 'WRAPPER');
-	await chkr.call(a, 'x', ['m1:Wrp:2','Orig',-2]);
+	await chkr.call(a, 'x', ['m1:Wrp:3','Orig',-2]);
 
 
 	// Call from outside wrapper
 	let stored_wrapped = null;
-	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:3',
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:4',
 		function(frm, chain) {
 			stored_wrapped = chain;
 			return chain();
 		}
 	), 'WRAPPER');
-	await chkr.call(a, 'x', ['m1:Wrp:3','Orig',-2]);
+	await chkr.call(a, 'x', ['m1:Wrp:4','Orig',-2]);
 	t.throws(() => stored_wrapped(), libWrapper.InvalidWrapperChainError, 'Call from outside wrapper');
 
 
@@ -338,6 +336,47 @@ test('Library: Setter', function (t) {
 	chkr.check(b.x, ['m1:Mix:3','m1:Mix:4', 'm2:Mix:2','Orig10',-4]);
 
 
+
+	// Done
+	t.end();
+});
+
+
+
+// Modify wrapper after chaining asynchronously, before Promise resolves
+test('Wrapper: Modify wrapper after chaining asynchronously, before Promise resolves', async function(t) {
+	setup();
+	const chkr = new CallOrderChecker(t);
+	chkr.is_async = true;
+
+
+	// Define class
+	class A {};
+	A.prototype.x = chkr.gen_rt('Orig');
+	globalThis.A = A;
+
+
+	// Instantiate A
+	let a = new A();
+	await chkr.call(a, 'x', ['Orig',-1], {title: 'a.Orig'});
+
+	// Create wrappers
+	game.add_module('m1');
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_wr('1'));
+
+	game.add_module('m2');
+	libWrapper.register('m2', 'A.prototype.x', chkr.gen_fn('2',
+		(frm, chain) => sync_async_then(chain(), v => chain())
+	), 'WRAPPER');
+	await chkr.call(a, 'x', ['2','1','Orig',-2,'1','Orig',-3], {title: 'a.1'});
+
+	// Modify before `awaiting`
+	const promise = chkr.call(a, 'x', ['2','1','Orig',-2,'1','Orig',-3], {title: 'a.2'});;
+	libWrapper.unregister('m1', 'A.prototype.x');
+	await promise;
+
+	// Confirm it was unregistered
+	await chkr.call(a, 'x', ['2','Orig',-1,'Orig',-2], {title: 'a.2 #2'});
 
 	// Done
 	t.end();

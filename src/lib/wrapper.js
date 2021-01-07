@@ -98,7 +98,7 @@ export class Wrapper {
 
 		this.active  = false;
 
-		this._modification_counter = 1;
+		this._outstanding_wrappers = 0;
 		this._warned_detected_classic_wrapper = false;
 
 		// Add name
@@ -263,23 +263,17 @@ export class Wrapper {
 		// Set up basic information about this wrapper
 		const index = state?.index ?? 0;
 		const is_setter = state?.setter ?? false;
-		const fn_data = is_setter ? this.setter_data : this.getter_data
+		const fn_data = state?.fn_data ?? (is_setter ? this.setter_data : this.getter_data);
 
 		// Keep track of call state
 		if(state) {
-			let module = null;
-			let err_msg = null;
-
 			if('valid' in state && !state.valid) {
-				err_msg = `This wrapper function for '${this.name}' is no longer valid, and must not be called.`;
-				module = state.prev_data?.module;
+				throw new LibWrapperInvalidWrapperChainError(
+					this,
+					state.prev_data?.module,
+					`This wrapper function for '${this.name}' is no longer valid, and must not be called.`
+				);
 			}
-
-			if('modification_counter' in state && state.modification_counter != this._modification_counter)
-				err_msg = `The wrapper '${this.name}' was modified while a call chain was in progress. The chain is not allowed proceed.`;
-
-			if(err_msg)
-				throw new LibWrapperInvalidWrapperChainError(this, module, err_msg);
 
 			state.called = true;
 		}
@@ -310,10 +304,11 @@ export class Wrapper {
 			valid    : true,
 			index    : index + 1,
 			prev_data: data,
-			modification_counter: this._modification_counter
+			fn_data  : fn_data
 		};
 
 		const next_fn = this.call_wrapper.bind(this, next_state, obj);
+		this._outstanding_wrappers++;
 
 		let result = undefined;
 
@@ -323,10 +318,7 @@ export class Wrapper {
 			result = fn.call(obj, next_fn, ...args);
 		}
 		catch(e) {
-			// An exception causes invalidation of next_fn
-			next_state.valid = false;
-			// Re-throw
-			throw e;
+			return this._cleanup_call_wrapper_thrown(next_state, e);
 		}
 
 		// If the result is a Promise, then we must wait until it fulfills before cleaning up.
@@ -335,37 +327,41 @@ export class Wrapper {
 		if(typeof result?.then === 'function') {
 			result = result.then(
 				// onResolved
-				v => {
-					return this.cleanup_call_wrapper(v, next_state, data, fn_data, next_fn, obj, ...args);
-				},
+				v => this._cleanup_call_wrapper(v, next_state, data, fn_data, next_fn, obj, ...args),
 				// onRejected
-				e => {
-					// The promise being rejected causes invalidation of next_fn
-					next_state.valid = false;
-					// Re-throw
-					throw e;
-				}
+				e => this._cleanup_call_wrapper_thrown(next_state, e)
 			);
 		}
 		// Otherwise, we can immediately cleanup.
 		else {
-			result = this.cleanup_call_wrapper(result, next_state, data, fn_data, next_fn, obj, ...args);
+			result = this._cleanup_call_wrapper(result, next_state, data, fn_data, next_fn, obj, ...args);
 		}
 
 		// Done
 		return result;
 	}
 
-	cleanup_call_wrapper(result, next_state, data, fn_data, next_fn, obj, ...args) {
-		// Invalidate next_fn to avoid unsynchronous calls
-		next_state.valid = false;
+	_invalidate_state(state) {
+		state.valid = false;
 
-		// This method may be called asynchronously! There is no guarantee data/fn_data are still valid.
-		// As such, we check 'modification_counter' before running any complex logic.
-		if(next_state.modification_counter == this._modification_counter) {
+		this._outstanding_wrappers--;
+		if(this._outstanding_wrappers < 0)
+			throw LibWrapperInternalError(`Outstanding wrappers = ${this._outstanding_wrappers}, should never fall below 0.`);
+	}
 
+	_cleanup_call_wrapper_thrown(next_state, e) {
+		// An exception/rejection causes invalidation of next_state
+		this._invalidate_state(next_state);
+
+		// Re-throw
+		throw e;
+	}
+
+	_cleanup_call_wrapper(result, next_state, data, fn_data, next_fn, obj, ...args) {
+		// Try-finally to ensure we invalidate the wrapper even if this logic fails
+		try {
 			// Check that next_fn was called
-			if(!next_state.called && next_state.modification_counter == this._modification_counter) {
+			if(!next_state.called) {
 				// We need to collect affected modules information if we're collecting statistics, or we haven't warned the user of this conflict yet.
 				let collect_affected = (!data.warned_conflict || LibWrapperStats.collect_stats);
 				let affectedModules = null;
@@ -395,12 +391,8 @@ export class Wrapper {
 					globalThis.libWrapper.unregister(data.module, data.target);
 
 					// Manually chain to the next wrapper if there are more in the chain
-					if(!is_last_wrapper) {
-						next_state.index -= 1;
-						next_state.valid = true;
-						next_state.modification_counter = this._modification_counter;
+					if(!is_last_wrapper)
 						result = next_fn.apply(obj, args);
-					}
 				}
 
 				// Other TYPES get a generic 'conflict' message
@@ -409,7 +401,10 @@ export class Wrapper {
 					data.warned_conflict = true;
 				}
 			}
-
+		}
+		finally {
+			// Invalidate state to avoid asynchronous calls
+			this._invalidate_state(next_state);
 		}
 
 		// Done
@@ -438,7 +433,8 @@ export class Wrapper {
 
 		// If assigning to an instance directly, create a wrapper for the instance
 		if(inherited) {
-			// TODO: Do we need to use libWrapper?
+			// We need to create a local wrapper instance. Otherwise, we cannot use defineProperty to set a value-property
+			// as the inherited property (from libWrapper) has a get/set.
 			const objWrapper = new this.constructor(obj, this.fn_name, `instanceof ${this.name}`);
 			objWrapper.set_nonproperty(value, obj, true);
 			return;
@@ -481,11 +477,16 @@ export class Wrapper {
 
 	// Wraper array methods
 	// NOTE: These should only ever be called from libWrapper, they do not clean up after themselves
-	get_fn_data(setter) {
+	get_fn_data(setter, to_modify=false) {
 		if(setter && !this.is_property)
 			throw new LibWrapperInternalError(`libWrapper: '${this.name}' does not wrap a property, thus setter=true is illegal.`);
 
-		return setter ? this.setter_data : this.getter_data;
+		const prop_nm = setter ? 'setter_data' : 'getter_data';
+
+		if(to_modify && this._outstanding_wrappers > 0)
+			this[prop_nm] = this[prop_nm].slice(0);
+
+		return this[prop_nm];
 	}
 
 	sort() {
@@ -499,21 +500,17 @@ export class Wrapper {
 	}
 
 	add(data) {
-		const fn_data = this.get_fn_data(data.setter);
+		const fn_data = this.get_fn_data(data.setter, true);
 
 		fn_data.splice(0, 0, data);
 		this.sort(data.setter);
-
-		this._modification_counter++;
 	}
 
 	remove(data) {
-		const fn_data = this.get_fn_data(data.setter);
+		const fn_data = this.get_fn_data(data.setter, true);
 
 		const index = fn_data.indexOf(data);
 		fn_data.splice(index, 1);
-
-		this._modification_counter++;
 	}
 
 	clear() {
@@ -521,8 +518,6 @@ export class Wrapper {
 
 		if(this.is_property)
 			this.setter_data = [];
-
-		this._modification_counter++;
 	}
 
 	is_empty() {

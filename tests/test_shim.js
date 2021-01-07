@@ -11,14 +11,11 @@ import {libWrapper as libWrapperShim} from '../shim/shim.js';
 import '../src/lib/lib-wrapper.js';
 
 
-function setup(to_clear=['A']) {
+function setup() {
 	libWrapper._unwrap_all();
 	libWrapper.load_priorities();
 
 	game.clear_modules();
-
-	for(let prop of to_clear)
-		globalThis[prop] = undefined;
 }
 
 
