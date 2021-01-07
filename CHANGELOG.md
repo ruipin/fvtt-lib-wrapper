@@ -1,3 +1,11 @@
+# 1.3.0.0 (2021-01-06)
+
+* **[BREAKING]** Fix inconsistent wrapping order (see [Issue #13](https://github.com/ruipin/fvtt-lib-wrapper/issues/13)).
+* Major test suite improvement. Expand the number of tests, and refactor them for readability (see [Issue #12](https://github.com/ruipin/fvtt-lib-wrapper/issues/12))
+* Fix property inheritance. It did not work at all before this update.
+* Throw correct exception type when trying to wrap a setter that doesn't exist.
+* A few other miscellaneous bug-fixes for corner cases detected by the new tests.
+
 # 1.2.1.0 (2021-01-03)
 
 * Freeze all libWrapper classes after defining them.
