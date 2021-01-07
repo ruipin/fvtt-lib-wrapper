@@ -268,10 +268,9 @@ test_sync_async('Wrapper: Inherited Methods', async function(t) {
 	await chkr.call(a, 'x', ['A:1','A:Orig',-2], {title: 'a.A:1'});
 	// And be seen by inherited classes
 	await chkr.call(b2, 'x', ['B:1','A:1','A:Orig',-3], {title: 'b2.A:1'});
-/*
 	await chkr.call(c, 'x', ['C:1','A:1','A:Orig',-3], {title: 'c.A:1'});
 
-/*
+
 	// Instantiate E
 	let e = new E();
 	await chkr.call(e, 'x', ['E:Orig', -1], {title: 'e.Orig'});
@@ -314,7 +313,7 @@ test_sync_async('Wrapper: Inherited Methods', async function(t) {
 
 	// Confirm G still sees A's wrappers
 	await chkr.call(g, 'x', ['Man:g:1','A:2','A:1','A:Orig',-4], {title: 'g.A:2'});
-*/
+
 
 	// Done
 	t.end();
