@@ -1,3 +1,8 @@
+# 1.3.2.0 (2021-01-07)
+
+* Add try-catch inside `onUnhandledError` in order to avoid swallowing the original exception with a second exception if anything goes wrong.
+* Handle missing `ui.notifications` gracefully.
+
 # 1.3.1.0 (2021-01-07)
 
 * Remove need for invalidation of outstanding asynchronous wrappers, when wrappers are modified. (Fixes [Issue #7](https://github.com/ruipin/fvtt-lib-wrapper/issues/7))

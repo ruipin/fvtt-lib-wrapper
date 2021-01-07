@@ -148,11 +148,16 @@ if(!IS_UNITTEST) {
 		if(!(e instanceof LibWrapperError))
 			return false;
 
-		if(e.ui_msg && e.notification_fn)
-			LibWrapperNotifications.ui(`${e.ui_msg} (See JS console)`, e.notification_fn);
+		try {
+			if(e.ui_msg && e.notification_fn)
+				LibWrapperNotifications.ui(`${e.ui_msg} (See JS console)`, e.notification_fn);
 
-		if(e.onUnhandled)
-			e.onUnhandled.apply(e);
+			if(e.onUnhandled)
+				e.onUnhandled.apply(e);
+		}
+		catch (e) {
+			console.warn('libWrapper: Exception thrown while processing unhandled libWrapper Exception.', e);
+		}
 
 		return false;
 	}

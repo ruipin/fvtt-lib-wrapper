@@ -42,13 +42,19 @@ export class LibWrapperNotifications {
 
 		this.NOTIFICATION_SET.add(msg);
 
-		// Notify
-		ui.notifications[fn](`libWrapper: ${msg}`, {permanent: fn == 'error'});
+		// Notify - ensure that ui.notifications exists as if an error occurs too early it might not be defined yet
+		let notify = ui?.notifications;
+		if(notify) {
+			notify = notify[fn];
+
+			notify(`libWrapper: ${msg}`, {permanent: fn == 'error'});
+		}
 	}
 
 
 	static console_ui(ui_msg, console_msg, fn='error') {
 		this.ui(`${ui_msg} (See JS console)`, fn);
+
 		console[fn](`libWrapper: ${ui_msg}\n${console_msg}`);
 	}
 
