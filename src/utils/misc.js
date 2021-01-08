@@ -3,7 +3,7 @@
 
 'use strict';
 
-import {MODULE_ID} from '../consts.js';
+import {IS_UNITTEST, MODULE_ID} from '../consts.js';
 
 
 // Find currently executing module name (that is not libWrapper)
@@ -38,6 +38,25 @@ export function get_global_variable(varname) {
 	}
 	catch (e) {
 		return undefined;
+	}
+}
+
+
+// Change the name of a function object
+// Note: This is extremely hacky, and only works in some browsers, and only sometimes (usually when a function is anonymous)
+export function set_function_name(fn, name) {
+	try {
+		Object.defineProperty(fn, 'name', {
+			value: name,
+			writable: false,
+			enumerable: false,
+			configurable: true
+		});
+	}
+	catch (e) {
+		// disregard unless this is a unit test - probably unsupported by browser
+		if(IS_UNITTEST)
+			throw e;
 	}
 }
 

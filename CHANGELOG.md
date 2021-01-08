@@ -1,3 +1,7 @@
+# 1.3.4.0 (2021-01-08)
+
+* Give custom names to methods in the wrapper call chain for easier debug when something goes wrong (browser support varies).
+
 # 1.3.3.0 (2021-01-08)
 
 * Hotfix crashes introduced by v1.3.2.0 when detecting possible conflicts. Now added to test suite to avoid something similar happening again.

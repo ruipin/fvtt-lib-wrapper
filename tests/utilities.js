@@ -5,6 +5,10 @@ import test from 'tape';
 import {MODULE_ID} from '../src/consts.js';
 
 
+// Tell Node to give us longer callstacks
+Error.stackTraceLimit = Infinity;
+
+
 // Emulate hooks
 class Hooks {
 	static callAll() {}

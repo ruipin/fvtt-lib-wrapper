@@ -4,7 +4,7 @@
 'use strict';
 
 import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG} from '../consts.js';
-import {get_current_module_name} from '../utils/misc.js';
+import {get_current_module_name, set_function_name} from '../utils/misc.js';
 import {LibWrapperInternalError, LibWrapperModuleError, LibWrapperInvalidWrapperChainError} from '../utils/errors.js';
 import {LibWrapperNotifications} from '../ui/notifications.js';
 import {LibWrapperStats} from '../ui/stats.js';
@@ -12,13 +12,19 @@ import {LibWrapperStats} from '../ui/stats.js';
 
 // Handler class - owns the function that is returned by the wrapper class
 class Handler {
-	constructor(fn) {
+	constructor(fn, name='fn') {
 		this.set(fn);
 
-		let _this = this;
-		this.fn = function() {
-			return _this._fn(this, ...arguments);
-		};
+		const _this = this;
+
+		// Create function
+		// Try to get the browser to name the function the way we want it to
+		const obj = {
+			[name]: function() {
+				return _this._fn(this, ...arguments);
+			}
+		}
+		this.fn = obj[name];
 	}
 
 	set(fn) {
@@ -33,6 +39,15 @@ export class Wrapper {
 	// Properties
 	get name() {
 		return this.names[0];
+	}
+
+	// Callstack
+	_callstack_name(nm, arg1=this.name) {
+		return `🎁${nm}(${arg1})`;
+	}
+
+	_callstack_call_wrapper_name(module) {
+		return `call_wrapper('${module}')`;
 	}
 
 	// Constructor
@@ -98,6 +113,7 @@ export class Wrapper {
 
 		this.active  = false;
 
+		this._handler_count = 0;
 		this._outstanding_wrappers = 0;
 		this._warned_detected_classic_wrapper = false;
 
@@ -113,7 +129,11 @@ export class Wrapper {
 	}
 
 	_create_handler() {
-		this.handler = new Handler(this.call_wrapper.bind(this, null));
+		const fn = this.call_wrapper.bind(this, null);
+		set_function_name(fn, this._callstack_call_wrapper_name('<start>'));
+
+		this._handler_count++;
+		this.handler = new Handler(fn, this._callstack_name(`@handler${this._handler_count}`));
 	}
 
 	_wrap() {
@@ -121,8 +141,10 @@ export class Wrapper {
 			return;
 
 		// Setup setter/getter
-		let getter = null;
-		let setter = null;
+		// We use a trick here to be able t_o convince the browser to name the method the way we want it
+		const getter_nm = this._callstack_name('@getter');
+		const setter_nm = this._callstack_name('@setter');
+		let obj;
 
 		if(!this.is_property) {
 			// Create a handler
@@ -130,28 +152,35 @@ export class Wrapper {
 				this._create_handler();
 
 			// Setup setter / getter
-			let _this = this;
+			const _this = this;
 
-			getter = function() {
-				return _this.handler.fn;
-			};
+			obj = {
+				[getter_nm]: function() {
+					return _this.handler.fn;
+				},
 
-			setter = function(value) {
-				return _this.set_nonproperty(value, this);
+				[setter_nm]: function(value) {
+					return _this.set_nonproperty(value, this);
+				}
 			};
 		}
 		else {
 			// Setup setter / getter
-			let _this = this;
+			const _this = this;
 
-			getter = function(...args) {
-				return _this.call_wrapper(null, this, ...args);
+			obj = {
+				[getter_nm]: function(...args) {
+					return _this.call_wrapper(null, this, ...args);
+				},
+
+				[setter_nm]: function(...args) {
+					return _this.call_wrapper({setter: true}, this, ...args);
+				}
 			}
-
-			setter = function(...args) {
-				return _this.call_wrapper({setter: true}, this, ...args);
-			};
 		}
+
+		const getter = obj[getter_nm];
+		const setter = obj[setter_nm];
 
 		// Store a reference to this in the getter so that we can support 'singleton'-like functionality
 		getter._lib_wrapper = this;
@@ -307,12 +336,14 @@ export class Wrapper {
 			fn_data  : fn_data
 		};
 
+		// Create the next wrapper function
 		const next_fn = this.call_wrapper.bind(this, next_state, obj);
+		set_function_name(next_fn, this._callstack_call_wrapper_name(fn_data[next_state.index]?.module ?? '<finish>'));
 		this._outstanding_wrappers++;
 
-		let result = undefined;
 
 		// Try-catch block to handle normal exception flow
+		let result = undefined;
 		try {
 			// Call next method in the chain
 			result = fn.call(obj, next_fn, ...args);
@@ -413,7 +444,7 @@ export class Wrapper {
 
 	set_nonproperty(value, obj=null, reuse_handler=false) {
 		if(this.is_property)
-			throw new LibWrapperInternalError('Must not call \'set_nonproperty\' when wrapping a property');
+			throw new LibWrapperInternalError('Must not call \'set_nonproperty\' for a property wrapper.');
 
 		const inherited = (obj !== this.object);
 
@@ -423,9 +454,16 @@ export class Wrapper {
 			if(!inherited) {
 				const wrapped = this._wrapped;
 
-				this.handler.set(function(obj, ...args) {
-					return wrapped.apply(obj, args);
-				});
+				// Trick browser to give the function the name we want
+				const nm = this._callstack_name(`@bypass${this._handler_count}`);
+				const obj = {
+					[nm]: function(obj, ...args) {
+						return wrapped.apply(obj, args);
+					}
+				}
+
+				// Redirect handler to our bypass function
+				this.handler.set(obj[nm]);
 			}
 
 			this._create_handler();
@@ -503,6 +541,12 @@ export class Wrapper {
 	}
 
 	add(data) {
+		// Try to set a function name if there is none already
+		const fn = data.fn;
+		if(!fn.name || fn.name === 'anonymous')
+			set_function_name(fn, this._callstack_name(data.module ?? '<unknown>'));
+
+		// Add to fn_data
 		const fn_data = this.get_fn_data(data.setter, true);
 
 		fn_data.splice(0, 0, data);
