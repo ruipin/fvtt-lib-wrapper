@@ -1,7 +1,7 @@
 # FVTT libWrapper
 Library for [Foundry VTT](https://foundryvtt.com/) which provides module developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other modules.
 
-![Build Release](https://github.com/ruipin/fvtt-lib-wrapper/workflows/Build%20Release/badge.svg)
+![License](https://img.shields.io/github/license/ruipin/fvtt-lib-wrapper) ![Build Release](https://github.com/ruipin/fvtt-lib-wrapper/workflows/Build%20Release/badge.svg) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/ruipin/fvtt-lib-wrapper) ![GitHub issues](https://img.shields.io/github/issues-raw/ruipin/fvtt-lib-wrapper)
 
 ## Why?
 
