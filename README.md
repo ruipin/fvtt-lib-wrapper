@@ -50,6 +50,8 @@ You have multiple options here.
     }
     ```
 
+    or
+
 4.  Require your users to install this library. One simple example that achieves this is provided below. Reference the more complex example in the provided [shim](#shim) if you prefer a dialog (including an option to dismiss it permanently) instead of a simple notification.
 
     ```javascript
@@ -68,6 +70,8 @@ You have multiple options here.
         }
     ]
     ```
+
+If you pick options #2 or #3 and actively recommend to the user to install libWrapper using e.g. a notification, it is a good idea to give the user a way to permanently dismiss said notification. The provided [shim](#shim) does this by having a "Don't remind me again" option in the alert dialog.
 
 Once your module is released, you should consider adding it to the wiki list of [Modules using libWrapper](https://github.com/ruipin/fvtt-lib-wrapper/wiki/Modules-using-libWrapper). This list can also be used as an additional (unofficial) source of libWrapper usage examples.
 
