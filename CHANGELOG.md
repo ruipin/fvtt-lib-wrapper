@@ -1,3 +1,7 @@
+# 1.3.3.0 (2021-01-08)
+
+* Hotfix crashes introduced by v1.3.2.0 when detecting possible conflicts. Now added to test suite to avoid something similar happening again.
+
 # 1.3.2.0 (2021-01-07)
 
 * Add try-catch inside `onUnhandledError` in order to avoid swallowing the original exception with a second exception if anything goes wrong.

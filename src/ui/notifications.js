@@ -47,15 +47,15 @@ export class LibWrapperNotifications {
 		if(notify) {
 			notify = notify[fn];
 
-			notify(`libWrapper: ${msg}`, {permanent: fn == 'error'});
+			notify.call(ui.notifications, `libWrapper: ${msg}`, {permanent: fn == 'error'});
 		}
 	}
 
 
 	static console_ui(ui_msg, console_msg, fn='error') {
-		this.ui(`${ui_msg} (See JS console)`, fn);
+		console[fn].call(console, `libWrapper: ${ui_msg}\n${console_msg}`);
 
-		console[fn](`libWrapper: ${ui_msg}\n${console_msg}`);
+		this.ui(`${ui_msg} (See JS console)`, fn);
 	}
 
 

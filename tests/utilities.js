@@ -2,6 +2,7 @@
 // Copyright © 2021 fvtt-lib-wrapper Rui Pinheiro
 
 import test from 'tape';
+import {MODULE_ID} from '../src/consts.js';
 
 
 // Emulate hooks
@@ -28,7 +29,11 @@ class GameSettings {
 		this.SETTINGS = new Map();
 	}
 
-	register() {
+	register(module, name, data) {
+		if(module !== MODULE_ID)
+			throw `game.settings.register module must be '${MODULE_ID}', got '${module}'`;
+
+		this.set(module, name, data?.default);
 	}
 
 	set(module, setting, value) {
@@ -37,6 +42,9 @@ class GameSettings {
 
 	get(module, setting) {
 		return this.SETTINGS.get(`${module}.${setting}`);
+	}
+
+	registerMenu() {
 	}
 }
 
@@ -50,7 +58,12 @@ class Game {
 	}
 
 	add_module(nm) {
-		game.modules.set(nm, { active: true, data: { title: nm } });
+		const mdl = { active: true, data: { title: nm } };
+
+		if(nm === MODULE_ID)
+			mdl.data.version = '12.13.14.15ut';
+
+		game.modules.set(nm, mdl);
 	}
 
 	clear_modules() {
@@ -67,10 +80,16 @@ globalThis.game.clear_modules();
 // UI Notifications
 class UiNotifications {
 	error(msg) {
+		if(this !== globalThis.ui.notifications)
+			throw "ui.notifications.error 'this' is not 'globalThis.ui.notifications";
+
 		console.error(`(UI) ${msg}`);
 	}
 
 	warn(msg) {
+		if(this !== globalThis.ui.notifications)
+			throw "ui.notifications.warn 'this' is not 'globalThis.ui.notifications";
+
 		console.warn(`(UI) ${msg}`);
 	}
 }

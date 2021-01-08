@@ -392,8 +392,8 @@ Object.defineProperty(globalThis, 'libWrapper', {
 
 
 // Initialize libWrapper right before the 'init' hook. Unit tests just initialize immediately
-if(!IS_UNITTEST) {
-	libWrapper.register('lib-wrapper', 'Game.prototype.initialize', function(wrapped, ...args) {
+{
+	const libWrapperInit = function(wrapped, ...args) {
 		// Notify everyone the library has loaded and is ready to start registering wrappers
 		libwrapper_ready = true;
 
@@ -409,10 +409,12 @@ if(!IS_UNITTEST) {
 		const result = wrapped(...args);
 
 		return result;
-	}, 'WRAPPER');
-}
-else {
-	libwrapper_ready = true;
+	}
+
+	if(!IS_UNITTEST)
+		libWrapper.register('lib-wrapper', 'Game.prototype.initialize', libWrapperInit, 'WRAPPER');
+	else
+		libWrapperInit(()=>{});
 }
 
 
