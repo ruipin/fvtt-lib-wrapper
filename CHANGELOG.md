@@ -1,3 +1,7 @@
+# 1.3.5.0 (2021-01-11)
+
+* Bugfix: Refactor usage of the handler objects (used to bootstrap a libWrapper call) so that dispatch is dynamic. Prevents references to wrapped methods from skipping the wrappers.
+
 # 1.3.4.0 (2021-01-08)
 
 * Give custom names to methods in the wrapper call chain for easier debug when something goes wrong (browser support varies).

@@ -10,36 +10,14 @@ import {LibWrapperNotifications} from '../ui/notifications.js';
 import {LibWrapperStats} from '../ui/stats.js';
 
 
-// Handler class - owns the function that is returned by the wrapper class
-class Handler {
-	constructor(fn, name='fn') {
-		this.set(fn);
-
-		const _this = this;
-
-		// Create function
-		// Try to get the browser to name the function the way we want it to
-		const obj = {
-			[name]: function() {
-				return _this._fn(this, ...arguments);
-			}
-		}
-		this.fn = obj[name];
-	}
-
-	set(fn) {
-		this._fn = fn;
-	}
-}
-Object.freeze(Handler);
-
-
 // Wrapper class - this class is responsible for the actual wrapping
 export class Wrapper {
 	// Properties
 	get name() {
 		return this.names[0];
 	}
+
+
 
 	// Callstack
 	_callstack_name(nm, arg1=this.name) {
@@ -49,6 +27,8 @@ export class Wrapper {
 	_callstack_call_wrapper_name(module) {
 		return `call_wrapper('${module}')`;
 	}
+
+
 
 	// Constructor
 	constructor (obj, fn_name, name=undefined, module=undefined) {
@@ -113,9 +93,13 @@ export class Wrapper {
 
 		this.active  = false;
 
-		this._handler_count = 0;
 		this._outstanding_wrappers = 0;
 		this._warned_detected_classic_wrapper = false;
+
+		if(!this.is_property) {
+			this._pending_original_calls = [];
+			this._setter_call_count = 0;
+		}
 
 		// Add name
 		if(!name)
@@ -128,12 +112,30 @@ export class Wrapper {
 		this._wrap();
 	}
 
-	_create_handler() {
-		const fn = this.call_wrapper.bind(this, null);
-		set_function_name(fn, this._callstack_call_wrapper_name('<start>'));
 
-		this._handler_count++;
-		this.handler = new Handler(fn, this._callstack_name(`@handler${this._handler_count}`));
+
+	// Wrap/unwrap logic
+	_get_handler() {
+		// We use a trick here to be able to convince the browser to name the method the way we want it
+		const _this = this;
+		const setter_call_count = this._setter_call_count;
+		const handler_nm = this._callstack_name(`@handler${setter_call_count}`);
+		const wrapped = this._wrapped;
+
+		const obj = {
+			[handler_nm]: function(...args) {
+				if(_this.should_skip_wrappers(this, setter_call_count)) {
+					return _this.get_wrapped.call(_this, this, false, wrapped).apply(this, args);
+				}
+				else {
+					const fn = _this.call_wrapper.bind(_this, null, this);
+					set_function_name(fn, _this._callstack_call_wrapper_name('<start>'));
+					return fn(...args);
+				}
+			}
+		};
+
+		return obj[handler_nm];
 	}
 
 	_wrap() {
@@ -141,22 +143,18 @@ export class Wrapper {
 			return;
 
 		// Setup setter/getter
-		// We use a trick here to be able t_o convince the browser to name the method the way we want it
+		// We use a trick here to be able to convince the browser to name the method the way we want it
 		const getter_nm = this._callstack_name('@getter');
 		const setter_nm = this._callstack_name('@setter');
 		let obj;
 
 		if(!this.is_property) {
-			// Create a handler
-			if(!this.handler)
-				this._create_handler();
-
-			// Setup setter / getter
 			const _this = this;
 
+			// Setup setter / getter
 			obj = {
 				[getter_nm]: function() {
-					return _this.handler.fn;
+					return _this._get_handler();
 				},
 
 				[setter_nm]: function(value) {
@@ -205,16 +203,6 @@ export class Wrapper {
 			throw new LibWrapperInternalError('libWrapper: Cannot unwrap when PROPERTIES_CONFIGURABLE==false');
 
 
-		// Kill the handler
-		if(this.handler) {
-			let _fn_name = this.fn_name;
-
-			this.handler.set(function(obj, ...args) {
-				return obj[_fn_name].apply(obj, args);
-			});
-		}
-		this.handler = null
-
 		// Remove the property
 		delete this.object[this.fn_name];
 
@@ -229,6 +217,7 @@ export class Wrapper {
 			this.object[this.fn_name] = this._wrapped;
 		}
 
+
 		// Done
 		this.active = false;
 
@@ -236,7 +225,8 @@ export class Wrapper {
 	}
 
 
-	// Getter/setters
+
+	// Utilities related to getting the wrapped value
 	_get_inherited_descriptor() {
 		let iObj = Object.getPrototypeOf(this.object);
 		let descriptor = null;
@@ -252,14 +242,14 @@ export class Wrapper {
 		return null;
 	}
 
-	get_wrapped(obj, setter=false) {
+	get_wrapped(obj, setter=false, wrapped=this._wrapped) {
 		let result;
 
 		// Properties return the getter or setter, depending on what is requested
 		if(this.is_property)
 			result = setter ? this._wrapped_setter : this._wrapped_getter;
 		else
-			result = this._wrapped;
+			result = wrapped;
 
 		// If this wrapper is 'empty', we need to search up the inheritance hierarchy for the return value
 		if(result === undefined) {
@@ -288,6 +278,89 @@ export class Wrapper {
 		return result;
 	}
 
+
+
+	// Calling the wrapped method
+	_call_wrapped(obj, args, is_setter=false) {
+		let pend;
+
+		if(!this.is_property) {
+			// Set this wrapped call as pending
+			pend = obj;
+			this._pending_original_calls.push(pend);
+		}
+
+
+		// Try-catch block to handle normal exception flow
+		let result = undefined;
+		try {
+			const wrapped = this.get_wrapped(this.object, is_setter);
+			result = wrapped?.apply(obj, args);
+		}
+		catch(e) {
+			if(!this.is_property)
+				this._cleanup_call_wrapped(null, pend);
+
+			throw e;
+		}
+
+		// We only need to keep track of pending calls when we're not wrapping a property
+		if(this.is_property)
+			return result;
+
+		// If the result is a Promise, then we must wait until it fulfills before cleaning up.
+		// Per the JS spec, the only way to detect a Promise (since Promises can be polyfilled, extended, wrapped, etc) is to look for the 'then' method.
+		// Anything with a 'then' function is technically a Promise. This leaves a path for false-positives, but I don't see a way to avoid this.
+		if(typeof result?.then === 'function') {
+			result = result.then(
+				// onResolved
+				v => this._cleanup_call_wrapped(v, pend),
+				// onRejected
+				e => {
+					this._cleanup_call_wrapped(null, pend);
+					throw e;
+				}
+			);
+		}
+		// Otherwise, we can immediately cleanup.
+		else {
+			result = this._cleanup_call_wrapped(result, pend);
+		}
+
+		// Done
+		return result;
+	}
+
+	_cleanup_call_wrapped(result, pend) {
+		const pend_i = this._pending_original_calls.indexOf(pend);
+		if(pend_i < 0)
+			throw new LibWrapperInternalError(`Could not find 'pend' inside 'this._pending_original_calls'.`);
+
+		this._pending_original_calls.splice(pend_i, 1);
+
+		return result;
+	}
+
+	should_skip_wrappers(obj, setter_call_count) {
+		// We don't need to skip wrappers if the wrapper reference was generated after the last setter call
+		if(setter_call_count == this._setter_call_count)
+			return false;
+
+		// Sanity check
+		if(setter_call_count > this._setter_call_count)
+			throw new LibWrapperInternalError(`Unreachable: setter_call_count=${setter_call_count} > this._setter_call_count=${this._setter_call_count}`);
+
+		// Find pending calls that match this object - if any is found, skip wrappers
+		const pend_i = this._pending_original_calls.indexOf(obj);
+		if(pend_i < 0)
+			return false;
+
+		return true;
+	}
+
+
+
+	// Main call wrapper logic
 	call_wrapper(state, obj, ...args) {
 		// Set up basic information about this wrapper
 		const index = state?.index ?? 0;
@@ -312,9 +385,8 @@ export class Wrapper {
 
 		// If no more methods exist, then finish the chain
 		if(!data) {
-			// We've finished all wrappers. Return the wrapped value from the top wrapper.
-			const wrapped = this.get_wrapped(this.object, is_setter);
-			return wrapped?.apply(obj, args);
+			// We've finished all wrappers. Return the wrapped value.
+			return this._call_wrapped(obj, args, is_setter);
 		}
 
 		// Grab wrapper function from function data object
@@ -377,7 +449,7 @@ export class Wrapper {
 
 		this._outstanding_wrappers--;
 		if(this._outstanding_wrappers < 0)
-			throw LibWrapperInternalError(`Outstanding wrappers = ${this._outstanding_wrappers}, should never fall below 0.`);
+			throw new LibWrapperInternalError(`Outstanding wrappers = ${this._outstanding_wrappers}, should never fall below 0.`);
 	}
 
 	_cleanup_call_wrapper_thrown(next_state, e) {
@@ -442,32 +514,14 @@ export class Wrapper {
 		return result;
 	}
 
-	set_nonproperty(value, obj=null, reuse_handler=false) {
+
+
+	// Non-property setter
+	set_nonproperty(value, obj=null) {
 		if(this.is_property)
 			throw new LibWrapperInternalError('Must not call \'set_nonproperty\' for a property wrapper.');
 
 		const inherited = (obj !== this.object);
-
-		// Redirect current handler to directly call the wrapped method
-		if(!reuse_handler)
-		{
-			if(!inherited) {
-				const wrapped = this._wrapped;
-
-				// Trick browser to give the function the name we want
-				const nm = this._callstack_name(`@bypass${this._handler_count}`);
-				const obj = {
-					[nm]: function(obj, ...args) {
-						return wrapped.apply(obj, args);
-					}
-				}
-
-				// Redirect handler to our bypass function
-				this.handler.set(obj[nm]);
-			}
-
-			this._create_handler();
-		}
 
 		// If assigning to an instance directly, assign directly to instance
 		if(inherited) {
@@ -481,13 +535,17 @@ export class Wrapper {
 			return;
 		}
 
-		// Wrap the new value and create a new handler
+		// Wrap the new value
 		this._wrapped = value;
+		this._setter_call_count++;
 
 		// Warn user and/or log conflict
 		this.warn_classic_wrapper();
 	}
 
+
+
+	// Conflict logging utilities
 	get_affected_modules() {
 		const affectedModules = this.getter_data.map((x) => {
 			return x.module;
@@ -514,6 +572,7 @@ export class Wrapper {
 			this.detected_classic_wrapper = []
 		this.detected_classic_wrapper.push(module_name);
 	}
+
 
 
 	// Wraper array methods

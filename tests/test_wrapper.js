@@ -4,7 +4,7 @@
 'use strict';
 
 import {CallOrderChecker} from './call_order_checker.js';
-import {wrap_front, unwrap_all_from_obj, test_sync_async, async_retval} from './utilities.js';
+import {wrap_front, unwrap_all_from_obj, test_sync_async, async_retval, sync_async_then} from './utilities.js';
 import '../src/lib/lib-wrapper.js';
 
 
@@ -61,9 +61,16 @@ test_sync_async('Wrapper: Basic functionality', async function (t) {
 	await chkr.call(a, 'x', ['4','2','1','Man6','Man5',-5]);
 
 
+	// Copy reference to method and call it
+	const a_x = a.x;
+	chkr.check(await a_x.call(this,1,"TOP",2,3), ['4','2','1','Man6','Man5',-5], {param_in: [1,"TOP",2,3]});
+
 	// Fourth wrapper
 	wrap_front(A.prototype, 'x', chkr.gen_wr('7'));
 	await chkr.call(a, 'x', ['7','4','2','1','Man6','Man5',-6]);
+
+	// Call previous reference to method again
+	chkr.check(await a_x.call(this,1,"TOP",2,3), ['7','4','2','1','Man6','Man5',-6], {param_in: [1,"TOP",2,3]});
 
 
 	// Done

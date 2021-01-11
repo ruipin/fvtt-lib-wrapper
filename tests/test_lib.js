@@ -344,7 +344,7 @@ test('Library: Setter', function (t) {
 
 
 // Modify wrapper after chaining asynchronously, before Promise resolves
-test('Wrapper: Modify wrapper after chaining asynchronously, before Promise resolves', async function(t) {
+test('Library: Modify wrapper after chaining asynchronously, before Promise resolves', async function(t) {
 	setup();
 	const chkr = new CallOrderChecker(t);
 	chkr.is_async = true;
@@ -377,6 +377,79 @@ test('Wrapper: Modify wrapper after chaining asynchronously, before Promise reso
 
 	// Confirm it was unregistered
 	await chkr.call(a, 'x', ['2','Orig',-1,'Orig',-2], {title: 'a.2 #2'});
+
+	// Done
+	t.end();
+});
+
+
+
+// Test the behaviour of libWrapper when people take references to methods and call them manually
+test_sync_async('Library: References to methods', async function (t) {
+	setup();
+	const chkr = new CallOrderChecker(t);
+
+	// Define class
+	class A {};
+	A.prototype.x = chkr.gen_rt('Orig');
+	globalThis.A = A;
+
+
+	// Instantiate
+	let a = new A();
+	await chkr.call(a, 'x', ['Orig',-1]);
+
+	// First wrapper
+	game.add_module('m1');
+	libWrapper.register('m1', 'A.prototype.x', chkr.gen_wr('1'));
+	await chkr.call(a, 'x', ['1','Orig',-2]);
+
+
+	// Wrap in the traditional way, by storing the prototype, and then modifying it
+	A.prototype.x = (function() {
+		const wrapped = A.prototype.x;
+		return chkr.gen_rt('Man2', {next: wrapped});
+	})();
+	await chkr.call(a, 'x', ['1','Man2','Orig',-3]);
+
+
+	// Copy reference to method and call it
+	const a_x = a.x;
+	chkr.check(await a_x.call(this,1,"TOP",2,3), ['1','Man2','Orig',-3], {param_in: [1,"TOP",2,3]});
+
+	// Fourth wrapper
+	game.add_module('m2');
+	libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('3'));
+	await chkr.call(a, 'x', ['3','1','Man2','Orig',-4]);
+
+	// Call previous reference to method again
+	chkr.check(await a_x.call(this,1,"TOP",2,3),['3','1','Man2','Orig',-4], {param_in: [1,"TOP",2,3]});
+
+
+	// Set up a manual wrapper that calls the wrapper from the start the first time, chains the second time
+	A.prototype.x = (function() {
+		const wrapped = A.prototype.x;
+		let call_cnt = 0;
+
+		return chkr.gen_rt('Man4', {next: function(...args) {
+			if(call_cnt == 0) {
+				call_cnt++;
+				return sync_async_then(t.test_async ? async_retval(null) : null, v => {
+					const result = A.prototype.x.apply(this, args);
+					call_cnt--;
+					return result;
+				});
+			}
+			else {
+				return wrapped.apply(this, args);
+			}
+		}});
+	})();
+	await chkr.call(a, 'x', ['3','1','Man4','3','1','Man4','Man2','Orig',-8]);
+
+	// Call previous reference to method again
+	chkr.check(await a_x.call(this,1,"TOP",2,3),['3','1','Man4','3','1','Man4','Man2','Orig',-8], {param_in: [1,"TOP",2,3]});
+
 
 	// Done
 	t.end();

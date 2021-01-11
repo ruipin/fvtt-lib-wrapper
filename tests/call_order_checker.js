@@ -290,7 +290,7 @@ export class CallOrderChecker {
 		);
 	}
 
-	gen_rt(id, {next=null}={}) {
+	gen_rt(id, {next=null, next_id=null}={}) {
 		return this.gen_fn(
 			id,
 			!next ? null : (frm, chain_args) => next.call(frm.this, ...chain_args),
@@ -356,6 +356,12 @@ export class CallOrderChecker {
 
 				compare(current.this , callee.this, 'Callee \'this\' Mismatch');
 				compare(current.nxt_args, callee.in_args, 'Callee Arguments Mismatch');
+			}
+			else {
+				if(current.nxt_result && is_promise(current.nxt_result))
+					error('Callee Returned Promise, but expected no callee');
+				if(current.nxt_id)
+					error(`Callee returned '${current.nxt_id}', but expected no callee.`);
 			}
 
 			// Validate return count
