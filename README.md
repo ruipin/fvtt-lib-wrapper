@@ -1,7 +1,14 @@
 # FVTT libWrapper
 Library for [Foundry VTT](https://foundryvtt.com/) which provides module developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other modules.
 
-![License](https://img.shields.io/github/license/ruipin/fvtt-lib-wrapper) ![Build Release](https://github.com/ruipin/fvtt-lib-wrapper/workflows/Build%20Release/badge.svg) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/ruipin/fvtt-lib-wrapper) ![GitHub issues](https://img.shields.io/github/issues-raw/ruipin/fvtt-lib-wrapper)
+[![License](https://img.shields.io/github/license/ruipin/fvtt-lib-wrapper)](LICENSE)
+[![Build Release](https://github.com/ruipin/fvtt-lib-wrapper/workflows/Build%20Release/badge.svg)](https://github.com/ruipin/fvtt-lib-wrapper/releases/latest)
+[![Version (latest)](https://img.shields.io/github/v/release/ruipin/fvtt-lib-wrapper)](https://github.com/ruipin/fvtt-lib-wrapper/releases/latest)
+[![Foundry Version](https://img.shields.io/badge/dynamic/json.svg?url=https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json&label=Foundry%20Version&query=$.compatibleCoreVersion&colorB=blueviolet)](https://github.com/ruipin/fvtt-lib-wrapper/releases/latest)
+[![GitHub downloads (latest)](https://img.shields.io/badge/dynamic/json?label=Downloads@latest&query=assets[?(@.name.includes('zip'))].download_count&url=https://api.github.com/repos/ruipin/fvtt-lib-wrapper/releases/latest&color=green)](https://github.com/ruipin/fvtt-lib-wrapper/releases/latest)
+[![Forge Install Base](https://img.shields.io/badge/dynamic/json?label=Forge%20Install%20Base&query=package.installs&suffix=%&url=https://forge-vtt.com/api/bazaar/package/lib-wrapper&colorB=brightgreen)](https://forge-vtt.com/)
+[![GitHub issues](https://img.shields.io/github/issues-raw/ruipin/fvtt-lib-wrapper)](https://github.com/ruipin/fvtt-lib-wrapper/issues)
+[![Ko-fi](https://img.shields.io/badge/-buy%20me%20a%20coffee-%23FF5E5B?logo=Ko-fi&logoColor=white)](https://ko-fi.com/ruipin)
 
 ## Why?
 
