@@ -75,8 +75,6 @@ class Game {
 		this.add_module('lib-wrapper');
 	}
 }
-
-
 globalThis.game = new Game();
 globalThis.game.clear_modules();
 
@@ -100,15 +98,22 @@ class UiNotifications {
 globalThis.ui = { notifications: new UiNotifications() };
 
 
+// Dialog
+class Dialog {
+	render() {}
+}
+globalThis.Dialog = Dialog;
+
 
 
 // Wrap helpers to bypass libWrapper public API
-export const wrap_front = function(obj, fn_name, fn, is_setter=false) {
+export const wrap_front = function(obj, fn_name, fn, is_setter=false, chain=true) {
 	const wrapper = libWrapper._create_wrapper_from_object(obj, fn_name);
 	wrapper.get_fn_data(is_setter).splice(0, 0, {
 		fn: fn,
 		priority: undefined,
-		active: true
+		active: true,
+		chain: chain
 	});
 };
 

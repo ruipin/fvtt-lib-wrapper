@@ -104,6 +104,15 @@ test_sync_async('Library: Main', async function (t) {
 	libWrapper.register('m1', 'A.prototype.x', chkr.gen_wr('m1:Mix:7'));
 	await chkr.call(a, 'x', ['m1:Mix:7','Orig',-2]);
 
+	// Register an OVERRIDE with chain=true
+	game.add_module('m3');
+	libWrapper.register('m3', 'A.prototype.x', chkr.gen_wr('m3:Ovr:8'), 'OVERRIDE', {chain: true});
+	await chkr.call(a, 'x', ['m1:Mix:7','m3:Ovr:8','Orig',-3]);
+
+	// Unregister OVERRIDE
+	libWrapper.unregister('m3', 'A.prototype.x');
+	await chkr.call(a, 'x', ['m1:Mix:7','Orig',-2]);
+
 	// Test manual wrapping
 	A.prototype.x = (function() {
 		const wrapped = A.prototype.x;

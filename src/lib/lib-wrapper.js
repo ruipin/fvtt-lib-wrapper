@@ -252,7 +252,7 @@ export class libWrapper {
 	 *
 	 *
 	 */
-	static register(module, target, fn, type='MIXED') {
+	static register(module, target, fn, type='MIXED', {chain=undefined}={}) {
 		// Validate module
 		this._validate_module(module);
 
@@ -270,6 +270,10 @@ export class libWrapper {
 		type = TYPES[type.toUpperCase()];
 		if(typeof type === 'undefined' || !(type in TYPES_REVERSE))
 			throw new LibWrapperModuleError(`Parameter 'type' must be one of [${TYPES_LIST.join(', ')}].`, module);
+
+		chain = chain ?? (type < TYPES.OVERRIDE);
+		if(typeof chain !== 'boolean')
+			throw new LibWrapperModuleError(`Parameter 'chain' must be a boolean.`, module);
 
 		// Split '#set' from the target
 		const target_and_setter  = this._split_target_and_setter(target);
@@ -291,7 +295,7 @@ export class libWrapper {
 		const priority = this._get_default_priority(module, target);
 
 		// Only allow one 'OVERRIDE' type
-		if(type == TYPES.OVERRIDE) {
+		if(type >= TYPES.OVERRIDE) {
 			const existing = wrapper.get_fn_data(is_setter).find((x) => { return x.type == TYPES.OVERRIDE });
 
 			if(existing) {
@@ -319,7 +323,8 @@ export class libWrapper {
 			fn      : fn,
 			type    : type,
 			wrapper : wrapper,
-			priority: priority
+			priority: priority,
+			chain   : chain
 		};
 
 		wrapper.add(data);

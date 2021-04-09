@@ -1,3 +1,7 @@
+# 1.3.6.0 (2021-04-09)
+
+* Allow OVERRIDE wrappers to continue chain if they pass `{chain: true}` as a fourth parameter to `libWrapper.register`.
+
 # 1.3.5.0 (2021-01-11)
 
 * Bugfix: Refactor usage of the handler objects (used to bootstrap a libWrapper call) so that dispatch is dynamic. Prevents references to wrapped methods from skipping the wrappers.

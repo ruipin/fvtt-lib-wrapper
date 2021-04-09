@@ -18,7 +18,7 @@ Hooks.once('init', () => {
 	libWrapper = class {
 		static get is_fallback() { return true };
 
-		static register(module, target, fn, type="MIXED") {
+		static register(module, target, fn, type="MIXED", {chain=undefined}={}) {
 			const is_setter = target.endsWith('#set');
 			target = !is_setter ? target : target.slice(0, -4);
 			const split = target.split('.');
@@ -37,7 +37,7 @@ Hooks.once('init', () => {
 			if(!descriptor) throw `libWrapper Shim: '${target}' does not exist or could not be found.`;
 
 			let original = null;
-			const wrapper = (type == 'OVERRIDE') ? function() { return fn.call(this, ...arguments); } : function() { return fn.call(this, original.bind(this), ...arguments); }
+			const wrapper = (chain ?? type != 'OVERRIDE') ? function() { return fn.call(this, original.bind(this), ...arguments); } : function() { return fn.call(this, ...arguments); };
 
 			if(!is_setter) {
 				if(descriptor.value) {

@@ -392,8 +392,8 @@ export class Wrapper {
 		// Grab wrapper function from function data object
 		const fn = data.fn;
 
-		// OVERRIDE type does not continue the chain
-		if(data.type >= TYPES.OVERRIDE) {
+		// OVERRIDE type will usually not continue the chain
+		if(!data.chain) {//data.type >= TYPES.OVERRIDE) {
 			// Call next method in the chain
 			return fn.apply(obj, args);
 		}
