@@ -187,6 +187,19 @@ export class libWrapper {
 	static get InvalidWrapperChainError() { return LibWrapperInvalidWrapperChainError; };
 
 
+	// Check for a minimum libWrapper version
+	static version_at_least(major, minor=0, patch=0) {
+		if(MAJOR_VERSION == major) {
+			if(MINOR_VERSION == minor)
+				return PATCH_VERSION >= patch;
+
+			return MINOR_VERSION > minor;
+		}
+		return MAJOR_VERSION > major;
+	}
+
+
+	// Reload module priorities
 	static load_priorities(value=null) {
 		const module = get_current_module_name();
 		if(module)
