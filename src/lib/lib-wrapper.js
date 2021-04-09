@@ -15,9 +15,152 @@ import {LibWrapperSettings} from '../ui/settings.js';
 let libwrapper_ready = false;
 let allow_libwrapper_registrations = true;
 
+
 // Manager class
 export const PRIORITIES = new Map();
 
+
+
+// Internal Methods
+export function _create_wrapper_from_object(obj, fn_name, name=undefined, module=undefined) {
+	const wrapper = new Wrapper(obj, fn_name, name, module);
+	WRAPPERS.add(wrapper);
+	return wrapper;
+}
+
+function _split_target_and_setter(target) {
+	let is_setter = target.endsWith('#set');
+	let _target = !is_setter ? target : target.slice(0, -4);
+
+	return [_target, is_setter];
+}
+
+function _valid_identifier(ident) {
+	return /^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(ident);
+}
+
+function _get_target_object(_target, module=undefined) {
+	// Parse the target
+	const target = _split_target_and_setter(_target)[0];
+
+	const split = target.split('.');
+	const fn_name = split.pop();
+
+	// Get root object
+	const root_nm = split.splice(0,1)[0];
+	if(!_valid_identifier(root_nm))
+		throw new LibWrapperModuleError(`Invalid target '${target}.'`, module);
+	if(root_nm == 'libWrapper')
+		throw new LibWrapperModuleError(`Not allowed to wrap libWrapper internals.`, module);
+
+	const root = get_global_variable(root_nm);
+	if(!root)
+		throw new LibWrapperModuleError(`Could not find target '${target}'.`, module);
+
+	// Get target object
+	let obj = root;
+	for(let scope of split) {
+		if(!_valid_identifier(scope))
+			throw new LibWrapperModuleError(`Invalid target '${target}'.`, module);
+
+		obj = obj[scope];
+		if(!obj)
+			throw new LibWrapperModuleError(`Could not find target '${target}'.`, module);
+	}
+
+	return [obj, fn_name, target];
+}
+
+function _create_wrapper(target, module=null) {
+	// Create wrapper
+	return _create_wrapper_from_object(..._get_target_object(target), module);
+}
+
+function _find_wrapper_by_name(_name) {
+	const name = _split_target_and_setter(_name)[0];
+
+	for(let wrapper of WRAPPERS) {
+		if(wrapper.names.indexOf(name) != -1)
+			return wrapper;
+	}
+
+	return null;
+}
+
+function _find_module_data_in_wrapper(module, wrapper, is_setter) {
+	return wrapper.get_fn_data(is_setter).find((x) => { return x.module == module; });
+}
+
+function _find_module_data_with_target(module, _target) {
+	const target_and_setter = _split_target_and_setter(_target);
+	const target    = target_and_setter[0];
+	const is_setter = target_and_setter[1];
+
+	const wrapper = _find_wrapper_by_name(target);
+	if(!wrapper)
+		return null;
+
+	return _find_module_data_in_wrapper(module, wrapper, is_setter);
+}
+
+function _get_default_priority(module, target) {
+	if(module === MODULE_ID)
+		return Number.MAX_VALUE;
+
+	const priority_cfg = PRIORITIES.get(module);
+	if(priority_cfg !== undefined)
+		return priority_cfg;
+
+	return 0;
+}
+
+
+function _unwrap_if_possible(wrapper) {
+	if(wrapper.is_empty() && PROPERTIES_CONFIGURABLE) {
+		wrapper.unwrap();
+		WRAPPERS.delete(wrapper);
+	}
+}
+
+export function _clear(target) {
+	const wrapper = _find_wrapper_by_name(target);
+
+	if(wrapper) {
+		wrapper.clear();
+		_unwrap_if_possible(wrapper);
+
+		console.info(`libWrapper: Cleared all wrapper functions for '${target}'.`);
+	}
+}
+
+export function _unwrap_all() {
+	for(let wrapper of WRAPPERS) {
+		wrapper.clear();
+		wrapper.unwrap();
+	}
+
+	WRAPPERS.clear();
+}
+
+function _validate_module(module) {
+	const real_module = get_current_module_name();
+
+	if(!module || typeof module !== 'string')
+		throw new LibWrapperModuleError('Parameter \'module\' must be a string.', real_module);
+
+	if(module != MODULE_ID && !game.modules.get(module)?.active)
+		throw new LibWrapperModuleError(`Module '${module}' is not a valid module.`, real_module);
+
+	if(module == MODULE_ID && !allow_libwrapper_registrations)
+		throw new LibWrapperModuleError(`Not allowed to call libWrapper with module='${module}'.`, real_module);
+
+	if(real_module && module != real_module)
+		throw new LibWrapperModuleError(`Module '${real_module}' is not allowed to call libWrapper with module='${module}'.`, real_module);
+}
+
+
+
+// Publicly exposed class
 export class libWrapper {
 	// Properties
 	static get version() { return VERSION; }
@@ -42,149 +185,6 @@ export class libWrapper {
 
 	static get LibWrapperInvalidWrapperChainError() { return LibWrapperInvalidWrapperChainError; };
 	static get InvalidWrapperChainError() { return LibWrapperInvalidWrapperChainError; };
-
-
-	// Variables
-	static wrappers = WRAPPERS;
-
-	// Utilities
-	static _create_wrapper_from_object(obj, fn_name, name=undefined, module=undefined) {
-		const wrapper = new Wrapper(obj, fn_name, name, module);
-		this.wrappers.add(wrapper);
-		return wrapper;
-	}
-
-	static _split_target_and_setter(target) {
-		let is_setter = target.endsWith('#set');
-		let _target = !is_setter ? target : target.slice(0, -4);
-
-		return [_target, is_setter];
-	}
-
-	static _valid_identifier(ident) {
-		return /^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(ident);
-	}
-
-	static _get_target_object(_target, module=undefined) {
-		// Parse the target
-		const target = this._split_target_and_setter(_target)[0];
-
-		const split = target.split('.');
-		const fn_name = split.pop();
-
-		// Get root object
-		const root_nm = split.splice(0,1)[0];
-		if(!this._valid_identifier(root_nm))
-			throw new LibWrapperModuleError(`Invalid target '${target}.'`, module);
-		if(root_nm == 'libWrapper')
-			throw new LibWrapperModuleError(`Not allowed to wrap libWrapper internals.`, module);
-
-		const root = get_global_variable(root_nm);
-		if(!root)
-			throw new LibWrapperModuleError(`Could not find target '${target}'.`, module);
-
-		// Get target object
-		let obj = root;
-		for(let scope of split) {
-			if(!this._valid_identifier(scope))
-				throw new LibWrapperModuleError(`Invalid target '${target}'.`, module);
-
-			obj = obj[scope];
-			if(!obj)
-				throw new LibWrapperModuleError(`Could not find target '${target}'.`, module);
-		}
-
-		return [obj, fn_name, target];
-	}
-
-	static _create_wrapper(target, module=null) {
-		// Create wrapper
-		return this._create_wrapper_from_object(...this._get_target_object(target), module);
-	}
-
-	static _find_wrapper_by_name(_name) {
-		const name = this._split_target_and_setter(_name)[0];
-
-		for(let wrapper of this.wrappers) {
-			if(wrapper.names.indexOf(name) != -1)
-				return wrapper;
-		}
-
-		return null;
-	}
-
-	static _find_module_data_in_wrapper(module, wrapper, is_setter) {
-		return wrapper.get_fn_data(is_setter).find((x) => { return x.module == module; });
-	}
-
-	static _find_module_data_with_target(module, _target) {
-		const target_and_setter = this._split_target_and_setter(_target);
-		const target    = target_and_setter[0];
-		const is_setter = target_and_setter[1];
-
-		const wrapper = this._find_wrapper_by_name(target);
-		if(!wrapper)
-			return null;
-
-		return this._find_module_data_in_wrapper(module, wrapper, is_setter);
-	}
-
-	static _get_default_priority(module, target) {
-		if(module === MODULE_ID)
-			return Number.MAX_VALUE;
-
-		const priority_cfg = PRIORITIES.get(module);
-		if(priority_cfg !== undefined)
-			return priority_cfg;
-
-		return 0;
-	}
-
-
-	static _unwrap_if_possible(wrapper) {
-		if(wrapper.is_empty() && PROPERTIES_CONFIGURABLE) {
-			wrapper.unwrap();
-			this.wrappers.delete(wrapper);
-		}
-	}
-
-	static _clear(target) {
-		const wrapper = this._find_wrapper_by_name(target);
-
-		if(wrapper) {
-			wrapper.clear();
-			this._unwrap_if_possible(wrapper);
-
-			console.info(`libWrapper: Cleared all wrapper functions for '${target}'.`);
-		}
-	}
-
-
-	static _unwrap_all() {
-		for(let wrapper of this.wrappers) {
-			wrapper.clear();
-			wrapper.unwrap();
-		}
-
-		this.wrappers.clear();
-	}
-
-
-	static _validate_module(module) {
-		const real_module = get_current_module_name();
-
-		if(!module || typeof module !== 'string')
-			throw new LibWrapperModuleError('Parameter \'module\' must be a string.', real_module);
-
-		if(module != MODULE_ID && !game.modules.get(module)?.active)
-			throw new LibWrapperModuleError(`Module '${module}' is not a valid module.`, real_module);
-
-		if(module == MODULE_ID && !allow_libwrapper_registrations)
-			throw new LibWrapperModuleError(`Not allowed to call libWrapper with module='${module}'.`, real_module);
-
-		if(real_module && module != real_module)
-			throw new LibWrapperModuleError(`Module '${real_module}' is not allowed to call libWrapper with module='${module}'.`, real_module);
-	}
 
 
 	static load_priorities(value=null) {
@@ -254,7 +254,7 @@ export class libWrapper {
 	 */
 	static register(module, target, fn, type='MIXED', {chain=undefined}={}) {
 		// Validate module
-		this._validate_module(module);
+		_validate_module(module);
 
 		// Validate we're allowed to register wrappers at this moment
 		if(module != MODULE_ID && !libwrapper_ready)
@@ -276,23 +276,23 @@ export class libWrapper {
 			throw new LibWrapperModuleError(`Parameter 'chain' must be a boolean.`, module);
 
 		// Split '#set' from the target
-		const target_and_setter  = this._split_target_and_setter(target);
+		const target_and_setter  = _split_target_and_setter(target);
 		const target_without_set = target_and_setter[0];
 		const is_setter          = target_and_setter[1];
 
 		// Create wrapper
-		let wrapper = this._create_wrapper(target, module);
+		let wrapper = _create_wrapper(target, module);
 
 		// Only allow '#set' when the wrapper is wrapping a property
 		if(is_setter && !wrapper.is_property)
 			throw new LibWrapperModuleError(`Cannot register a wrapper for '${target}' by '${module}' because '${target_without_set}' is not a property, and therefore has no setter.`, module);
 
 		// Check if this wrapper is already registered
-		if(this._find_module_data_in_wrapper(module, wrapper, is_setter))
+		if(_find_module_data_in_wrapper(module, wrapper, is_setter))
 			throw new LibWrapperModuleError(`Module '${module}' has already registered a wrapper for '${target}'.`, module);
 
 		// Get priority
-		const priority = this._get_default_priority(module, target);
+		const priority = _get_default_priority(module, target);
 
 		// Only allow one 'OVERRIDE' type
 		if(type >= TYPES.OVERRIDE) {
@@ -343,10 +343,10 @@ export class libWrapper {
 	 */
 	static unregister(module, target, fail=true) {
 		// Validate module
-		this._validate_module(module);
+		_validate_module(module);
 
 		// Find wrapper
-		const data = this._find_module_data_with_target(module, target);
+		const data = _find_module_data_with_target(module, target);
 		if(!data) {
 			if(fail)
 				throw new LibWrapperModuleError(`Cannot unregister '${target}' by '${module}' as no such wrapper has been registered`, module);
@@ -357,7 +357,7 @@ export class libWrapper {
 
 		// Remove from fn_data
 		wrapper.remove(data);
-		this._unwrap_if_possible(wrapper);
+		_unwrap_if_possible(wrapper);
 
 		// Done
 		if(DEBUG || module != MODULE_ID)
@@ -371,10 +371,10 @@ export class libWrapper {
 	 */
 	static clear_module(module) {
 		// Validate module
-		this._validate_module(module);
+		_validate_module(module);
 
 		// Clear module wrappers
-		for(let wrapper of this.wrappers) {
+		for(let wrapper of WRAPPERS) {
 			this.unregister(module, wrapper.name, false);
 
 			if(wrapper.is_property)
@@ -384,7 +384,14 @@ export class libWrapper {
 		console.info(`libWrapper: Cleared all wrapper functions by module '${module}'.`);
 	}
 };
+if(IS_UNITTEST) {
+	// Some methods should be exposed during unit tests
+	libWrapper._UT_unwrap_all = _unwrap_all;
+	libWrapper._UT_create_wrapper_from_object = _create_wrapper_from_object
+	libWrapper._UT_clear = _clear;
+}
 Object.freeze(libWrapper);
+
 
 
 // Define as property so that it can't be deleted
@@ -394,6 +401,7 @@ Object.defineProperty(globalThis, 'libWrapper', {
 	set: (value) => { throw `libWrapper: Not allowed to re-assign the global instance of libWrapper` },
 	configurable: false
 });
+
 
 
 // Initialize libWrapper right before the 'init' hook. Unit tests just initialize immediately
@@ -421,6 +429,7 @@ Object.defineProperty(globalThis, 'libWrapper', {
 	else
 		libWrapperInit(()=>{});
 }
+
 
 
 // Lock down registrations using module 'lib-wrapper'

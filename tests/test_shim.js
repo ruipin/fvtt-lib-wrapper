@@ -12,7 +12,7 @@ import '../src/lib/lib-wrapper.js';
 
 
 function setup() {
-	libWrapper._unwrap_all();
+	libWrapper._UT_unwrap_all();
 	libWrapper.load_priorities();
 
 	game.clear_modules();

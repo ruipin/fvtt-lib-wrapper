@@ -10,7 +10,7 @@ import '../src/lib/lib-wrapper.js';
 
 
 function setup() {
-	libWrapper._unwrap_all();
+	libWrapper._UT_unwrap_all();
 	libWrapper.load_priorities();
 
 	game.clear_modules();
@@ -96,7 +96,7 @@ test_sync_async('Library: Main', async function (t) {
 
 	// Try clearing 'A.prototype.x'
 	const pre_clear = A.prototype.x;
-	libWrapper._clear('A.prototype.x');
+	libWrapper._UT_clear('A.prototype.x');
 	await chkr.call(a, 'x', ['Orig',-1], {title: 'A.prototype.X cleared #1'});
 	await chkr.check(pre_clear.call(a), ['Orig',-1], {title: 'A.prototype.X cleared #2'});
 

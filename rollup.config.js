@@ -29,7 +29,12 @@ export default {
 		terser({
 			ecma: 2018,
 			toplevel: true,
-			module: true
+			module: true,
+			/*mangle: {
+				properties: {
+					regex: /^_/
+				}
+			}*/
 		})
 	]
 };
