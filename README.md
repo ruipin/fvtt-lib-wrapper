@@ -168,6 +168,26 @@ libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', function (...args) { 
 }, 'OVERRIDE');
 ```
 
+#### Arrow Functions do not support `this`
+
+Per the Javascript specification, arrow function syntax (`(args) => { body() }`) does not bind a `this` object, and instead keeps whatever `this` was defined in the declaration scope.
+
+As such, if you use arrow functions to define your wrapper, you will be unable to use the wrapper's `this`:
+
+```javascript
+libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', (wrapped, ...args) => {
+    console.log(this); // -> 'Window'
+}, 'MIXED' /* optional, since this is the default type */ );
+```
+
+If you want access to the `this` object of the wrapped method, you must use the `function(args) { body() }` syntax:
+
+```javascript
+libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', function (wrapped, ...args) {
+    console.log(this); // -> 'Foo'
+}, 'MIXED' /* optional, since this is the default type */ );
+```
+
 
 ### LibWrapper API
 
@@ -204,7 +224,9 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
  *     Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
  *
- *
+ * @param {Object} options [Optional] Additional options to libWrapper.
+ * @param {boolean} options.chain [Optional] If 'true', the first parameter to 'fn' will be a function object that can be called to continue the chain.
+ *                                           Default is 'false' if type=='OVERRIDE', otherwise 'true'.
  */
 ```
 

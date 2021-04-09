@@ -263,7 +263,9 @@ export class libWrapper {
 	 *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
 	 *     Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
 	 *
-	 *
+	 * @param {Object} options [Optional] Additional options to libWrapper.
+	 * @param {boolean} options.chain [Optional] If 'true', the first parameter to 'fn' will be a function object that can be called to continue the chain.
+	 *                                           Default is 'false' if type=='OVERRIDE', otherwise 'true'.
 	 */
 	static register(module, target, fn, type='MIXED', {chain=undefined}={}) {
 		// Validate module
