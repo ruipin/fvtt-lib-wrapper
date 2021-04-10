@@ -8,6 +8,7 @@
 	"styles": ["dist/lib-wrapper.css"],
 	"minimumCoreVersion": "0.6.5",
 	"compatibleCoreVersion": "0.7.9",
+	"library": true,
 	"url": "https://github.com/ruipin/fvtt-lib-wrapper",
 	"manifest": "https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json",
 	"download": "https://github.com/ruipin/fvtt-lib-wrapper/archive/master.zip"
