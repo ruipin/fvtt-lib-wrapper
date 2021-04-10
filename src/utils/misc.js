@@ -46,6 +46,10 @@ export function get_global_variable(varname) {
 // Note: This is extremely hacky, and only works in some browsers, and only sometimes (usually when a function is anonymous)
 export function set_function_name(fn, name) {
 	try {
+		// Only supported by Firefox: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/displayName
+		fn.displayName = name;
+
+		// Hack: Try and over-ride the 'name' property
 		Object.defineProperty(fn, 'name', {
 			value: name,
 			writable: false,

@@ -7,7 +7,7 @@
 import {} from './utils/errors.js';
 
 // Import the main library
-import {} from './lib/lib-wrapper.js';
+import {} from './libWrapper-api.js';
 
 // Settings dialog
 import {} from './ui/settings.js';

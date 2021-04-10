@@ -3,11 +3,11 @@
 
 'use strict';
 
-import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG} from '../consts.js';
-import {get_current_module_name, set_function_name} from '../utils/misc.js';
-import {LibWrapperInternalError, LibWrapperModuleError, LibWrapperInvalidWrapperChainError} from '../utils/errors.js';
-import {LibWrapperNotifications} from '../ui/notifications.js';
-import {LibWrapperStats} from '../ui/stats.js';
+import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG} from './consts.js';
+import {get_current_module_name, set_function_name} from './utils/misc.js';
+import {LibWrapperInternalError, LibWrapperModuleError, LibWrapperInvalidWrapperChainError} from './utils/errors.js';
+import {LibWrapperNotifications} from './ui/notifications.js';
+import {LibWrapperStats} from './ui/stats.js';
 
 
 // Wrapper class - this class is responsible for the actual wrapping
@@ -21,7 +21,7 @@ export class Wrapper {
 
 	// Callstack
 	_callstack_name(nm, arg1=this.name) {
-		return `🎁${nm}(${arg1})`;
+		return `🎁${arg1}#${nm}`;
 	}
 
 	_callstack_call_wrapper_name(module) {
@@ -116,12 +116,17 @@ export class Wrapper {
 
 	// Wrap/unwrap logic
 	_get_handler() {
-		// We use a trick here to be able to convince the browser to name the method the way we want it
-		const _this = this;
+		// Return the cached handler, if it is still valid
 		const setter_call_count = this._setter_call_count;
-		const handler_nm = this._callstack_name(`@handler${setter_call_count}`);
+		if(setter_call_count === this._cached_handler_setter_call_count)
+			return this._cached_handler;
+
+		// Create a handler function
+		const _this = this;
+		const handler_nm = this._callstack_name(setter_call_count);
 		const wrapped = this._wrapped;
 
+		// We use a trick here to be able to convince the browser to name the method the way we want it
 		const obj = {
 			[handler_nm]: function(...args) {
 				if(_this.should_skip_wrappers(this, setter_call_count)) {
@@ -132,10 +137,21 @@ export class Wrapper {
 					set_function_name(fn, _this._callstack_call_wrapper_name('<start>'));
 					return fn(...args);
 				}
+			},
+
+			['toString']: function () {
+				return _this.get_wrapped(this).toString();
 			}
 		};
+		const fn = obj[handler_nm];
+		fn.toString = obj['toString'];
 
-		return obj[handler_nm];
+		// Cache handler
+		this._cached_handler = fn;
+		this._cached_handler_setter_call_count = setter_call_count;
+
+		// Done
+		return fn;
 	}
 
 	_wrap() {
@@ -144,8 +160,8 @@ export class Wrapper {
 
 		// Setup setter/getter
 		// We use a trick here to be able to convince the browser to name the method the way we want it
-		const getter_nm = this._callstack_name('@getter');
-		const setter_nm = this._callstack_name('@setter');
+		const getter_nm = this._callstack_name('getter');
+		const setter_nm = this._callstack_name('setter');
 		let obj;
 
 		if(!this.is_property) {

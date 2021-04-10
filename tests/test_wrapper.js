@@ -5,7 +5,7 @@
 
 import {CallOrderChecker} from './call_order_checker.js';
 import {wrap_front, unwrap_all_from_obj, test_sync_async, async_retval, sync_async_then} from './utilities.js';
-import '../src/lib/lib-wrapper.js';
+import '../src/libWrapper-api.js';
 
 
 function setup() {
