@@ -309,6 +309,11 @@ export class libWrapper {
 		// Get priority
 		const priority = _get_default_priority(module, target);
 
+		// Register this module as having wrapped something
+		// We do this before checking for duplicate OVERRIDEs to ensure users can change this module's priorities regardless
+		if(module != MODULE_ID)
+			LibWrapperStats.register_module(module);
+
 		// Only allow one 'OVERRIDE' type
 		if(type >= TYPES.OVERRIDE) {
 			const existing = wrapper.get_fn_data(is_setter).find((x) => { return x.type == TYPES.OVERRIDE });
@@ -325,10 +330,6 @@ export class libWrapper {
 				}
 			}
 		}
-
-		// Register this module as having wrapped something
-		if(module != MODULE_ID)
-			LibWrapperStats.register_module(module);
 
 		// Wrap
 		let data = {
