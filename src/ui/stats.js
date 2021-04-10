@@ -82,6 +82,11 @@ export class LibWrapperStats {
 			return;
 		}
 
+		// We first notify everyone that an override was just lost. This hook being handled will prevent us from registering the module conflict
+		if(!Hooks.call('libWrapper.ConflictDetected', module, other, target))
+			return;
+
+		// We now register the conflict
 		const key = `${module}/${other}`;
 
 		let data = this.CONFLICTS.get(key);

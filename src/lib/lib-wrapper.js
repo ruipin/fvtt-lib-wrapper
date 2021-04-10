@@ -323,10 +323,13 @@ export class libWrapper {
 					throw new LibWrapperAlreadyOverriddenError(module, existing.module, wrapper.name);
 				}
 				else {
-					LibWrapperStats.register_conflict(module, existing.module, wrapper.name);
-					LibWrapperNotifications.conflict(existing.module, module, false,
-						`Module '${module}' has higher priority, and is replacing the OVERRIDE registered by '${existing.module}' for '${wrapper.name}'.`
-					);
+					// We trigger a hook first
+					if(Hooks.call('libWrapper.OverrideLost', existing.module, module, wrapper.name)) {
+						LibWrapperStats.register_conflict(module, existing.module, wrapper.name);
+						LibWrapperNotifications.conflict(existing.module, module, false,
+							`Module '${module}' has higher priority, and is replacing the OVERRIDE registered by '${existing.module}' for '${wrapper.name}'.`
+						);
+					}
 				}
 			}
 		}
@@ -346,6 +349,7 @@ export class libWrapper {
 		wrapper.add(data);
 
 		// Done
+		Hooks.callAll('libWrapper.Register', module, target, type);
 		if(DEBUG || module != MODULE_ID)
 			console.info(`libWrapper: Registered a wrapper for '${target}' by '${module}' with type ${TYPES_REVERSE[type]}.`);
 	}
@@ -376,6 +380,7 @@ export class libWrapper {
 		_unwrap_if_possible(wrapper);
 
 		// Done
+		Hooks.callAll('libWrapper.Unregister', module, target);
 		if(DEBUG || module != MODULE_ID)
 			console.info(`libWrapper: Unregistered the wrapper for '${target}' by '${module}'.`);
 	}
@@ -397,6 +402,7 @@ export class libWrapper {
 				this.unregister(module, `${wrapper.name}#set`, false);
 		}
 
+		Hooks.callAll('libWrapper.ClearModule', module);
 		console.info(`libWrapper: Cleared all wrapper functions by module '${module}'.`);
 	}
 };

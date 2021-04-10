@@ -559,9 +559,9 @@ export class Wrapper {
 		module_name = module_name ? `\u00AB${module_name}\u00BB` : '\u00ABunknown\u00BB';
 
 		const affectedModules = this.get_affected_modules();
-		LibWrapperStats.register_conflict(module_name, affectedModules, this.name);
 
 		if(affectedModules.length > 0) {
+			LibWrapperStats.register_conflict(module_name, affectedModules, this.name);
 			LibWrapperNotifications.conflict(module_name, affectedModules, true, `Detected non-libWrapper wrapping of '${this.name}' by ${module_name}. This will potentially lead to conflicts.`);
 
 			if(DEBUG && console.trace)
