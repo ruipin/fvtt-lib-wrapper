@@ -423,7 +423,7 @@ Object.defineProperty(globalThis, 'libWrapper', {
 // Initialize libWrapper right before the 'init' hook. Unit tests just initialize immediately
 {
 	const libWrapperInit = function(wrapped, ...args) {
-		// Notify everyone the library has loaded and is ready to start registering wrappers
+		// Initialization steps
 		libwrapper_ready = true;
 
 		parse_manifest_version();
@@ -432,6 +432,7 @@ Object.defineProperty(globalThis, 'libWrapper', {
 		LibWrapperNotifications.init();
 		libWrapper.load_priorities();
 
+		// Notify everyone the library has loaded and is ready to start registering wrappers
 		console.info(`libWrapper ${VERSION}: Ready.`);
 		Hooks.callAll('libWrapperReady', libWrapper);
 
