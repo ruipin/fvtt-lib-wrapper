@@ -6,7 +6,7 @@
 import {MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, parse_manifest_version, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug, TYPES, TYPES_REVERSE, TYPES_LIST} from './consts.js';
 import {Wrapper} from './libWrapper-wrapper.js';
 import {init_error_listeners, LibWrapperError, LibWrapperModuleError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError, LibWrapperInternalError} from './utils/errors.js';
-import {get_global_variable, get_current_module_name, WRAPPERS, set_function_name} from './utils/misc.js';
+import {get_global_variable, get_current_module_name, WRAPPERS, decorate_class_function_names} from './utils/misc.js';
 import {LibWrapperNotifications} from './ui/notifications.js'
 import {LibWrapperStats} from './ui/stats.js';
 import {LibWrapperSettings, PRIORITIES} from './ui/settings.js';
@@ -143,11 +143,14 @@ function _validate_module(module) {
 	if(!module || typeof module !== 'string')
 		throw new LibWrapperModuleError('Parameter \'module\' must be a string.', real_module);
 
-	if(module != MODULE_ID && !game.modules.get(module)?.active)
-		throw new LibWrapperModuleError(`Module '${module}' is not a valid module.`, real_module);
-
-	if(module == MODULE_ID && !allow_libwrapper_registrations)
-		throw new LibWrapperModuleError(`Not allowed to call libWrapper with module='${module}'.`, real_module);
+	if(module == MODULE_ID) {
+		if(!allow_libwrapper_registrations)
+			throw new LibWrapperModuleError(`Not allowed to call libWrapper with module='${module}'.`, real_module);	
+	}
+	else {
+		if(module != game.data.system.id && !game.modules.get(module)?.active)
+			throw new LibWrapperModuleError(`Module '${module}' is not a valid module.`, real_module);
+	}
 
 	if(real_module && module != real_module)
 		throw new LibWrapperModuleError(`Module '${real_module}' is not allowed to call libWrapper with module='${module}'.`, real_module);
@@ -402,6 +405,7 @@ export class libWrapper {
 		}
 	}
 };
+decorate_class_function_names(libWrapper);
 if(IS_UNITTEST) {
 	// Some methods should be exposed during unit tests
 	libWrapper._UT_unwrap_all = _unwrap_all;
@@ -432,6 +436,11 @@ Object.defineProperty(globalThis, 'libWrapper', {
 		LibWrapperSettings.init();
 		LibWrapperStats.init();
 		LibWrapperNotifications.init();
+
+		// Sanity check
+		const system_id = game.data.system.id;
+		if(game.modules.get(system_id)?.active)
+			LibWrapperNotifications.console_ui(`Module '${system_id}' is active and has same ID as the current system '${system_id}'. This could cause issues, and is not recommended.`, '', 'warn');
 
 		// Notify everyone the library has loaded and is ready to start registering wrappers
 		console.info(`libWrapper ${VERSION}: Ready.`);

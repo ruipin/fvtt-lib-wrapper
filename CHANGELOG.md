@@ -1,3 +1,13 @@
+# 1.4.2.0 (2021-04-11)
+
+* System support:
+  * Systems can now register wrappers using their ID (Partially implements [Issue #19](https://github.com/ruipin/fvtt-lib-wrapper/issues/19))
+  * Detected conflicts involving a system no longer show up as `unknown`.
+* Improve call stacks further ([Issue #17](https://github.com/ruipin/fvtt-lib-wrapper/issues/17)):
+  * Decorate all `libWrapper`, `Wrapper` and `LibWrapperNotifications` functions with the `🎁` symbol.
+  * Bind `call_wrapped` on the last wrapper call, instead of `call_wrapper`. This avoids one extra call.
+  * Decorate `Hooks._call` wrapper properly.
+
 # 1.4.1.0 (2021-04-11)
 
 * Fix broken `Hooks.once` behaviour. Modules such as Norc's Custom Hotbar now work as expected. Closes [Issue #30](https://github.com/ruipin/fvtt-lib-wrapper/issues/30).

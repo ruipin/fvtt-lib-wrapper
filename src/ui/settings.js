@@ -217,7 +217,7 @@ export class LibWrapperSettings extends FormApplication {
 		// Normal modules
 		if(LibWrapperStats.collect_stats) {
 			LibWrapperStats.modules.forEach((module_id) => {
-				const module_data = game.modules.get(module_id).data;
+				const module_data = (module_id == game.data.system.id) ? game.data.system.data : game.modules.get(module_id).data;
 
 				if(module_id in cfg_prioritized || module_id in cfg_deprioritized)
 					return;

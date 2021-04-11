@@ -4,7 +4,7 @@
 'use strict';
 
 import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG} from './consts.js';
-import {get_current_module_name, set_function_name} from './utils/misc.js';
+import {get_current_module_name, decorate_name, set_function_name, decorate_class_function_names} from './utils/misc.js';
 import {LibWrapperInternalError, LibWrapperModuleError, LibWrapperInvalidWrapperChainError} from './utils/errors.js';
 import {LibWrapperNotifications} from './ui/notifications.js';
 import {LibWrapperStats} from './ui/stats.js';
@@ -21,11 +21,11 @@ export class Wrapper {
 
 	// Callstack
 	_callstack_name(nm, arg1=this.name) {
-		return `🎁${arg1}#${nm}`;
+		return decorate_name(arg1, nm);
 	}
 
 	_callstack_call_wrapper_name(module) {
-		return `call_wrapper('${module}')`;
+		return `🎁call_wrapper('${module}')`;
 	}
 
 
@@ -297,15 +297,19 @@ export class Wrapper {
 
 
 	// Calling the wrapped method
-	_call_wrapped(obj, args, is_setter=false) {
-		let pend;
+	call_wrapped(state, obj, ...args) {
+		// Call preamble
+		this._call_wrapper_preamble(state);
 
+		// Load necessary state
+		const is_setter = state?.setter ?? false;
+
+		// If necessary, set this wrapped call as pending
+		let pend = undefined;
 		if(!this.is_property) {
-			// Set this wrapped call as pending
 			pend = obj;
 			this._pending_original_calls.push(pend);
 		}
-
 
 		// Try-catch block to handle normal exception flow
 		let result = undefined;
@@ -378,38 +382,31 @@ export class Wrapper {
 
 	// Main call wrapper logic
 	call_wrapper(state, obj, ...args) {
+		// Call preamble
+		this._call_wrapper_preamble(state);
+
 		// Set up basic information about this wrapper
 		const index = state?.index ?? 0;
 		const is_setter = state?.setter ?? false;
-		const fn_data = state?.fn_data ?? (is_setter ? this.setter_data : this.getter_data);
-
-		// Keep track of call state
-		if(state) {
-			if('valid' in state && !state.valid) {
-				throw new LibWrapperInvalidWrapperChainError(
-					this,
-					state.prev_data?.module,
-					`This wrapper function for '${this.name}' is no longer valid, and must not be called.`
-				);
-			}
-
-			state.called = true;
-		}
+		const fn_data = state?.fn_data ?? this.get_fn_data(is_setter);
 
 		// Grab the next function data from the function data array
 		const data = fn_data[index];
 
-		// If no more methods exist, then finish the chain
+		// If no methods exist, then finish the chain
 		if(!data) {
-			// We've finished all wrappers. Return the wrapped value.
-			return this._call_wrapped(obj, args, is_setter);
+			if(fn_data.length > 0)
+				throw new LibWrapperInternalError(`Must not have 'data===${data}' when 'fn_data.length==${fn_data.length}'.`);
+
+			// There are no wrappers, return the wrapped value.
+			return this.call_wrapped(null, obj, ...args);
 		}
 
 		// Grab wrapper function from function data object
 		const fn = data.fn;
 
 		// OVERRIDE type will usually not continue the chain
-		if(!data.chain) {//data.type >= TYPES.OVERRIDE) {
+		if(!data.chain) {
 			// Call next method in the chain
 			return fn.apply(obj, args);
 		}
@@ -425,10 +422,10 @@ export class Wrapper {
 		};
 
 		// Create the next wrapper function
-		const next_fn = this.call_wrapper.bind(this, next_state, obj);
-		set_function_name(next_fn, this._callstack_call_wrapper_name(fn_data[next_state.index]?.module ?? '<finish>'));
+		const is_last = (next_state.index >= fn_data.length);
+		const next_fn = is_last ? this.call_wrapped.bind(this, next_state, obj) : this.call_wrapper.bind(this, next_state, obj);
+		set_function_name(next_fn, this._callstack_call_wrapper_name(is_last ? '<finish>' : fn_data[next_state.index].module));
 		this._outstanding_wrappers++;
-
 
 		// Try-catch block to handle normal exception flow
 		let result = undefined;
@@ -458,6 +455,21 @@ export class Wrapper {
 
 		// Done
 		return result;
+	}
+
+	_call_wrapper_preamble(state) {
+		// Keep track of call state
+		if(state) {
+			if('valid' in state && !state.valid) {
+				throw new LibWrapperInvalidWrapperChainError(
+					this,
+					state.prev_data?.module,
+					`This wrapper function for '${this.name}' is no longer valid, and must not be called.`
+				);
+			}
+
+			state.called = true;
+		}
 	}
 
 	_invalidate_state(state) {
@@ -649,4 +661,7 @@ export class Wrapper {
 		return !this.getter_data.length && !this.setter_data?.length;
 	}
 };
+decorate_class_function_names(Wrapper);
+
+// Prevent modifications
 Object.freeze(Wrapper);

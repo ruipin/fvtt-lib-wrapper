@@ -4,7 +4,7 @@
 'use strict';
 
 import {IS_UNITTEST, MODULE_ID} from '../consts.js';
-import {get_current_module_name} from './misc.js';
+import {get_current_module_name, decorate_name} from './misc.js';
 import {LibWrapperNotifications} from '../ui/notifications.js';
 
 
@@ -38,7 +38,7 @@ export class LibWrapperInternalError extends LibWrapperError {
 		const module = get_current_module_name();
 
 		super(
-			module ? `Internal error detected, possibly related to module '${module}'.`
+			module ? `Internal error detected, possibly related to '${module}'.`
 			       : 'Internal error detected.'
 			,
 			console_msg,
@@ -64,8 +64,8 @@ export class LibWrapperModuleError extends LibWrapperError {
 
 		super(
 			(module ? (
-				possibly ? `Error detected, possibly in module '${module}'.` :
-				         `Error detected in module '${module}'.`
+				possibly ? `Error detected, possibly in '${module}'.` :
+				           `Error detected in '${module}'.`
 				) :
 				'Error detected in unknown module.'
 			),
@@ -84,8 +84,8 @@ Object.freeze(LibWrapperModuleError);
 export class LibWrapperAlreadyOverriddenError extends LibWrapperError {
 	constructor(module, conflicting_module, target, ...args) {
 		super(
-			`Conflict detected between module '${module}' and '${conflicting_module}'.`,
-			`Failed to wrap '${target}' for module '${module}' with type OVERRIDE. The module '${conflicting_module}' has already registered an OVERRIDE wrapper for the same method.`,
+			`Conflict detected between '${module}' and '${conflicting_module}'.`,
+			`Failed to wrap '${target}' for '${module}' with type OVERRIDE. A OVERRIDE wrapper for the same method has already been registered by '${conflicting_module}'.`,
 			'error',
 			...args
 		);
@@ -118,7 +118,7 @@ Object.freeze(LibWrapperAlreadyOverriddenError);
 export class LibWrapperInvalidWrapperChainError extends LibWrapperError {
 	constructor(wrapper, module, console_msg, ...args) {
 		let user_msg = (module) ?
-			`Error detected in module '${module}'.`:
+			`Error detected in '${module}'.`:
 			`Error detected in wrapper '${wrapper.name}'.`
 		;
 
@@ -182,15 +182,20 @@ export const init_error_listeners = function() {
 		libWrapper.register('lib-wrapper', 'Hooks._call', function(wrapped, ...args) {
 			// Replace fn with a custom function containing an error handler
 			const fn = args[1];
-			args[1] = function(...hook_args) {
-				try {
-					return fn.apply(this, hook_args);
-				}
-				catch(e) {
-					onUnhandledError(e);
-					throw e;
+
+			const fn_nm = decorate_name('Hooks._call', `hook=${args[0]}`);
+			const obj = {
+				[fn_nm]: function(...hook_args) {
+					try {
+						return fn.apply(this, hook_args);
+					}
+					catch(e) {
+						onUnhandledError(e);
+						throw e;
+					}
 				}
 			};
+			args[1] = obj[fn_nm];
 
 			// Because we changed the 'fn', we need to manually check for this
 			if(this._once.includes(fn))

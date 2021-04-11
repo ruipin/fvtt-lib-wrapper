@@ -4,6 +4,7 @@
 'use strict';
 
 import {MODULE_ID} from '../consts.js';
+import {decorate_class_function_names} from '../utils/misc.js';
 import {game_user_isGM} from '../utils/user.js'
 
 
@@ -80,9 +81,10 @@ export class LibWrapperNotifications {
 			other = `'${other}'`;
 
 		this.console_ui(
-			potential ? `Potential conflict detected between ${module} and ${other}.` : `Conflict detected between module ${module} and ${other}.`,
+			potential ? `Potential conflict detected between ${module} and ${other}.` : `Conflict detected between ${module} and ${other}.`,
 			console_msg,
 			potential ? 'warn' : 'error'
 		);
 	}
 }
+decorate_class_function_names(LibWrapperNotifications);

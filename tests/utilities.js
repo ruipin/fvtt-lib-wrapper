@@ -74,7 +74,10 @@ class Game {
 					_id: 12345,
 					role: 4
 				}
-			]
+			],
+			system: {
+				id: 'example-system'
+			}
 		}
 		this.ready = true;
 	}

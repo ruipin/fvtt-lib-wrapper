@@ -4,25 +4,38 @@
 'use strict';
 
 import {IS_UNITTEST, MODULE_ID} from '../consts.js';
+import { LibWrapperInternalError } from './errors.js';
 
 
 // Find currently executing module name (that is not libWrapper)
-export function get_current_module_name() {
-	const stack_trace = Error().stack;
-	if(!stack_trace)
-		return null;
+export function get_current_module_name(stack_trace=undefined) {
+	if(stack_trace === undefined) {
+		stack_trace = Error().stack;
+		if(!stack_trace)
+			return null;
+	}
 
-	const matches = stack_trace.matchAll(/(?<=\/modules\/).+?(?=\/)/ig);
+	const matches = stack_trace.matchAll(/(?<=\/)(modules|systems)\/(.+?)(?=\/)/ig);
 	if(!matches)
 		return null;
 
 	for(let match of matches) {
-		match = match[0];
+		const type = match[1];
+		const name = match[2];
 
-		if(!match || match == MODULE_ID || !(game?.modules?.has(match) ?? true))
-			continue;
+		if(type === 'systems') {
+			if(name == game.data.system.id)
+				return name;
+		}
+		else if(type === 'modules') {
+			if(!name || name == MODULE_ID || !(game?.modules?.has(name) ?? true))
+				continue;
 
-		return match;
+			return name;
+		}
+		else {
+			throw new LibWrapperInternalError(`Invalid type: ${type}`);
+		}
 	}
 
 	return null;
@@ -62,6 +75,35 @@ export function set_function_name(fn, name) {
 		if(IS_UNITTEST)
 			throw e;
 	}
+}
+
+// Decorate name
+export function decorate_name(name, suffix='') {
+	if(suffix !== '')
+		return `🎁${name}#${suffix}`;
+	else
+		return `🎁${name}`;
+}
+
+// Decorate the name of all functions of a given class
+// Note: This is extremely hacky, and only works in some browsers, and only sometimes (usually when a function is anonymous)
+export function decorate_class_function_names(klass) {
+	const props = Object.getOwnPropertyNames(klass);
+	props.push(...Object.getOwnPropertySymbols(klass))
+
+	for(const prop of props) {
+		const descriptor = Object.getOwnPropertyDescriptor(klass, prop);
+
+		if(typeof descriptor.value === 'function')
+			set_function_name(descriptor.value, decorate_name(prop));
+		if(typeof descriptor.get === 'function')
+			set_function_name(descriptor.get, decorate_name(prop, 'getter'));
+		if(typeof descriptor.set === 'function')
+			set_function_name(descriptor.set, decorate_name(prop, 'setter'));
+	}
+
+	if(klass.prototype)
+		decorate_class_function_names(klass.prototype);
 }
 
 
