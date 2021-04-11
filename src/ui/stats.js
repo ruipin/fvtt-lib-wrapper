@@ -55,15 +55,18 @@ export class LibWrapperStats {
 			return;
 
 		if(Array.isArray(other)) {
+			let notify = false;
 			other.forEach((m) => {
-				LibWrapperStats.register_conflict(module, m, target);
+				notify |= LibWrapperStats.register_conflict(module, m, target);
 			});
-			return;
+			return notify;
 		}
 
 		// We first notify everyone that an override was just lost. This hook being handled will prevent us from registering the module conflict
-		if(!Hooks.call('libWrapper.ConflictDetected', module, other, target))
-			return;
+		if(Hooks.call('libWrapper.ConflictDetected', module, other, target) === false) {
+			console.debug(`Conflict between '${module}' and '${other}' over '${target}' ignored, as 'libWrapper.ConflictDetected' hook returned false.`);
+			return false;
+		}
 
 		// We now register the conflict
 		const key = `${module}/${other}`;
@@ -81,6 +84,9 @@ export class LibWrapperStats {
 
 		data.count++;
 		data.targets.set(target, (data.targets.get(target) ?? 0) + 1);
+
+		// Done
+		return true;
 	}
 
 	static get conflicts() {

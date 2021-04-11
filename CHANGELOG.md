@@ -1,3 +1,8 @@
+# 1.4.3.0 (2021-04-11)
+
+* Ignore conflicts when `libWrapper.ConflictDetected` returns `false`.
+* Do not treat an `OVERRIDE` wrapper being replaced as a conflict when `libWrapper.OverrideLost` returns `false`.
+
 # 1.4.2.0 (2021-04-11)
 
 * System support:

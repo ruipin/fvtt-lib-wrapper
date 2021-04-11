@@ -315,7 +315,7 @@ export class libWrapper {
 				}
 				else {
 					// We trigger a hook first
-					if(Hooks.call('libWrapper.OverrideLost', existing.module, module, wrapper.name)) {
+					if(Hooks.call('libWrapper.OverrideLost', existing.module, module, wrapper.name) !== false) {
 						LibWrapperStats.register_conflict(module, existing.module, wrapper.name);
 						LibWrapperNotifications.conflict(existing.module, module, false,
 							`Module '${module}' has higher priority, and is replacing the OVERRIDE registered by '${existing.module}' for '${wrapper.name}'.`

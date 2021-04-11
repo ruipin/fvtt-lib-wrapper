@@ -369,34 +369,36 @@ The libWrapper library makes use of Hooks for various events, listed below:
 * `libWrapper.Register`:
     - Triggered when `libWrapper.Register` completes successfully.
     - Parameters:
-        - `1`: Module whose wrapper is being registered (the `module` parameter to `libWrapper.register`).
+        - `1`: Module ID whose wrapper is being registered (the `module` parameter to `libWrapper.register`).
         - `2`: Wrapper target (the `target` parameter to `libWrapper.register`).
         - `3`: Wrapper type (the `type` parameter to `libWrapper.register`).
 
 * `libWrapper.Unregister`:
     - Triggered when `libWrapper.Unregister` completes successfully.
     - Parameters:
-        - `1`: Module whose wrapper is being unregistered (the `module` parameter to `libWrapper.unregister`).
+        - `1`: Module ID whose wrapper is being unregistered (the `module` parameter to `libWrapper.unregister`).
         - `2`: Wrapper target (the `target` parameter to `libWrapper.unregister`).
 
 * `libWrapper.ClearModule`:
     - Triggered when `libWrapper.clear_module` completes successfully.
     - Parameters:
-        - `1`: Module whose wrapper is being unregistered (the `module` parameter to `libWrapper.clear_module`).
+        - `1`: Module ID whose wrapper is being unregistered (the `module` parameter to `libWrapper.clear_module`).
 
 * `libWrapper.ConflictDetected`:
     - Triggered when a conflict is detected.
     - Parameters:
-        - `1`: Module which triggered the conflict.
-        - `2`: Conflicting module.
+        - `1`: Module ID which triggered the conflict, or `«unknown»` if unknown.
+        - `2`: Conflicting module ID.
         - `3`: Wrapper target (the `target` parameter to `libWrapper.register`).
+    - If this hook returns `false`, the user will not be notified of this conflict.
 
 * `libWrapper.OverrideLost`:
     - Triggered when an `OVERRIDE` wrapper is replaced by a higher-priority wrapper.
     - Parameters:
-        - `1`: Existing module whose wrapper is being unregistered.
-        - `2`: New module whose wrapper is being registered.
+        - `1`: Existing module ID whose wrapper is being unregistered.
+        - `2`: New module ID whose wrapper is being registered.
         - `3`: Wrapper target (the `target` parameter to `libWrapper.register`).
+    - If this hook returns `false`, this event will not be treated as a conflict.
 
 
 #### 1.3.3.8. Examples
