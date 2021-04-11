@@ -185,8 +185,13 @@ export const init_error_listeners = function() {
 			return wrapped(...args);
 		}, 'WRAPPER');
 	}
-	catch(err) {
-		// Handle an error gracefully
-		
+	catch(e) {
+		// Handle a possible error gracefully
+		LibWrapperNotifications.console_ui(
+			"A non-critical error occurred while initializing libWrapper.",
+			"Could not setup 'Hooks._call' wrapper.\n",
+			'warn',
+			e
+		);
 	}
 }
