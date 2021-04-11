@@ -3,6 +3,7 @@
 
 'use strict';
 
+
 // Helper to throw errors
 // This is so we can avoid importing errors.js, to avoid a import loop
 function throw_error(message) {

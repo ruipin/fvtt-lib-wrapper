@@ -7,11 +7,12 @@ import test from 'tape';
 import {CallOrderChecker} from './call_order_checker.js';
 import {wrap_front, unwrap_all_from_obj, test_sync_async, async_retval, is_promise, sync_async_then} from './utilities.js';
 import '../src/libWrapper-api.js';
+import {load_priorities} from '../src/ui/settings.js';
 
 
 function setup() {
 	libWrapper._UT_unwrap_all();
-	libWrapper.load_priorities();
+	load_priorities();
 
 	game.clear_modules();
 }
@@ -63,7 +64,7 @@ test_sync_async('Library: Main', async function (t) {
 	await chkr.call(a, 'x', ['m2:Wrp:2','m1:Mix:1','m3:Ovr:3',-3]);
 
 	// Unless the module has a higher priority
-	libWrapper.load_priorities({
+	load_priorities({
 		prioritized: {
 			'm4': {index: 0}
 		}
@@ -76,7 +77,7 @@ test_sync_async('Library: Main', async function (t) {
 	await chkr.call(a, 'x', ['m2:Wrp:2','m1:Mix:1','m3:Ovr:3',-3]);
 
 	// Remove prioritization
-	libWrapper.load_priorities();
+	load_priorities();
 
 	// Try removing m2
 	libWrapper.unregister('m2', 'A.prototype.x');

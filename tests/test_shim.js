@@ -13,7 +13,6 @@ import '../src/libWrapper-api.js';
 
 function setup() {
 	libWrapper._UT_unwrap_all();
-	libWrapper.load_priorities();
 
 	game.clear_modules();
 }

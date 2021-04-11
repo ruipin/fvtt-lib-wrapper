@@ -3,7 +3,7 @@
 
 'use strict';
 
-import {MODULE_ID} from '../consts.js';
+import {MODULE_ID, IS_UNITTEST} from '../consts.js';
 import {LibWrapperNotifications} from './notifications.js';
 import {game_user_can} from '../utils/user.js'
 
@@ -14,6 +14,9 @@ export class LibWrapperStats {
 			return game_user_can('SETTINGS_MODIFY');
 		}
 		catch(e) {
+			if(IS_UNITTEST)
+				throw e;
+
 			LibWrapperNotifications.console_ui(
 				"A non-critical error occurred while initializing libWrapper.",
 				"Could not read user permissions during initialization.\n",

@@ -65,7 +65,17 @@ class Game {
 	constructor() {
 		this.modules = new Map();
 		this.settings = new GameSettings();
-		this.user = { isGM: true };
+		this.user = { isGM: true, userId: 12345 };
+		this.userId = 12345;
+		this.data = {
+			userId: 12345,
+			users: [
+				{
+					_id: 12345,
+					role: 4
+				}
+			]
+		}
 		this.ready = true;
 	}
 

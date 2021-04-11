@@ -4,10 +4,47 @@
 'use strict';
 
 import {MODULE_ID, MODULE_TITLE, VERSION, TYPES_REVERSE} from '../consts.js';
+import {LibWrapperModuleError} from '../utils/errors.js'
 import {LibWrapperStats} from './stats.js';
-import {WRAPPERS} from '../utils/misc.js';
+import {get_current_module_name, WRAPPERS} from '../utils/misc.js';
+
+// Map of currently loaded priorities
+export const PRIORITIES = new Map();
+
+export const load_priorities = function(value=null) {
+	const module = get_current_module_name();
+	if(module)
+		throw new LibWrapperModuleError(`Module '${module}' is not allowed to call libWrapper.load_priorities()`, module);
+
+	// Create existing priorities
+	PRIORITIES.clear();
+
+	// Parse config
+	const priority_cfg = value ?? game?.settings?.get(MODULE_ID, 'module-priorities');
+	if(!priority_cfg)
+		return;
+
+	for(let type of ['prioritized', 'deprioritized']) {
+		const current = priority_cfg[type];
+		if(!current)
+			continue;
+
+		const base_priority = (type == 'prioritized') ? 10000 : -10000;
+
+		Object.entries(current).forEach(entry => {
+			const [module_id, module_info] = entry;
+
+			if(PRIORITIES.has(module_id))
+				return;
+
+			PRIORITIES.set(module_id, base_priority - module_info.index);
+		});
+	}
+}
 
 
+
+// Main settings class
 export class LibWrapperSettings extends FormApplication {
 	static init() {
 		game.settings.register(MODULE_ID, 'notify-issues-gm', {
@@ -42,8 +79,11 @@ export class LibWrapperSettings extends FormApplication {
 			type: Object,
 			scope: 'world',
 			config: false,
-			onChange: value => globalThis.libWrapper.load_priorities()
+			onChange: value => load_priorities()
 		});
+
+		// When done, load the priorities
+		load_priorities();
 	}
 
 

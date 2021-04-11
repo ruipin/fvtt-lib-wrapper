@@ -9,16 +9,11 @@ import {init_error_listeners, LibWrapperError, LibWrapperModuleError, LibWrapper
 import {get_global_variable, get_current_module_name, WRAPPERS, set_function_name} from './utils/misc.js';
 import {LibWrapperNotifications} from './ui/notifications.js'
 import {LibWrapperStats} from './ui/stats.js';
-import {LibWrapperSettings} from './ui/settings.js';
+import {LibWrapperSettings, PRIORITIES} from './ui/settings.js';
 
-// Local variables
+// Internal variables
 let libwrapper_ready = false;
 let allow_libwrapper_registrations = true;
-
-
-// Manager class
-export const PRIORITIES = new Map();
-
 
 
 // Internal Methods
@@ -163,11 +158,30 @@ function _validate_module(module) {
 // Publicly exposed class
 export class libWrapper {
 	// Properties
+	/**
+	 * Get libWrapper version
+	 * @returns {string}  libWrapper version in string form, i.e. "<MAJOR>.<MINOR>.<PATCH>.<SUFFIX>"
+	 */
 	static get version() { return VERSION; }
+
+	/**
+	 * Get libWrapper version
+	 * @returns {[number,number,number,(number|string)]}  libWrapper version in array form, i.e. [<MAJOR>, <MINOR>, <PATCH>, <SUFFIX>]
+	 */
 	static get versions() { return [MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION]; }
+
+	/**
+	 * @returns {boolean}  The real libWrapper module will always return false. Fallback implementations (e.g. poly-fill / shim) should return true.
+	 */
 	static get is_fallback() { return false; }
 
+	/**
+	 * @returns {boolean}  Whether libWrapper is in debug mode.
+	 */
 	static get debug() { return DEBUG; }
+	/**
+	 * @param {boolean} value  Whether to enable or disable libWrapper debug mode.
+	 */
 	static set debug(value) { setDebug(value) }
 
 	// Errors
@@ -187,7 +201,15 @@ export class libWrapper {
 	static get InvalidWrapperChainError() { return LibWrapperInvalidWrapperChainError; };
 
 
-	// Check for a minimum libWrapper version
+	// Methods
+	/**
+	 * Test for a minimum libWrapper version. Available since v1.4.0.0.
+	 * 
+	 * @param {number} major  Minimum major version
+	 * @param {number} minor  [Optional] Minimum minor version. Default is 0.
+	 * @param {number} patch  [Optional] Minimum patch version. Default is 0.
+	 * @returns {boolean}     Returns true if the libWrapper version is at least the queried version, otherwise false.
+	 */
 	static version_at_least(major, minor=0, patch=0) {
 		if(MAJOR_VERSION == major) {
 			if(MINOR_VERSION == minor)
@@ -198,48 +220,14 @@ export class libWrapper {
 		return MAJOR_VERSION > major;
 	}
 
-
-	// Reload module priorities
-	static load_priorities(value=null) {
-		const module = get_current_module_name();
-		if(module)
-			throw new LibWrapperModuleError(`Module '${module}' is not allowed to call libWrapper.load_priorities()`, module);
-
-		// Create existing priorities
-		PRIORITIES.clear();
-
-		// Parse config
-		const priority_cfg = value ?? game?.settings?.get(MODULE_ID, 'module-priorities');
-		if(!priority_cfg)
-			return;
-
-		for(let type of ['prioritized', 'deprioritized']) {
-			const current = priority_cfg[type];
-			if(!current)
-				continue;
-
-			const base_priority = (type == 'prioritized') ? 10000 : -10000;
-
-			Object.entries(current).forEach(entry => {
-				const [module_id, module_info] = entry;
-
-				if(PRIORITIES.has(module_id))
-					return;
-
-				PRIORITIES.set(module_id, base_priority - module_info.index);
-			});
-		}
-	}
-
-
-	// Public interface
-
 	/**
 	 * Register a new wrapper.
 	 * Important: If called before the 'init' hook, this method will fail.
 	 *
 	 * In addition to wrapping class methods, there is also support for wrapping methods on specific object instances, as well as class methods inherited from parent classes.
 	 * However, it is recommended to wrap methods directly in the class that defines them whenever possible, as inheritance/instance wrapping is less thoroughly tested and will incur a performance penalty.
+	 * 
+	 * Triggers FVTT hook 'libWrapper.Register' when successful.
 	 *
 	 * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.
 	 * @param {string} target  A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
@@ -349,13 +337,16 @@ export class libWrapper {
 		wrapper.add(data);
 
 		// Done
-		Hooks.callAll('libWrapper.Register', module, target, type);
-		if(DEBUG || module != MODULE_ID)
+		if(DEBUG || module != MODULE_ID) {
+			Hooks.callAll('libWrapper.Register', module, target, type);
 			console.info(`libWrapper: Registered a wrapper for '${target}' by '${module}' with type ${TYPES_REVERSE[type]}.`);
+		}
 	}
 
 	/**
 	 * Unregister an existing wrapper.
+	 * 
+	 * Triggers FVTT hook 'libWrapper.Unregister' when successful.
 	 *
 	 * @param {string} module    The module identifier, i.e. the 'name' field in your module's manifest.
 	 * @param {string} target    A string containing the path to the function you wish to remove the wrapper from, starting at global scope. For example: 'SightLayer.prototype.updateToken'
@@ -380,13 +371,16 @@ export class libWrapper {
 		_unwrap_if_possible(wrapper);
 
 		// Done
-		Hooks.callAll('libWrapper.Unregister', module, target);
-		if(DEBUG || module != MODULE_ID)
+		if(DEBUG || module != MODULE_ID) {
+			Hooks.callAll('libWrapper.Unregister', module, target);
 			console.info(`libWrapper: Unregistered the wrapper for '${target}' by '${module}'.`);
+		}
 	}
 
 	/**
 	 * Clear all wrappers created by a given module.
+	 *
+	 * Triggers FVTT hook 'libWrapper.ClearModule' when successful.
 	 *
 	 * @param {string} module    The module identifier, i.e. the 'name' field in your module's manifest.
 	 */
@@ -402,8 +396,10 @@ export class libWrapper {
 				this.unregister(module, `${wrapper.name}#set`, false);
 		}
 
-		Hooks.callAll('libWrapper.ClearModule', module);
-		console.info(`libWrapper: Cleared all wrapper functions by module '${module}'.`);
+		if(DEBUG || module != MODULE_ID) {
+			Hooks.callAll('libWrapper.ClearModule', module);
+			console.info(`libWrapper: Cleared all wrapper functions by module '${module}'.`);
+		}
 	}
 };
 if(IS_UNITTEST) {
@@ -436,11 +432,11 @@ Object.defineProperty(globalThis, 'libWrapper', {
 		LibWrapperSettings.init();
 		LibWrapperStats.init();
 		LibWrapperNotifications.init();
-		libWrapper.load_priorities();
 
 		// Notify everyone the library has loaded and is ready to start registering wrappers
 		console.info(`libWrapper ${VERSION}: Ready.`);
-		Hooks.callAll('libWrapperReady', libWrapper);
+		Hooks.callAll('libWrapperReady', libWrapper); // Deprecated since v1.4.0.0
+		Hooks.callAll('libWrapper.Ready', libWrapper);
 
 		const result = wrapped(...args);
 
