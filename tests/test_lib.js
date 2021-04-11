@@ -218,7 +218,6 @@ test('Library: Setter', function (t) {
 	let x_id = 'Orig1';
 	class A {
 		constructor() {
-			console.log('construct', this.constructor.name);
 			this.x_id = 'Orig1';
 		}
 	};

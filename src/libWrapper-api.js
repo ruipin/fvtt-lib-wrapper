@@ -5,7 +5,7 @@
 
 import {MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, parse_manifest_version, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug, TYPES, TYPES_REVERSE, TYPES_LIST} from './consts.js';
 import {Wrapper} from './libWrapper-wrapper.js';
-import {LibWrapperError, LibWrapperModuleError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError, LibWrapperInternalError} from './utils/errors.js';
+import {init_error_listeners, LibWrapperError, LibWrapperModuleError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError, LibWrapperInternalError} from './utils/errors.js';
 import {get_global_variable, get_current_module_name, WRAPPERS, set_function_name} from './utils/misc.js';
 import {LibWrapperNotifications} from './ui/notifications.js'
 import {LibWrapperStats} from './ui/stats.js';
@@ -453,7 +453,8 @@ Object.defineProperty(globalThis, 'libWrapper', {
 		libWrapperInit(()=>{});
 }
 
-
+// Setup unhandled error listeners
+init_error_listeners();
 
 // Lock down registrations using module 'lib-wrapper'
 allow_libwrapper_registrations = false;

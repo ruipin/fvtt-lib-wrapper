@@ -142,26 +142,51 @@ Object.freeze(LibWrapperInvalidWrapperChainError);
 
 
 
-// Listen for unhandled exceptions
-if(!IS_UNITTEST) {
-	const onUnhandledError = function(e) {
-		if(!(e instanceof LibWrapperError))
-			return false;
+// Error listeners for unhandled exceptions
+const onUnhandledError = function(e) {
+	if(!(e instanceof LibWrapperError))
+		return;
 
-		try {
-			if(e.ui_msg && e.notification_fn)
-				LibWrapperNotifications.ui(`${e.ui_msg} (See JS console)`, e.notification_fn);
+	try {
+		if(e.ui_msg && e.notification_fn)
+			LibWrapperNotifications.ui(`${e.ui_msg} (See JS console)`, e.notification_fn);
 
-			if(e.onUnhandled)
-				e.onUnhandled.apply(e);
-		}
-		catch (e) {
-			console.warn('libWrapper: Exception thrown while processing unhandled libWrapper Exception.', e);
-		}
-
-		return false;
+		if(e.onUnhandled)
+			e.onUnhandled.apply(e);
 	}
+	catch (e) {
+		console.warn('libWrapper: Exception thrown while processing unhandled libWrapper Exception.', e);
+	}
+}
 
+export const init_error_listeners = function() {
+	// Do nothing inside unit tests
+	if(IS_UNITTEST)
+		return;
+	
+	// Javascript native unhandled exception listeners
 	globalThis.addEventListener('error', onUnhandledError);
 	globalThis.addEventListener('unhandledrejection', onUnhandledError);
+
+	// Wrap Hooks._call to intercept unhandled exceptions during hooks
+	try {
+		libWrapper.register('lib-wrapper', 'Hooks._call', function(wrapped, ...args) {
+			const fn = args[1];
+			args[1] = function(...args) {
+				try {
+					return fn.apply(this, args);
+				}
+				catch(err) {
+					onUnhandledError(err);
+					throw err;
+				}
+			};
+
+			return wrapped(...args);
+		}, 'WRAPPER');
+	}
+	catch(err) {
+		// Handle an error gracefully
+		
+	}
 }

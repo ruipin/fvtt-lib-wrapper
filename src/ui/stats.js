@@ -5,45 +5,21 @@
 
 import {MODULE_ID} from '../consts.js';
 import {LibWrapperNotifications} from './notifications.js';
+import {game_user_can} from '../utils/user.js'
 
 export class LibWrapperStats {
 	static _collect_stats() {
 		// We do this in a try-catch in case future Foundry versions break this code, it won't completely break libWrapper
 		try {
-			const userid = game.userId;
-			if(!userid)
-				return false;
-
-			// Find user
-			const user = game.data.users.find((x) => { return x._id == userid });
-			if(!user)
-				return false;
-
-			// Game masters are allowed to do everything
-			if(user.role == 4)
-				return true;
-
-			// We need to check if this user has the SETTINGS_MODIFY permission
-			const key = 'SETTINGS_MODIFY';
-			if ( key in user.permissions ) return user.permissions[key];
-
-			const game_permissions_str = game.data.settings.find((x) => { return x.key == 'core.permissions'});
-			if(game_permissions_str?.value) {
-				const game_permissions = JSON.parse(game_permissions_str.value);
-
-				const rolePerms = game_permissions[key];
-				if(rolePerms && rolePerms.includes(user.role))
-					return true;
-			}
-
-			// Otherwise, no reason to collect stats
-			return false;
+			return game_user_can('SETTINGS_MODIFY');
 		}
 		catch(e) {
-			console.warn('A non-critical error occurred while initializing libWrapper: Could not read user permissions during initialization.\n', e);
-			Hooks.once('ready', () => {
-				LibWrapperNotifications.ui("A non-critical error occurred while initializing libWrapper. Check JS console for more details.", 'warn');
-			});
+			LibWrapperNotifications.console_ui(
+				"A non-critical error occurred while initializing libWrapper.",
+				"Could not read user permissions during initialization.\n",
+				'warn',
+				e
+			);
 
 			// Default to 'true' on error
 			return true;

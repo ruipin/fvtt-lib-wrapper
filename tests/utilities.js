@@ -11,16 +11,18 @@ Error.stackTraceLimit = Infinity;
 
 // Emulate hooks
 class Hooks {
-	static callAll() {
+	static callAll(hook) {
+		console.debug(`Hooks.callAll('${hook}') triggered`);
 		return true;
 	}
 
-	static call() {
+	static call(hook) {
+		console.debug(`Hooks.call('${hook}') triggered`);
 		return true;
 	}
 
 	static once(key, cb) {
-		console.log(`Hooks.once('${key}') triggered`);
+		console.debug(`Hooks.once('${key}') triggered`);
 		cb();
 	}
 };
