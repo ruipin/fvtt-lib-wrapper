@@ -144,13 +144,22 @@ Object.freeze(LibWrapperInvalidWrapperChainError);
 
 // Error listeners for unhandled exceptions
 const onUnhandledError = function(e) {
-	if(!(e instanceof LibWrapperError))
-		return;
+	// We first check whether this exception is an instance of LibWrapperError.
+	// If not, we will check if it was caused by one. Otherwise, we do nothing.
+	while(!(e instanceof LibWrapperError)) {
+		if(e.reason === undefined)
+			return;
 
+		e = e.reason;
+	}
+
+	// This is a LibWrapperError exception, and we need to handle it
 	try {
+		// Notify user of the issue
 		if(e.ui_msg && e.notification_fn)
 			LibWrapperNotifications.ui(`${e.ui_msg} (See JS console)`, e.notification_fn);
 
+		// Trigger 'onUnhandled'
 		if(e.onUnhandled)
 			e.onUnhandled.apply(e);
 	}
@@ -171,17 +180,23 @@ export const init_error_listeners = function() {
 	// Wrap Hooks._call to intercept unhandled exceptions during hooks
 	try {
 		libWrapper.register('lib-wrapper', 'Hooks._call', function(wrapped, ...args) {
+			// Replace fn with a custom function containing an error handler
 			const fn = args[1];
-			args[1] = function(...args) {
+			args[1] = function(...hook_args) {
 				try {
-					return fn.apply(this, args);
+					return fn.apply(this, hook_args);
 				}
-				catch(err) {
-					onUnhandledError(err);
-					throw err;
+				catch(e) {
+					onUnhandledError(e);
+					throw e;
 				}
 			};
 
+			// Because we changed the 'fn', we need to manually check for this
+			if(this._once.includes(fn))
+				this.off(args[0], fn);
+
+			// Done
 			return wrapped(...args);
 		}, 'WRAPPER');
 	}

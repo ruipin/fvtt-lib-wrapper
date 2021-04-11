@@ -1,3 +1,8 @@
+# 1.4.1.0 (2021-04-11)
+
+* Fix broken `Hooks.once` behaviour. Modules such as Norc's Custom Hotbar now work as expected. Closes [Issue #30](https://github.com/ruipin/fvtt-lib-wrapper/issues/30).
+* Detect `Promise` rejections caused by `LibWrapperError` exceptions properly.
+
 # 1.4.0.0 (2021-04-11)
 
 * **[BREAKING]** Remove private code from `libWrapper` scope.
