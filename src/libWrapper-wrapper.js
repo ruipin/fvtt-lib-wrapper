@@ -594,6 +594,9 @@ export class Wrapper {
 	// Wraper array methods
 	// NOTE: These should only ever be called from libWrapper, they do not clean up after themselves
 	get_fn_data(setter, to_modify=false) {
+		// to_modify=true must be used any time the fn_data array will be modified.
+		// If there are any outstanding wrapper calls, this will force the creation of a copy of the array, to avoid affecting said outstanding wrapper calls.
+
 		if(setter && !this.is_property)
 			throw new LibWrapperInternalError(`libWrapper: '${this.name}' does not wrap a property, thus setter=true is illegal.`);
 
