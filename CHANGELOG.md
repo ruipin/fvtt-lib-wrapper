@@ -1,3 +1,46 @@
+# 1.4.0.0 (2021-04-11)
+
+* **[BREAKING]** Remove private code from `libWrapper` scope.
+  * The `libWrapper` object no longer exposes various private functions. This includes:
+    * Any function with a `_` prefix
+    * `load_priorities`
+  * If your code was relying on any of these undocumented functions, it will need to be updated.
+  * As always, you should assume any method that is not publicly documented may change or be removed at any moment and without notice.
+  * Closes [Issue #16](https://github.com/ruipin/fvtt-lib-wrapper/issues/16).
+* **[DEPRECATION WARNING]** The hook `libWrapperReady` is now deprecated and will be removed in a future version.
+  * You should use `libWrapper.Ready` instead.
+* Bug-fixes:
+  * Register modules to the prioritization UI even if they fail to register an `OVERRIDE` wrapper due to another wrapper already existing. Fixes [Issue #21](https://github.com/ruipin/fvtt-lib-wrapper/issues/21).
+  * Enable statistics collection for non-GM users with 'Modify configuration settings' permission. This means they can now edit the libWrapper priorities. Fixes [Issue #26](https://github.com/ruipin/fvtt-lib-wrapper/issues/26).
+* New features / improvements:
+  * Trigger the `libWrapper.OverrideLost` hook when an `OVERRIDE` wrapper gets replaced. Closes [Issue #23](https://github.com/ruipin/fvtt-lib-wrapper/issues/23).
+  * Trigger various hooks when certain events occur. See documentation for details.
+  * Added public API function `version_at_least(major, minor=0, patch=0)` for modules to easily check for a minimum libWrapper version.
+  * Redirect `toString()` method to the wrapped method. Closes [Issue #18](https://github.com/ruipin/fvtt-lib-wrapper/issues/18)
+* Major documentation improvements:
+  * Documented `version`, `versions`, `is_fallback`.
+  * Documented all custom exception classes used by libWrapper.
+  * Documented the Hooks triggered by libWrapper.
+  * Documented the `{chain: true}` option for `OVERRIDE` wrappers added in v1.3.6.0.
+  * Documentation now states explicitly that usage of anything undocumented is unsupported, might change, and can easily break.
+  * Split the contributing section to [CONTRIBUTING.md](CONTRIBUTING.md).
+  * Added a Table of Contents, as well as section numbers.
+* Improve callstack:
+  * Renamed `src/lib/lib-wrapper.js` to `src/libWrapper-api.js`.
+  * Renamed `src/lib/wrapper.js` to `src/libWrapper-wrapper.js`.
+  * Renamed handler function names, so that they are shorter.
+  * Use Function.displayName in addition to the previous implementation, when giving functions custom names.
+  * Improve performance by caching handler functions, instead of re-generating them every time.
+  * Closes [Issue #17](https://github.com/ruipin/fvtt-lib-wrapper/issues/17).
+* Improve error handling mechanism:
+  * Detect unhandled libWrapper errors inside hooks, and warn the user appropriately.
+  * libWrapper will no longer break if it fails to parse `game.data.user` or `game.data.settings`. This should improve compatibility with future Foundry VTT versions.
+  * Delay warning and error notifications until the `ready` hook if they occur beforehand, to ensure they are displayed.
+* Manifest changes:
+  * Add `library: true` to manifest.
+  * Announce compatibility with Foundry 0.8.1.
+* Minor code cleanup.
+
 # 1.3.6.0 (2021-04-09)
 
 * Allow OVERRIDE wrappers to continue chain if they pass `{chain: true}` as a fourth parameter to `libWrapper.register`.
