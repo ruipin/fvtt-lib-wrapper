@@ -340,7 +340,7 @@ export class libWrapper {
 		wrapper.add(data);
 
 		// Done
-		if(DEBUG || module != MODULE_ID) {
+		if(DEBUG || (!IS_UNITTEST && module != MODULE_ID)) {
 			Hooks.callAll('libWrapper.Register', module, target, type);
 			console.info(`libWrapper: Registered a wrapper for '${target}' by '${module}' with type ${TYPES_REVERSE[type]}.`);
 		}

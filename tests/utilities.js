@@ -158,8 +158,12 @@ export const test_sync_async = async function(title, fn) {
 
 export const ASYNC_TIMEOUT = 10;
 
-export const async_retval = function(in_value) {
-	return new Promise(resolve => setTimeout(() => { resolve(in_value) }, ASYNC_TIMEOUT));
+export const async_retval = function(in_value, timeout=ASYNC_TIMEOUT) {
+	return new Promise(resolve => setTimeout(() => { resolve(in_value) }, timeout));
+}
+
+export const retval = function(t, in_value, timeout=ASYNC_TIMEOUT) {
+	return t.test_async ? async_retval(in_value, timeout) : in_value;
 }
 
 export const is_promise = function(obj) {
