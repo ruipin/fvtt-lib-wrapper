@@ -24,10 +24,6 @@ export class Wrapper {
 		return decorate_name(arg1, nm);
 	}
 
-	_callstack_call_wrapper_name(module) {
-		return `🎁call_wrapper('${module}')`;
-	}
-
 
 
 	// Constructor
@@ -95,11 +91,10 @@ export class Wrapper {
 
 		this._outstanding_wrappers = 0;
 		this._warned_detected_classic_wrapper = false;
+		this._handler_count = 0;
 
-		if(!this.is_property) {
+		if(!this.is_property)
 			this._pending_original_calls = [];
-			this._setter_call_count = 0;
-		}
 
 		// Add name
 		if(!name)
@@ -113,29 +108,26 @@ export class Wrapper {
 	}
 
 
-
-	// Wrap/unwrap logic
+	// Handler
 	_get_handler() {
 		// Return the cached handler, if it is still valid
-		const setter_call_count = this._setter_call_count;
-		if(setter_call_count === this._cached_handler_setter_call_count)
+		const handler_id = this._handler_count;
+		if(handler_id === this._cached_handler_id)
 			return this._cached_handler;
 
 		// Create a handler function
 		const _this = this;
-		const handler_nm = this._callstack_name(setter_call_count);
+		const handler_nm = this._callstack_name(handler_id);
 		const wrapped = this._wrapped;
 
 		// We use a trick here to be able to convince the browser to name the method the way we want it
 		const obj = {
 			[handler_nm]: function(...args) {
-				if(_this.should_skip_wrappers(this, setter_call_count)) {
-					return _this.get_wrapped.call(_this, this, false, wrapped).apply(this, args);
+				if(_this.should_skip_wrappers(this, handler_id)) {
+					return _this.get_wrapped(this, false, wrapped).apply(this, args);
 				}
 				else {
-					const fn = _this.call_wrapper.bind(_this, null, this);
-					set_function_name(fn, _this._callstack_call_wrapper_name('<start>'));
-					return fn(...args);
+					return _this.call_wrapper(null, this, ...args);
 				}
 			},
 
@@ -143,17 +135,42 @@ export class Wrapper {
 				return _this.get_wrapped(this).toString();
 			}
 		};
-		const fn = obj[handler_nm];
-		fn.toString = obj['toString'];
+		const handler = obj[handler_nm];
+		handler.toString = obj['toString'];
 
 		// Cache handler
-		this._cached_handler = fn;
-		this._cached_handler_setter_call_count = setter_call_count;
+		this._cached_handler = handler;
+		this._cached_handler_id = handler_id;
 
 		// Done
-		return fn;
+		return handler;
 	}
 
+	should_skip_wrappers(obj, handler_id) {
+		// We don't need to skip wrappers if the wrapper reference was generated after the last setter call
+		if(handler_id == this._handler_count)
+			return false;
+
+		// Sanity check
+		if(handler_id > this._handler_count)
+			throw new LibWrapperInternalError(`Unreachable: handler_id=${handler_id} > this._handler_count=${this._handler_count}`);
+
+		// Find pending calls that match this object - if any is found, skip wrappers
+		if(!this.is_property) {
+			const pend_i = this._pending_original_calls.indexOf(obj);
+			if(pend_i < 0)
+				return false;
+		}
+
+		return true;
+	}
+
+	invalidate_handlers() {
+		this._handler_count++;
+	}
+
+
+	// Wrap/unwrap logic
 	_wrap() {
 		if(this.active)
 			return;
@@ -298,8 +315,9 @@ export class Wrapper {
 
 	// Calling the wrapped method
 	call_wrapped(state, obj, ...args) {
-		// Call preamble
-		this._call_wrapper_preamble(state);
+		// Keep track of call state
+		if(state)
+			this._call_wrapper_update_state(state);
 
 		// Load necessary state
 		const is_setter = state?.setter ?? false;
@@ -361,29 +379,13 @@ export class Wrapper {
 		return result;
 	}
 
-	should_skip_wrappers(obj, setter_call_count) {
-		// We don't need to skip wrappers if the wrapper reference was generated after the last setter call
-		if(setter_call_count == this._setter_call_count)
-			return false;
-
-		// Sanity check
-		if(setter_call_count > this._setter_call_count)
-			throw new LibWrapperInternalError(`Unreachable: setter_call_count=${setter_call_count} > this._setter_call_count=${this._setter_call_count}`);
-
-		// Find pending calls that match this object - if any is found, skip wrappers
-		const pend_i = this._pending_original_calls.indexOf(obj);
-		if(pend_i < 0)
-			return false;
-
-		return true;
-	}
-
 
 
 	// Main call wrapper logic
 	call_wrapper(state, obj, ...args) {
-		// Call preamble
-		this._call_wrapper_preamble(state);
+		// Keep track of call state
+		if(state)
+			this._call_wrapper_update_state(state);
 
 		// Set up basic information about this wrapper
 		const index = state?.index ?? 0;
@@ -411,20 +413,22 @@ export class Wrapper {
 			return fn.apply(obj, args);
 		}
 
+		// Get next index
+		const next_index = index + 1;
+		const is_last = (next_index >= fn_data.length);
+
 		// Prepare the continuation of the chain
 		const next_state = {
-			setter   : is_setter,
+			index    : next_index,
 			called   : false,
 			valid    : true,
-			index    : index + 1,
+			setter   : is_setter,
 			prev_data: data,
 			fn_data  : fn_data
 		};
 
 		// Create the next wrapper function
-		const is_last = (next_state.index >= fn_data.length);
 		const next_fn = is_last ? this.call_wrapped.bind(this, next_state, obj) : this.call_wrapper.bind(this, next_state, obj);
-		set_function_name(next_fn, this._callstack_call_wrapper_name(is_last ? '<finish>' : fn_data[next_state.index].module));
 		this._outstanding_wrappers++;
 
 		// Try-catch block to handle normal exception flow
@@ -443,33 +447,32 @@ export class Wrapper {
 		if(typeof result?.then === 'function') {
 			result = result.then(
 				// onResolved
-				v => this._cleanup_call_wrapper(v, next_state, data, fn_data, next_fn, obj, ...args),
+				v => this._cleanup_call_wrapper(v, next_state, data, fn_data, next_fn, obj, args),
 				// onRejected
 				e => this._cleanup_call_wrapper_thrown(next_state, e)
 			);
 		}
 		// Otherwise, we can immediately cleanup.
 		else {
-			result = this._cleanup_call_wrapper(result, next_state, data, fn_data, next_fn, obj, ...args);
+			result = this._cleanup_call_wrapper(result, next_state, data, fn_data, next_fn, obj, args);
 		}
 
 		// Done
 		return result;
 	}
 
-	_call_wrapper_preamble(state) {
+	_call_wrapper_update_state(state) {
 		// Keep track of call state
-		if(state) {
-			if('valid' in state && !state.valid) {
-				throw new LibWrapperInvalidWrapperChainError(
-					this,
-					state.prev_data?.module,
-					`This wrapper function for '${this.name}' is no longer valid, and must not be called.`
-				);
-			}
-
-			state.called = true;
+		if('valid' in state && !state.valid) {
+			throw new LibWrapperInvalidWrapperChainError(
+				this,
+				state.prev_data?.module,
+				`This wrapper function for '${this.name}' is no longer valid, and must not be called.`
+			);
 		}
+
+		// Mark this state object as called
+		state.called = true;
 	}
 
 	_invalidate_state(state) {
@@ -488,7 +491,7 @@ export class Wrapper {
 		throw e;
 	}
 
-	_cleanup_call_wrapper(result, next_state, data, fn_data, next_fn, obj, ...args) {
+	_cleanup_call_wrapper(result, next_state, data, fn_data, next_fn, obj, args) {
 		// Try-finally to ensure we invalidate the wrapper even if this logic fails
 		try {
 			// Check that next_fn was called
@@ -565,7 +568,7 @@ export class Wrapper {
 
 		// Wrap the new value
 		this._wrapped = value;
-		this._setter_call_count++;
+		this.invalidate_handlers();
 
 		// Warn user and/or log conflict
 		this.warn_classic_wrapper();
