@@ -3,13 +3,13 @@
 
 'use strict';
 
-import {MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, parse_manifest_version, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug, TYPES, TYPES_REVERSE, TYPES_LIST} from './consts.js';
-import {Wrapper} from './libWrapper-wrapper.js';
-import {init_error_listeners, LibWrapperError, LibWrapperModuleError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError, LibWrapperInternalError} from './utils/errors.js';
-import {get_global_variable, get_current_module_name, WRAPPERS, decorate_class_function_names} from './utils/misc.js';
-import {LibWrapperNotifications} from './ui/notifications.js'
-import {LibWrapperStats} from './ui/stats.js';
-import {LibWrapperSettings, PRIORITIES} from './ui/settings.js';
+import {MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, parse_manifest_version, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug, TYPES, TYPES_REVERSE, TYPES_LIST} from '../consts.js';
+import {Wrapper} from './wrapper.js';
+import {init_error_listeners, LibWrapperError, LibWrapperModuleError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError, LibWrapperInternalError} from '../utils/errors.js';
+import {get_global_variable, get_current_module_name, WRAPPERS, decorate_class_function_names} from '../utils/misc.js';
+import {LibWrapperNotifications} from '../ui/notifications.js'
+import {LibWrapperStats} from '../ui/stats.js';
+import {LibWrapperSettings, PRIORITIES} from '../ui/settings.js';
 
 // Internal variables
 let libwrapper_ready = false;

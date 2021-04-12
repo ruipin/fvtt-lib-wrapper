@@ -4,7 +4,6 @@
 'use strict';
 
 import {IS_UNITTEST, MODULE_ID} from '../consts.js';
-import { LibWrapperInternalError } from './errors.js';
 
 
 // Find currently executing module name (that is not libWrapper)
@@ -34,7 +33,7 @@ export function get_current_module_name(stack_trace=undefined) {
 			return name;
 		}
 		else {
-			throw new LibWrapperInternalError(`Invalid type: ${type}`);
+			throw new (globalThis.libWrapper?.LibWrapperInternalError ?? Error)(`Invalid type: ${type}`);
 		}
 	}
 

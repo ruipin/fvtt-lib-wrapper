@@ -6,7 +6,7 @@
 import test from 'tape';
 import {CallOrderChecker} from './call_order_checker.js';
 import {wrap_front, unwrap_all_from_obj, test_sync_async, async_retval, is_promise, sync_async_then} from './utilities.js';
-import '../src/libWrapper-api.js';
+import '../src/lib/api.js';
 import {load_priorities} from '../src/ui/settings.js';
 
 

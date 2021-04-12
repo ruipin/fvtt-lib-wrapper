@@ -3,11 +3,11 @@
 
 'use strict';
 
-import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG} from './consts.js';
-import {get_current_module_name, decorate_name, set_function_name, decorate_class_function_names} from './utils/misc.js';
-import {LibWrapperInternalError, LibWrapperModuleError, LibWrapperInvalidWrapperChainError} from './utils/errors.js';
-import {LibWrapperNotifications} from './ui/notifications.js';
-import {LibWrapperStats} from './ui/stats.js';
+import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG} from '../consts.js';
+import {get_current_module_name, decorate_name, set_function_name, decorate_class_function_names} from '../utils/misc.js';
+import {LibWrapperInternalError, LibWrapperModuleError, LibWrapperInvalidWrapperChainError} from '../utils/errors.js';
+import {LibWrapperNotifications} from '../ui/notifications.js';
+import {LibWrapperStats} from '../ui/stats.js';
 
 
 // Wrapper class - this class is responsible for the actual wrapping
