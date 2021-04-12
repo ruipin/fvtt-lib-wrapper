@@ -52,50 +52,81 @@ test('Performance', function (t) {
 	setup();
 
 	class A {
+		x() { return recursive_repeat(t) };
 		y() { return 0; }
 	}
-	A.prototype.x = () => recursive_repeat(t);
 	globalThis.A = A;
 
 	class B {
+		x() { return recursive_repeat(t); }
+		y() { return 0; }
+		z() { return 0; }
+	}
+	globalThis.B = B;
+
+	class C {
+		x() { return recursive_repeat(t) };
 		y() { return 0; }
 	}
-	B.prototype.x = () => recursive_repeat(t);
-	globalThis.B = B;
+	globalThis.C = C;
+
+	class D {
+		x() { return recursive_repeat(t) };
+		y() { return 0; }
+	}
+	globalThis.D = D;
 
 	// Instantiate
 	let a = new A();
 	let b = new B();
+	let c = new C();
+	let d = new D();
 
 	// Test many calls, unwrapped
 	const call_reps = 1000;
-	measure_perf(t, `Full: Unwrapped, ${call_reps} Calls`, () => {
+	measure_perf(t, `........... Unwrapped, ${call_reps} Calls`, () => {
 		for(let i = 0; i < call_reps; i++)
-			b.y()
+			a.y()
 	}, 0.1);
 
 	// Test many calls with no wrappers
 	game.add_module('m0');
-	libWrapper.register('m0', 'B.prototype.y', (wrapped, ...args) => wrapped(...args));
-	unwrap_all_from_obj(B.prototype, 'y');
+	libWrapper.register('m0', 'C.prototype.y', (wrapped, ...args) => wrapped(...args));
+	unwrap_all_from_obj(C.prototype, 'y');
+	libWrapper.register('m0', 'D.prototype.y', (wrapped, ...args) => wrapped(...args), 'MIXED', {perf_mode: 'FAST'});
+	unwrap_all_from_obj(D.prototype, 'y');
 
-	measure_perf(t, `Full: 0 Wrappers, ${call_reps} Calls`, () => {
+	measure_perf(t, `Library.... 0 Wrappers, ${call_reps} Calls`, () => {
 		for(let i = 0; i < call_reps; i++)
-			b.y()
-	}, 1);
+			c.y()
+	}, 0.5);
+	measure_perf(t, `Fast Mode.. 0 Wrappers, ${call_reps} Calls`, () => {
+		for(let i = 0; i < call_reps; i++)
+			d.y()
+	}, 0.5);
 
 	// Test many calls with a single wrapper
-	libWrapperShim.register('m0', 'A.prototype.y', (wrapped, ...args) => wrapped(...args));
-	libWrapper.register('m0', 'B.prototype.y', (wrapped, ...args) => wrapped(...args));
+	A.prototype.y = (() => { const wrapped = A.prototype.y; return (...args) => wrapped(...args); })();
+	libWrapperShim.register('m0', 'B.prototype.y', (wrapped, ...args) => wrapped(...args));
+	libWrapper.register('m0', 'C.prototype.y', (wrapped, ...args) => wrapped(...args));
+	libWrapper.register('m0', 'D.prototype.y', (wrapped, ...args) => wrapped(...args), 'MIXED', {perf_mode: 'FAST'});
 
-	measure_perf(t, `Shim: 1 Wrapper , ${call_reps} Calls`, () => {
+	measure_perf(t, `Traditional 1 Wrapper , ${call_reps} Calls`, () => {
 		for(let i = 0; i < call_reps; i++)
 			a.y()
-	}, 1);
-	measure_perf(t, `Full: 1 Wrapper , ${call_reps} Calls`, () => {
+	}, 0.5);
+	measure_perf(t, `Shim....... 1 Wrapper , ${call_reps} Calls`, () => {
 		for(let i = 0; i < call_reps; i++)
-			b.y()
-	}, 10);
+			b.y();
+	}, 0.5);
+	measure_perf(t, `Library.... 1 Wrapper , ${call_reps} Calls`, () => {
+		for(let i = 0; i < call_reps; i++)
+			c.y()
+	}, 2.5);
+	measure_perf(t, `Fast Mode.. 1 Wrapper , ${call_reps} Calls`, () => {
+		for(let i = 0; i < call_reps; i++)
+			d.y()
+	}, 0.5);
 
 	// Test with many wrappers
 	let wrapper_cnt;
@@ -103,13 +134,17 @@ test('Performance', function (t) {
 		const module_nm = `m${wrapper_cnt}`;
 		game.add_module(module_nm);
 
-		libWrapperShim.register(module_nm, 'A.prototype.x', (wrapped, ...args) => wrapped(...args));
-		libWrapper.register(module_nm, 'B.prototype.x', (wrapped, ...args) => wrapped(...args));
+		A.prototype.x = (() => { const wrapped = A.prototype.x; return (...args) => wrapped(...args); })();
+		libWrapperShim.register(module_nm, 'B.prototype.x', (wrapped, ...args) => wrapped(...args));
+		libWrapper.register(module_nm, 'C.prototype.x', (wrapped, ...args) => wrapped(...args));
+		libWrapper.register(module_nm, 'D.prototype.x', (wrapped, ...args) => wrapped(...args), 'MIXED', {perf_mode: 'FAST'});
 	}
 
-	measure_perf(t, `Shim: ${wrapper_cnt} Wrappers, 1 Call`, () => a.x(), 0.1);
-	measure_perf(t, `Full: ${wrapper_cnt} Wrappers, 1 Call`, () => b.x(), 1);
+	measure_perf(t, `Traditional ${wrapper_cnt} Wrappers, 1 Call`, () => a.x(), 0.5);
+	measure_perf(t, `Shim....... ${wrapper_cnt} Wrappers, 1 Call`, () => b.x(), 0.5);
+	measure_perf(t, `Library.... ${wrapper_cnt} Wrappers, 1 Call`, () => c.x(), 2.5);
+	measure_perf(t, `Fast Mode.. ${wrapper_cnt} Wrappers, 1 Call`, () => d.x(), 0.5);
 
 	// Done
 	t.end();
-});
+}, {sync_async: false});

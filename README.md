@@ -222,10 +222,29 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *     Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
  *
  * @param {Object} options [Optional] Additional options to libWrapper.
+ * 
  * @param {boolean} options.chain [Optional] If 'true', the first parameter to 'fn' will be a function object that can be called to continue the chain.
- *                                           Default is 'false' if type=='OVERRIDE', otherwise 'true'.
+ *     Default is 'false' if type=='OVERRIDE', otherwise 'true'.
+ * 
+ * @param {string} options.perf_mode [OPTIONAL] Selects the preferred performance mode for this wrapper. Default is 'AUTO'.
+ *     If all wrappers registered on a given method select the same mode it will be picked, otherwise the default will be used instead.
+ *     The possible types are:
+ * 
+ *     'NORMAL':
+ *       Enables all conflict detection capabilities provided by libWrapper. Slower than 'FAST'.
+ *       Useful if wrapping a method commonly modified by other modules, and you want to ensure most issues are detected.
+ *
+ *     'FAST':
+ *       Disables some conflict detection capabilities provided by libWrapper, in exchange for performance. Faster than 'NORMAL'.
+ *       Will guarantee wrapper call order and per-module prioritization, but fewer conflicts will be detectable.
+ *       This performance mode will result in comparable performance to traditional non-libWrapper wrapping methods.
+ *       Useful if wrapping a method called thousands of times in a tight loop, for example 'WallsLayer.testWall'.
+ *
+ *     'AUTO':
+ *       Default performance mode. If unsure, choose this mode.
+ *       Equivalent to 'FAST' when the libWrapper setting 'High-Performance Mode' is enabled by the GM, otherwise 'NORMAL'.
  */
-static register(module, target, fn, type='MIXED', {chain=undefined}={}) { /* ... */ }
+static register(module, target, fn, type='MIXED', options={}) { /* ... */ }
 ```
 
 See the usage example above.
@@ -372,6 +391,7 @@ The libWrapper library makes use of Hooks for various events, listed below:
         - `1`: Module ID whose wrapper is being registered (the `module` parameter to `libWrapper.register`).
         - `2`: Wrapper target (the `target` parameter to `libWrapper.register`).
         - `3`: Wrapper type (the `type` parameter to `libWrapper.register`).
+        - `4`: Options object (the `options` parameter to `libWrapper.register`).
 
 * `libWrapper.Unregister`:
     - Triggered when `libWrapper.Unregister` completes successfully.

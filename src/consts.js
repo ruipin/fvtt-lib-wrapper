@@ -68,3 +68,22 @@ for(let key in TYPES) {
 	TYPES_REVERSE[TYPES[key]] = key;
 }
 Object.freeze(TYPES_REVERSE);
+
+
+//*********************
+// PERFORMANCE MODES
+export const PERF_MODES_LIST = ['STANDARD', 'AUTO', 'FAST'];
+Object.freeze(PERF_MODES_LIST);
+
+export const PERF_MODES = {
+	STANDARD: 1,
+	AUTO    : 2,
+	FAST    : 3
+};
+Object.freeze(PERF_MODES);
+
+export const PERF_MODES_REVERSE = {};
+for(let key in PERF_MODES) {
+	PERF_MODES_REVERSE[PERF_MODES[key]] = key;
+}
+Object.freeze(PERF_MODES_REVERSE);

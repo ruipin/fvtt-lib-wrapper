@@ -6,7 +6,7 @@
 
 import test from 'tape';
 import {CallOrderChecker} from './call_order_checker.js';
-import {test_sync_async} from './utilities.js';
+import {test_combinations} from './utilities.js';
 import {libWrapper as libWrapperShim} from '../shim/shim.js';
 import '../src/lib/api.js';
 
@@ -20,7 +20,7 @@ function setup() {
 
 
 // Main functionality of the libWrapper Shim
-test_sync_async('Shim: Main', async function (t) {
+test_combinations('Shim: Main', async function (t) {
 	setup();
 	const chkr = new CallOrderChecker(t);
 
@@ -100,7 +100,7 @@ test_sync_async('Shim: Main', async function (t) {
 
 
 // Main functionality of the libWrapper Shim
-test_sync_async('Shim: Inherited Methods', async function (t) {
+test_combinations('Shim: Inherited Methods', async function (t) {
 	setup(['A','B','C','D','E','F']);
 	const chkr = new CallOrderChecker(t);
 

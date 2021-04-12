@@ -3,10 +3,15 @@
 
 'use strict';
 
-import {MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, parse_manifest_version, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug, TYPES, TYPES_REVERSE, TYPES_LIST} from '../consts.js';
+import {
+	MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, parse_manifest_version,
+	IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug,
+	TYPES, TYPES_REVERSE, TYPES_LIST,
+	PERF_MODES, PERF_MODES_REVERSE, PERF_MODES_LIST
+} from '../consts.js';
 import {Wrapper} from './wrapper.js';
 import {init_error_listeners, LibWrapperError, LibWrapperModuleError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError, LibWrapperInternalError} from '../utils/errors.js';
-import {get_global_variable, get_current_module_name, WRAPPERS, decorate_class_function_names} from '../utils/misc.js';
+import {get_global_variable, get_current_module_name, WRAPPERS, decorate_name, decorate_class_function_names} from '../utils/misc.js';
 import {LibWrapperNotifications} from '../ui/notifications.js'
 import {LibWrapperStats} from '../ui/stats.js';
 import {LibWrapperSettings, PRIORITIES} from '../ui/settings.js';
@@ -145,7 +150,7 @@ function _validate_module(module) {
 
 	if(module == MODULE_ID) {
 		if(!allow_libwrapper_registrations)
-			throw new LibWrapperModuleError(`Not allowed to call libWrapper with module='${module}'.`, real_module);	
+			throw new LibWrapperModuleError(`Not allowed to call libWrapper with module='${module}'.`, real_module);
 	}
 	else {
 		if(module != game.data.system.id && !game.modules.get(module)?.active)
@@ -154,6 +159,11 @@ function _validate_module(module) {
 
 	if(real_module && module != real_module)
 		throw new LibWrapperModuleError(`Module '${real_module}' is not allowed to call libWrapper with module='${module}'.`, real_module);
+}
+
+let FORCE_FAST_MODE = false;
+function _force_fast_mode(new_fast_mode) {
+	FORCE_FAST_MODE = new_fast_mode;
 }
 
 
@@ -207,7 +217,7 @@ export class libWrapper {
 	// Methods
 	/**
 	 * Test for a minimum libWrapper version. Available since v1.4.0.0.
-	 * 
+	 *
 	 * @param {number} major  Minimum major version
 	 * @param {number} minor  [Optional] Minimum minor version. Default is 0.
 	 * @param {number} patch  [Optional] Minimum patch version. Default is 0.
@@ -229,7 +239,7 @@ export class libWrapper {
 	 *
 	 * In addition to wrapping class methods, there is also support for wrapping methods on specific object instances, as well as class methods inherited from parent classes.
 	 * However, it is recommended to wrap methods directly in the class that defines them whenever possible, as inheritance/instance wrapping is less thoroughly tested and will incur a performance penalty.
-	 * 
+	 *
 	 * Triggers FVTT hook 'libWrapper.Register' when successful.
 	 *
 	 * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.
@@ -255,10 +265,29 @@ export class libWrapper {
 	 *     Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
 	 *
 	 * @param {Object} options [Optional] Additional options to libWrapper.
+	 *
 	 * @param {boolean} options.chain [Optional] If 'true', the first parameter to 'fn' will be a function object that can be called to continue the chain.
-	 *                                           Default is 'false' if type=='OVERRIDE', otherwise 'true'.
+	 *     Default is 'false' if type=='OVERRIDE', otherwise 'true'.
+	 *
+	 * @param {string} options.perf_mode [OPTIONAL] Selects the preferred performance mode for this wrapper. Default is 'AUTO'.
+	 *     If all wrappers registered on a given method select the same mode it will be picked, otherwise the default will be used instead.
+	 *     The possible types are:
+	 *
+	 *     'NORMAL':
+	 *       Enables all conflict detection capabilities provided by libWrapper. Slower than 'FAST'.
+	 *       Useful if wrapping a method commonly modified by other modules, and you want to ensure most issues are detected.
+	 *
+	 *     'FAST':
+	 *       Disables some conflict detection capabilities provided by libWrapper, in exchange for performance. Faster than 'NORMAL'.
+	 *       Will guarantee wrapper call order and per-module prioritization, but fewer conflicts will be detectable.
+	 *       This performance mode will result in comparable performance to traditional non-libWrapper wrapping methods.
+	 *       Useful if wrapping a method called thousands of times in a tight loop, for example 'WallsLayer.testWall'.
+	 *
+	 *     'AUTO':
+	 *       Default performance mode. If unsure, choose this mode.
+	 *       Equivalent to 'FAST' when the libWrapper setting 'High-Performance Mode' is chosen by the GM, otherwise 'NORMAL'.
 	 */
-	static register(module, target, fn, type='MIXED', {chain=undefined}={}) {
+	static register(module, target, fn, type='MIXED', options={}) {
 		// Validate module
 		_validate_module(module);
 
@@ -277,9 +306,16 @@ export class libWrapper {
 		if(typeof type === 'undefined' || !(type in TYPES_REVERSE))
 			throw new LibWrapperModuleError(`Parameter 'type' must be one of [${TYPES_LIST.join(', ')}].`, module);
 
-		chain = chain ?? (type < TYPES.OVERRIDE);
+		const chain = options?.chain ?? (type < TYPES.OVERRIDE);
 		if(typeof chain !== 'boolean')
 			throw new LibWrapperModuleError(`Parameter 'chain' must be a boolean.`, module);
+
+		if(IS_UNITTEST && FORCE_FAST_MODE)
+			options.perf_mode = 'FAST';
+		const perf_mode = PERF_MODES[options?.perf_mode?.toUpperCase() ?? 'AUTO'];
+		if(typeof perf_mode === 'undefined' || !(perf_mode in PERF_MODES_REVERSE))
+			throw new LibWrapperModuleError(`Parameter 'perf_mode' must be one of [${PERF_MODES_LIST.join(', ')}].`, module);
+
 
 		// Split '#set' from the target
 		const target_and_setter  = _split_target_and_setter(target);
@@ -327,28 +363,29 @@ export class libWrapper {
 
 		// Wrap
 		let data = {
-			module  : module,
-			target  : target,
-			setter  : is_setter,
-			fn      : fn,
-			type    : type,
-			wrapper : wrapper,
-			priority: priority,
-			chain   : chain
+			module   : module,
+			target   : target,
+			setter   : is_setter,
+			fn       : fn,
+			type     : type,
+			wrapper  : wrapper,
+			priority : priority,
+			chain    : chain,
+			perf_mode: perf_mode
 		};
 
 		wrapper.add(data);
 
 		// Done
 		if(DEBUG || (!IS_UNITTEST && module != MODULE_ID)) {
-			Hooks.callAll('libWrapper.Register', module, target, type);
+			Hooks.callAll('libWrapper.Register', module, target, type, options);
 			console.info(`libWrapper: Registered a wrapper for '${target}' by '${module}' with type ${TYPES_REVERSE[type]}.`);
 		}
 	}
 
 	/**
 	 * Unregister an existing wrapper.
-	 * 
+	 *
 	 * Triggers FVTT hook 'libWrapper.Unregister' when successful.
 	 *
 	 * @param {string} module    The module identifier, i.e. the 'name' field in your module's manifest.
@@ -411,6 +448,8 @@ if(IS_UNITTEST) {
 	libWrapper._UT_unwrap_all = _unwrap_all;
 	libWrapper._UT_create_wrapper_from_object = _create_wrapper_from_object
 	libWrapper._UT_clear = _clear;
+	libWrapper._UT_force_fast_mode = _force_fast_mode;
+	libWrapper._UT_get_force_fast_mode = (() => FORCE_FAST_MODE);
 }
 Object.freeze(libWrapper);
 
@@ -428,34 +467,37 @@ Object.defineProperty(globalThis, 'libWrapper', {
 
 // Initialize libWrapper right before the 'init' hook. Unit tests just initialize immediately
 {
-	const libWrapperInit = function(wrapped, ...args) {
-		// Initialization steps
-		libwrapper_ready = true;
+	const libWrapperInit = decorate_name('libWrapperInit');
+	const obj = {
+		[libWrapperInit]: function(wrapped, ...args) {
+			// Initialization steps
+			libwrapper_ready = true;
 
-		parse_manifest_version();
-		LibWrapperSettings.init();
-		LibWrapperStats.init();
-		LibWrapperNotifications.init();
+			parse_manifest_version();
+			LibWrapperSettings.init();
+			LibWrapperStats.init();
+			LibWrapperNotifications.init();
 
-		// Sanity check
-		const system_id = game.data.system.id;
-		if(game.modules.get(system_id)?.active)
-			LibWrapperNotifications.console_ui(`Module '${system_id}' is active and has same ID as the current system '${system_id}'. This could cause issues, and is not recommended.`, '', 'warn');
+			// Sanity check
+			const system_id = game.data.system.id;
+			if(game.modules.get(system_id)?.active)
+				LibWrapperNotifications.console_ui(`Module '${system_id}' is active and has same ID as the current system '${system_id}'. This could cause issues, and is not recommended.`, '', 'warn');
 
-		// Notify everyone the library has loaded and is ready to start registering wrappers
-		console.info(`libWrapper ${VERSION}: Ready.`);
-		Hooks.callAll('libWrapperReady', libWrapper); // Deprecated since v1.4.0.0
-		Hooks.callAll('libWrapper.Ready', libWrapper);
+			// Notify everyone the library has loaded and is ready to start registering wrappers
+			console.info(`libWrapper ${VERSION}: Ready.`);
+			Hooks.callAll('libWrapperReady', libWrapper); // Deprecated since v1.4.0.0
+			Hooks.callAll('libWrapper.Ready', libWrapper);
 
-		const result = wrapped(...args);
+			const result = wrapped(...args);
 
-		return result;
-	}
+			return result;
+		}
+	};
 
 	if(!IS_UNITTEST)
-		libWrapper.register('lib-wrapper', 'Game.prototype.initialize', libWrapperInit, 'WRAPPER');
+		libWrapper.register('lib-wrapper', 'Game.prototype.initialize', obj[libWrapperInit], 'WRAPPER', {perf_mode: 'FAST'});
 	else
-		libWrapperInit(()=>{});
+		obj[libWrapperInit](()=>{});
 }
 
 // Setup unhandled error listeners

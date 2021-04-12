@@ -3,7 +3,7 @@
 
 'use strict';
 
-import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG} from '../consts.js';
+import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG, PERF_MODES} from '../consts.js';
 import {get_current_module_name, decorate_name, set_function_name, decorate_class_function_names} from '../utils/misc.js';
 import {LibWrapperInternalError, LibWrapperModuleError, LibWrapperInvalidWrapperChainError} from '../utils/errors.js';
 import {LibWrapperNotifications} from '../ui/notifications.js';
@@ -16,7 +16,6 @@ export class Wrapper {
 	get name() {
 		return this.names[0];
 	}
-
 
 
 	// Callstack
@@ -84,17 +83,24 @@ export class Wrapper {
 		this.names   = [];
 
 		this.getter_data = [];
-		if(this.is_property)
+		this._getter_data_id = 0;
+		if(this.is_property) {
 			this.setter_data = [];
+			this._setter_data_id = 0;
+		}
 
 		this.active  = false;
 
 		this._outstanding_wrappers = 0;
 		this._warned_detected_classic_wrapper = false;
-		this._handler_count = 0;
+		this._current_handler_id = 0;
 
-		if(!this.is_property)
-			this._pending_original_calls = [];
+		if(!this.is_property) {
+			this._pending_wrapped_calls = [];
+			this._pending_wrapped_calls_cnt = 0;
+		}
+
+		this.update_use_static_dispatch();
 
 		// Add name
 		if(!name)
@@ -111,7 +117,7 @@ export class Wrapper {
 	// Handler
 	_get_handler() {
 		// Return the cached handler, if it is still valid
-		const handler_id = this._handler_count;
+		const handler_id = this._current_handler_id;
 		if(handler_id === this._cached_handler_id)
 			return this._cached_handler;
 
@@ -123,11 +129,19 @@ export class Wrapper {
 		// We use a trick here to be able to convince the browser to name the method the way we want it
 		const obj = {
 			[handler_nm]: function(...args) {
-				if(_this.should_skip_wrappers(this, handler_id)) {
+				const is_static_dispatch = _this.use_static_dispatch;
+
+				// Check if we should skip wrappers
+				if(_this.should_skip_wrappers(this, handler_id, is_static_dispatch)) {
 					return _this.get_wrapped(this, false, wrapped).apply(this, args);
 				}
+				// Otherwise, trigger the wrapper dispatch chain
 				else {
-					return _this.call_wrapper(null, this, ...args);
+					// Trigger the desired dispatch chain - dynamic or static
+					if(is_static_dispatch)
+						return _this.get_static_dispatch_chain(this).apply(this, args);
+					else
+						return _this.call_wrapper(null, this, ...args);
 				}
 			},
 
@@ -146,27 +160,115 @@ export class Wrapper {
 		return handler;
 	}
 
-	should_skip_wrappers(obj, handler_id) {
-		// We don't need to skip wrappers if the wrapper reference was generated after the last setter call
-		if(handler_id == this._handler_count)
+	get_static_dispatch_chain(obj) {
+		const fn_data_id = this._getter_data_id;
+		let dispatch_chain = null;
+
+		// Use the cached dispatch chain, if still valid
+		if(fn_data_id === this._cached_static_dispatch_chain_id && obj === this._cached_static_dispatch_chain_obj) {
+			dispatch_chain = this._cached_static_dispatch_chain;
+		}
+		// Otherwise, generate a new static dispatch chain
+		else {
+			const _init_dispatch_chain = () => {
+				dispatch_chain = this.call_wrapped.bind(this, /*state=*/ null, obj);
+			};
+
+			// Walk wrappers in reverse order
+			const fn_data = this.get_fn_data(false);
+			for(let i = fn_data.length-1; i >= 0; i--) {
+				const data = fn_data[i];
+				const fn = data.fn;
+
+				// OVERRIDE type will usually not continue the chain
+				if(!data.chain)
+					dispatch_chain = fn.bind(obj);
+				// Else, bind the wrapper
+				else {
+					if(!dispatch_chain)
+						_init_dispatch_chain();
+
+					dispatch_chain = fn.bind(obj, dispatch_chain);
+				}
+			}
+
+			if(!dispatch_chain)
+				_init_dispatch_chain();
+
+			// Cache static dispatch chain
+			this._cached_static_dispatch_chain_obj = obj;
+			this._cached_static_dispatch_chain_id  = fn_data_id;
+			this._cached_static_dispatch_chain     = dispatch_chain;
+		}
+
+		// Done
+		return dispatch_chain;
+	}
+
+	should_skip_wrappers(obj, handler_id, is_static_dispatch) {
+		// We don't need to skip wrappers if the handler is still valid
+		if(handler_id == this._current_handler_id)
 			return false;
 
 		// Sanity check
-		if(handler_id > this._handler_count)
-			throw new LibWrapperInternalError(`Unreachable: handler_id=${handler_id} > this._handler_count=${this._handler_count}`);
+		if(handler_id > this._current_handler_id)
+			throw new LibWrapperInternalError(`Unreachable: handler_id=${handler_id} > this._current_handler_id=${this._current_handler_id}`);
 
 		// Find pending calls that match this object - if any is found, skip wrappers
 		if(!this.is_property) {
-			const pend_i = this._pending_original_calls.indexOf(obj);
-			if(pend_i < 0)
+			// Check if there's any pending wrapped calls
+			if(this._pending_wrapped_calls_cnt <= 0)
 				return false;
+
+			// Check if our object exists in the pending wrapped calls
+			if(!is_static_dispatch) {
+				const pend_i = this._pending_wrapped_calls.indexOf(obj);
+				if(pend_i < 0)
+					return false;
+			}
 		}
 
 		return true;
 	}
 
-	invalidate_handlers() {
-		this._handler_count++;
+	skip_existing_handlers() {
+		this._current_handler_id++;
+	}
+
+	_calc_use_static_dispatch() {
+		// Do all the wrappers in fn_data specify the same, explicit, performance mode wish?
+		const fn_data = this.get_fn_data(false);
+
+		let perf_mode = undefined;
+		for(const data of fn_data) {
+			if(!data.perf_mode)
+				continue;
+
+			if(perf_mode === undefined) {
+				perf_mode = data.perf_mode;
+			}
+			else if(perf_mode !== data.perf_mode) {
+				perf_mode = PERF_MODES.AUTO;
+				break;
+			}
+		}
+
+		if(perf_mode === PERF_MODES.FAST)
+			return true;
+		else if(perf_mode === PERF_MODES.SAFE)
+			return false;
+		else /* PERF_MODES.AUTO */ {
+			// Default to static dispatch in user-enabled high performance mode
+			if(game?.settings?.get(MODULE_ID, 'high-performance-mode'))
+				return true;
+
+			// Finally, default to false
+			return false;
+		}
+	}
+
+	update_use_static_dispatch() {
+		this.use_static_dispatch = this._calc_use_static_dispatch();
 	}
 
 
@@ -186,9 +288,7 @@ export class Wrapper {
 
 			// Setup setter / getter
 			obj = {
-				[getter_nm]: function() {
-					return _this._get_handler();
-				},
+				[getter_nm]: () => _this._get_handler(),
 
 				[setter_nm]: function(value) {
 					return _this.set_nonproperty(value, this);
@@ -321,12 +421,17 @@ export class Wrapper {
 
 		// Load necessary state
 		const is_setter = state?.setter ?? false;
+		const is_dynamic_dispatch = (!!state);
 
 		// If necessary, set this wrapped call as pending
 		let pend = undefined;
 		if(!this.is_property) {
-			pend = obj;
-			this._pending_original_calls.push(pend);
+			this._pending_wrapped_calls_cnt++;
+
+			if(is_dynamic_dispatch) {
+				pend = obj;
+				this._pending_wrapped_calls.push(pend);
+			}
 		}
 
 		// Try-catch block to handle normal exception flow
@@ -337,7 +442,7 @@ export class Wrapper {
 		}
 		catch(e) {
 			if(!this.is_property)
-				this._cleanup_call_wrapped(null, pend);
+				this._cleanup_call_wrapped(pend, is_dynamic_dispatch);
 
 			throw e;
 		}
@@ -352,31 +457,38 @@ export class Wrapper {
 		if(typeof result?.then === 'function') {
 			result = result.then(
 				// onResolved
-				v => this._cleanup_call_wrapped(v, pend),
+				v => {
+					this._cleanup_call_wrapped(pend, is_dynamic_dispatch);
+					return v;
+				},
 				// onRejected
 				e => {
-					this._cleanup_call_wrapped(null, pend);
+					this._cleanup_call_wrapped(pend, is_dynamic_dispatch);
 					throw e;
 				}
 			);
 		}
 		// Otherwise, we can immediately cleanup.
 		else {
-			result = this._cleanup_call_wrapped(result, pend);
+			this._cleanup_call_wrapped(pend, is_dynamic_dispatch);
 		}
 
 		// Done
 		return result;
 	}
 
-	_cleanup_call_wrapped(result, pend) {
-		const pend_i = this._pending_original_calls.indexOf(pend);
-		if(pend_i < 0)
-			throw new LibWrapperInternalError(`Could not find 'pend' inside 'this._pending_original_calls'.`);
+	_cleanup_call_wrapped(pend, is_dynamic_dispatch) {
+		if(!this._pending_wrapped_calls_cnt)
+			throw new LibWrapperInternalError(`this._pending_wrapped_calls_cnt=${this._pending_wrapped_calls_cnt} should be unreachable at this point.`);
+		this._pending_wrapped_calls_cnt--;
 
-		this._pending_original_calls.splice(pend_i, 1);
+		if(is_dynamic_dispatch) {
+			const pend_i = this._pending_wrapped_calls.indexOf(pend);
+			if(pend_i < 0)
+				throw new LibWrapperInternalError(`Could not find 'pend' inside 'this._pending_wrapped_calls'.`);
 
-		return result;
+			this._pending_wrapped_calls.splice(pend_i, 1);
+		}
 	}
 
 
@@ -568,7 +680,7 @@ export class Wrapper {
 
 		// Wrap the new value
 		this._wrapped = value;
-		this.invalidate_handlers();
+		this.skip_existing_handlers();
 
 		// Warn user and/or log conflict
 		this.warn_classic_wrapper();
@@ -613,15 +725,32 @@ export class Wrapper {
 		// to_modify=true must be used any time the fn_data array will be modified.
 		// If there are any outstanding wrapper calls, this will force the creation of a copy of the array, to avoid affecting said outstanding wrapper calls.
 
+		// Sanity check
 		if(setter && !this.is_property)
 			throw new LibWrapperInternalError(`libWrapper: '${this.name}' does not wrap a property, thus setter=true is illegal.`);
 
+		// Get current fn_data
 		const prop_nm = setter ? 'setter_data' : 'getter_data';
+		let result = this[prop_nm];
 
-		if(to_modify && this._outstanding_wrappers > 0)
-			this[prop_nm] = this[prop_nm].slice(0);
+		// If we are going to modify the return result...
+		if(to_modify) {
+			// Duplicate fn_data if we are modifying it and there are outstanding wrappers
+			if(this._outstanding_wrappers > 0) {
+				result = this[prop_nm].slice(0);
+				this[prop_nm] = result;
+			}
 
-		return this[prop_nm];
+			// Increment unique ID
+			this[`_${prop_nm}_id`]++;
+		}
+
+		// Done
+		return result;
+	}
+
+	_post_update_fn_data() {
+		this.update_use_static_dispatch();
 	}
 
 	sort() {
@@ -645,6 +774,8 @@ export class Wrapper {
 
 		fn_data.splice(0, 0, data);
 		this.sort(data.setter);
+
+		this._post_update_fn_data();
 	}
 
 	remove(data) {
@@ -652,6 +783,8 @@ export class Wrapper {
 
 		const index = fn_data.indexOf(data);
 		fn_data.splice(index, 1);
+
+		this._post_update_fn_data();
 	}
 
 	clear() {
@@ -659,6 +792,8 @@ export class Wrapper {
 
 		if(this.is_property)
 			this.setter_data = [];
+
+		this._post_update_fn_data();
 	}
 
 	is_empty() {

@@ -3,7 +3,7 @@
 
 'use strict';
 
-import {MODULE_ID, MODULE_TITLE, VERSION, TYPES_REVERSE} from '../consts.js';
+import {MODULE_ID, MODULE_TITLE, VERSION, TYPES_REVERSE, PERF_MODES_REVERSE} from '../consts.js';
 import {LibWrapperModuleError} from '../utils/errors.js'
 import {LibWrapperStats} from './stats.js';
 import {get_current_module_name, WRAPPERS} from '../utils/misc.js';
@@ -63,6 +63,15 @@ export class LibWrapperSettings extends FormApplication {
 			scope: 'world',
 			config: true,
 			hint: 'Whether to notify Players when an issue is detected, for example a conflict.'
+		});
+
+		game.settings.register(MODULE_ID, 'high-performance-mode', {
+			name: 'High-Performance Mode',
+			default: false,
+			type: Boolean,
+			scope: 'world',
+			config: true,
+			hint: 'This disables most dynamic conflict detection capabilities in exchange for performance, especially relevant on low-end systems. Note that this will significantly decrease the chance conflicts are detected. As such, it is recommended to turn this off when installing or updating modules.'
 		});
 
 		game.settings.registerMenu(MODULE_ID, 'menu', {
@@ -129,6 +138,15 @@ export class LibWrapperSettings extends FormApplication {
 		}).render(true);
 	}
 
+	_get_module_data(module_id) {
+		if(module_id === game.data.system.id) {
+			console.log(game.data.system);
+			return game.data.system.data;
+		}
+
+		return game.modules.get(module_id)?.data;
+	}
+
 	getActiveWrappers() {
 		let data = [];
 
@@ -150,17 +168,26 @@ export class LibWrapperSettings extends FormApplication {
 					if(fn_data.module == MODULE_ID)
 						return;
 
-					_d.modules.push({
-						name    : fn_data.module,
-						type    : TYPES_REVERSE[fn_data.type]
-					});
+					const d = {
+						name     : fn_data.module,
+						type     : TYPES_REVERSE[fn_data.type],
+						perf_mode: PERF_MODES_REVERSE[fn_data.perf_mode]
+					};
+
+					if(d.perf_mode == 'AUTO')
+						d.perf_mode = null;
+					else
+						d.perf_mode = `, ${d.perf_mode}`;
+
+					_d.modules.push(d);
 				});
 
 				if(wrapper.detected_classic_wrapper) {
 					wrapper.detected_classic_wrapper.forEach((module) => {
 						_d.modules.push({
-							name    : module,
-							type    : 'MANUAL'
+							name     : module,
+							type     : 'MANUAL',
+							perf_mode: null
 						});
 					});
 				}
@@ -217,7 +244,7 @@ export class LibWrapperSettings extends FormApplication {
 		// Normal modules
 		if(LibWrapperStats.collect_stats) {
 			LibWrapperStats.modules.forEach((module_id) => {
-				const module_data = (module_id == game.data.system.id) ? game.data.system.data : game.modules.get(module_id).data;
+				const module_data = this._get_module_data(module_id);
 
 				if(module_id in cfg_prioritized || module_id in cfg_deprioritized)
 					return;
@@ -233,7 +260,7 @@ export class LibWrapperSettings extends FormApplication {
 		// Prioritized modules
 		Object.entries(cfg_prioritized).forEach((entry) => {
 			const [module_id, module_info] = entry;
-			const module_data = game.modules.get(module_id)?.data;
+			const module_data = this._get_module_data(module_id);
 
 			data.prioritized.push({
 				id: module_id,
@@ -251,7 +278,7 @@ export class LibWrapperSettings extends FormApplication {
 			if(module_id in cfg_prioritized)
 				return;
 
-			const module_data = game.modules.get(module_id)?.data;
+			const module_data = this._get_module_data(module_id);
 
 			data.deprioritized.push({
 				id: module_id,
@@ -420,7 +447,7 @@ export class LibWrapperSettings extends FormApplication {
 					return;
 
 				const old_data = old_prio[old_prio];
-				const new_data = game.modules.get(module_id)?.data;
+				const new_data = this._get_module_data(module_id);
 
 				new_prio[module_id] = {
 					title: new_data?.title ?? old_data?.title ?? '<Unknown>',

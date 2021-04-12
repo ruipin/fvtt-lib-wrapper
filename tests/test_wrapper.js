@@ -4,7 +4,7 @@
 'use strict';
 
 import {CallOrderChecker} from './call_order_checker.js';
-import {wrap_front, unwrap_all_from_obj, test_sync_async, async_retval, sync_async_then} from './utilities.js';
+import {wrap_front, unwrap_all_from_obj, test_combinations, async_retval, sync_async_then} from './utilities.js';
 import '../src/lib/api.js';
 
 
@@ -18,7 +18,7 @@ function setup() {
 
 
 // Test the basic functionality of libWrapper
-test_sync_async('Wrapper: Basic functionality', async function (t) {
+test_combinations('Wrapper: Basic functionality', async function (t) {
 	setup();
 	const chkr = new CallOrderChecker(t);
 
@@ -80,7 +80,7 @@ test_sync_async('Wrapper: Basic functionality', async function (t) {
 
 
 // Test the usual libWrapper syntax, i.e. do not use automations from CallOrderChecker
-test_sync_async('Wrapper: libWrapper syntax', async function (t) {
+test_combinations('Wrapper: libWrapper syntax', async function (t) {
 	setup();
 
 
@@ -154,7 +154,7 @@ test_sync_async('Wrapper: libWrapper syntax', async function (t) {
 
 
 // Assign directly to an instance after wrapping the prototype
-test_sync_async('Wrapper: Instance assignment', async function(t) {
+test_combinations('Wrapper: Instance assignment', async function(t) {
 	setup();
 	const chkr = new CallOrderChecker(t);
 
@@ -199,7 +199,7 @@ test_sync_async('Wrapper: Instance assignment', async function(t) {
 
 
 // Test wrapping inherited methods
-test_sync_async('Wrapper: Inherited Methods', async function(t) {
+test_combinations('Wrapper: Inherited Methods', async function(t) {
 	setup();
 	const chkr = new CallOrderChecker(t);
 

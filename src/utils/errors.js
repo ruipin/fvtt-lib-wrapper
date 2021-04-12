@@ -183,7 +183,7 @@ export const init_error_listeners = function() {
 			// Replace fn with a custom function containing an error handler
 			const fn = args[1];
 
-			const fn_nm = decorate_name('Hooks._call', `hook=${args[0]}`);
+			const fn_nm = `Hooks._call#hook=${args[0]}`;
 			const obj = {
 				[fn_nm]: function(...hook_args) {
 					try {
@@ -203,7 +203,7 @@ export const init_error_listeners = function() {
 
 			// Done
 			return wrapped(...args);
-		}, 'WRAPPER');
+		}, 'WRAPPER', {perf_mode: 'FAST'});
 	}
 	catch(e) {
 		// Handle a possible error gracefully

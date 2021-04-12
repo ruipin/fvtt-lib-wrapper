@@ -34,10 +34,10 @@ Hooks.once('init', () => {
 				if(descriptor) break;
 				iObj = Object.getPrototypeOf(iObj);
 			}
-			if(!descriptor) throw `libWrapper Shim: '${target}' does not exist or could not be found.`;
+			if(!descriptor || descriptor?.configurable === false) throw `libWrapper Shim: '${target}' does not exist, could not be found, or has a non-configurable descriptor.`;
 
 			let original = null;
-			const wrapper = (chain ?? type != 'OVERRIDE') ? function() { return fn.call(this, original.bind(this), ...arguments); } : function() { return fn.call(this, ...arguments); };
+			const wrapper = (chain ?? type != 'OVERRIDE') ? function() { return fn.call(this, original.bind(this), ...arguments); } : function() { return fn.apply(this, arguments); };
 
 			if(!is_setter) {
 				if(descriptor.value) {

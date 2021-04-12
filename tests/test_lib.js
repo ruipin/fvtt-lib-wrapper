@@ -5,7 +5,7 @@
 
 import test from 'tape';
 import {CallOrderChecker} from './call_order_checker.js';
-import {wrap_front, unwrap_all_from_obj, test_sync_async, async_retval, is_promise, sync_async_then} from './utilities.js';
+import {wrap_front, unwrap_all_from_obj, test_combinations, async_retval, is_promise, sync_async_then} from './utilities.js';
 import '../src/lib/api.js';
 import {load_priorities} from '../src/ui/settings.js';
 
@@ -20,7 +20,7 @@ function setup() {
 
 
 // Main functionality of libWrapper
-test_sync_async('Library: Main', async function (t) {
+test_combinations('Library: Main', async function (t) {
 	setup();
 	const chkr = new CallOrderChecker(t);
 
@@ -83,12 +83,14 @@ test_sync_async('Library: Main', async function (t) {
 	libWrapper.unregister('m2', 'A.prototype.x');
 	await chkr.call(a, 'x', ['m1:Mix:1','m3:Ovr:3',-2]);
 
-	// Add a WRAPPER that does not chain
-	libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('m2:Wrp:5', {nochain: true}), 'WRAPPER');
-	await chkr.call(a, 'x', ['m2:Wrp:5',-1,'m1:Mix:1','m3:Ovr:3',-2]);
+	if(!t.fast_mode) {
+		// Add a WRAPPER that does not chain
+		libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('m2:Wrp:5', {nochain: true}), 'WRAPPER');
+		await chkr.call(a, 'x', ['m2:Wrp:5',-1,'m1:Mix:1','m3:Ovr:3',-2]);
 
-	// WRAPPERs that don't chain get unregistered automatically
-	await chkr.call(a, 'x', ['m1:Mix:1','m3:Ovr:3',-2]);
+		// WRAPPERs that don't chain get unregistered automatically
+		await chkr.call(a, 'x', ['m1:Mix:1','m3:Ovr:3',-2]);
+	}
 
 	// Add a MIXED that does not chain, this time not relying on the default parameter
 	libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('m2:Mix:6'), 'MIXED');
@@ -137,7 +139,7 @@ test_sync_async('Library: Main', async function (t) {
 
 
 // Special functionality / corner cases
-test_sync_async('Library: Special', async function (t) {
+test_combinations('Library: Special', async function (t) {
 	setup();
 	const chkr = new CallOrderChecker(t);
 
@@ -191,15 +193,17 @@ test_sync_async('Library: Special', async function (t) {
 
 
 	// Call from outside wrapper
-	let stored_wrapped = null;
-	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:4',
-		function(frm, chain) {
-			stored_wrapped = chain;
-			return chain();
-		}
-	), 'WRAPPER');
-	await chkr.call(a, 'x', ['m1:Wrp:4','Orig',-2]);
-	t.throws(() => stored_wrapped(), libWrapper.InvalidWrapperChainError, 'Call from outside wrapper');
+	if(!t.fast_mode) {
+		let stored_wrapped = null;
+		libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:4',
+			function(frm, chain) {
+				stored_wrapped = chain;
+				return chain();
+			}
+		), 'WRAPPER');
+		await chkr.call(a, 'x', ['m1:Wrp:4','Orig',-2]);
+		t.throws(() => stored_wrapped(), libWrapper.InvalidWrapperChainError, 'Call from outside wrapper');
+	}
 
 
 	// Done
@@ -394,7 +398,7 @@ test('Library: Modify wrapper after chaining asynchronously, before Promise reso
 
 
 // Test the behaviour of libWrapper when people take references to methods and call them manually
-test_sync_async('Library: References to methods', async function (t) {
+test_combinations('Library: References to methods', async function (t) {
 	setup();
 	const chkr = new CallOrderChecker(t);
 
