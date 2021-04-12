@@ -225,24 +225,28 @@ To register a wrapper function, you should call the method `libWrapper.register(
  * 
  * @param {boolean} options.chain [Optional] If 'true', the first parameter to 'fn' will be a function object that can be called to continue the chain.
  *     Default is 'false' if type=='OVERRIDE', otherwise 'true'.
- * 
+ *
  * @param {string} options.perf_mode [OPTIONAL] Selects the preferred performance mode for this wrapper. Default is 'AUTO'.
- *     If all wrappers registered on a given method select the same mode it will be picked, otherwise the default will be used instead.
- *     The possible types are:
- * 
+ *     It will be used if all other wrappers registered on the same target also prefer the same mode, otherwise the default will be used instead.
+ *     This option should only be specified with good reason. In most cases, using 'AUTO' in order to allow the GM to choose is the best option.
+ *     The possible modes are:
+ *
  *     'NORMAL':
  *       Enables all conflict detection capabilities provided by libWrapper. Slower than 'FAST'.
- *       Useful if wrapping a method commonly modified by other modules, and you want to ensure most issues are detected.
+ *       Useful if wrapping a method commonly modified by other modules, to ensure most issues are detected.
+ *       In most other cases, this mode is not recommended and 'AUTO' should be used instead.
  *
  *     'FAST':
  *       Disables some conflict detection capabilities provided by libWrapper, in exchange for performance. Faster than 'NORMAL'.
  *       Will guarantee wrapper call order and per-module prioritization, but fewer conflicts will be detectable.
  *       This performance mode will result in comparable performance to traditional non-libWrapper wrapping methods.
- *       Useful if wrapping a method called thousands of times in a tight loop, for example 'WallsLayer.testWall'.
+ *       Useful if wrapping a method called repeatedly in a tight loop, for example 'WallsLayer.testWall'.
+ *       In most other cases, this mode is not recommended and 'AUTO' should be used instead.
  *
  *     'AUTO':
  *       Default performance mode. If unsure, choose this mode.
- *       Equivalent to 'FAST' when the libWrapper setting 'High-Performance Mode' is enabled by the GM, otherwise 'NORMAL'.
+ *       Will allow the GM to choose which performance mode to use.
+ *       Equivalent to 'FAST' when the libWrapper 'High-Performance Mode' setting is enabled by the GM, otherwise 'NORMAL'.
  */
 static register(module, target, fn, type='MIXED', options={}) { /* ... */ }
 ```
