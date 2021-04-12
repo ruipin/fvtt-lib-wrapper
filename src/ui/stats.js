@@ -5,7 +5,7 @@
 
 import {MODULE_ID, IS_UNITTEST} from '../consts.js';
 import {LibWrapperNotifications} from './notifications.js';
-import {game_user_can} from '../utils/user.js'
+import {game_user_can} from '../utils/polyfill.js'
 
 export class LibWrapperStats {
 	static _collect_stats() {

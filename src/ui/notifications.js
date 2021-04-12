@@ -5,7 +5,7 @@
 
 import {MODULE_ID} from '../consts.js';
 import {decorate_class_function_names} from '../utils/misc.js';
-import {game_user_isGM} from '../utils/user.js'
+import {game_user_isGM} from '../utils/polyfill.js'
 
 
 // Notify user

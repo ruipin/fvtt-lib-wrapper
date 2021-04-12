@@ -9,7 +9,11 @@ import {IS_UNITTEST, MODULE_ID} from '../consts.js';
 // Find currently executing module name (that is not libWrapper)
 export function get_current_module_name(stack_trace=undefined) {
 	if(stack_trace === undefined) {
+		const old_stack_limit = Error.stackTraceLimit;
+		Error.stackTraceLimit = Infinity;
 		stack_trace = Error().stack;
+		Error.stackTraceLimit = old_stack_limit;
+
 		if(!stack_trace)
 			return null;
 	}
@@ -27,12 +31,13 @@ export function get_current_module_name(stack_trace=undefined) {
 				return name;
 		}
 		else if(type === 'modules') {
-			if(!name || name == MODULE_ID || !(game?.modules?.has(name) ?? true))
+			if(!name || name == MODULE_ID || !game?.modules?.has(name))
 				continue;
 
 			return name;
 		}
 		else {
+			console.error("invalid type");
 			throw new (globalThis.libWrapper?.LibWrapperInternalError ?? Error)(`Invalid type: ${type}`);
 		}
 	}

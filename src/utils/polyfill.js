@@ -14,7 +14,7 @@ function throw_error(message) {
 }
 
 
-// game.users polyfill, so it can be used before 'ready'
+// game.user.data polyfill, so it can be used before 'ready'
 export const game_user_data = function(return_null=false) {
     // Try game.user.data first
     const orig_game_user_data = game?.user?.data;

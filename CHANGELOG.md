@@ -1,3 +1,7 @@
+# 1.5.1.0 (2021-04-13)
+
+- Fix issue detecting module names when using minified releases of libWrapper.
+
 # 1.5.0.0 (2021-04-12)
 
 - Major performance improvements
