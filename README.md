@@ -26,6 +26,7 @@ Library for [Foundry VTT](https://foundryvtt.com/) which provides module develop
       - [1.3.3.2. Unregistering a wrapper](#1332-unregistering-a-wrapper)
       - [1.3.3.3. Clear a module](#1333-clear-a-module)
       - [1.3.3.4. Library Versioning](#1334-library-versioning)
+        - [1.3.3.4.1. Testing for a specific libWrapper version](#13341-testing-for-a-specific-libwrapper-version)
       - [1.3.3.5. Fallback / Polyfill detection](#1335-fallback--polyfill-detection)
       - [1.3.3.6. Exceptions](#1336-exceptions)
       - [1.3.3.7. Hooks](#1337-hooks)
@@ -196,7 +197,7 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *
  * In addition to wrapping class methods, there is also support for wrapping methods on specific object instances, as well as class methods inherited from parent classes.
  * However, it is recommended to wrap methods directly in the class that defines them whenever possible, as inheritance/instance wrapping is less thoroughly tested and will incur a performance penalty.
- * 
+ *
  * Triggers FVTT hook 'libWrapper.Register' when successful.
  *
  * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.
@@ -204,7 +205,9 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *                         This works for both normal methods, as well as properties with getters. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
  * @param {function} fn    Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.
  *                         The remaining arguments will correspond to the parameters passed to the wrapped method.
- * @param {string} type    [Optional] The type of the wrapper. Default is 'MIXED'. The possible types are:
+ * @param {string} type    [Optional] The type of the wrapper. Default is 'MIXED'.
+ *
+ *   The possible types are:
  *
  *   'WRAPPER':
  *     Use if your wrapper will *always* call the next function in the chain.
@@ -222,31 +225,34 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *     Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
  *
  * @param {Object} options [Optional] Additional options to libWrapper.
- * 
+ *
  * @param {boolean} options.chain [Optional] If 'true', the first parameter to 'fn' will be a function object that can be called to continue the chain.
- *     Default is 'false' if type=='OVERRIDE', otherwise 'true'.
+ *   Default is 'false' if type=='OVERRIDE', otherwise 'true'.
+ *   First introduced in v1.3.6.0.
  *
  * @param {string} options.perf_mode [OPTIONAL] Selects the preferred performance mode for this wrapper. Default is 'AUTO'.
- *     It will be used if all other wrappers registered on the same target also prefer the same mode, otherwise the default will be used instead.
- *     This option should only be specified with good reason. In most cases, using 'AUTO' in order to allow the GM to choose is the best option.
- *     The possible modes are:
+ *   It will be used if all other wrappers registered on the same target also prefer the same mode, otherwise the default will be used instead.
+ *   This option should only be specified with good reason. In most cases, using 'AUTO' in order to allow the GM to choose is the best option.
+ *   First introduced in v1.5.0.0.
  *
- *     'NORMAL':
- *       Enables all conflict detection capabilities provided by libWrapper. Slower than 'FAST'.
- *       Useful if wrapping a method commonly modified by other modules, to ensure most issues are detected.
- *       In most other cases, this mode is not recommended and 'AUTO' should be used instead.
+ *   The possible modes are:
  *
- *     'FAST':
- *       Disables some conflict detection capabilities provided by libWrapper, in exchange for performance. Faster than 'NORMAL'.
- *       Will guarantee wrapper call order and per-module prioritization, but fewer conflicts will be detectable.
- *       This performance mode will result in comparable performance to traditional non-libWrapper wrapping methods.
- *       Useful if wrapping a method called repeatedly in a tight loop, for example 'WallsLayer.testWall'.
- *       In most other cases, this mode is not recommended and 'AUTO' should be used instead.
+ *   'NORMAL':
+ *     Enables all conflict detection capabilities provided by libWrapper. Slower than 'FAST'.
+ *     Useful if wrapping a method commonly modified by other modules, to ensure most issues are detected.
+ *     In most other cases, this mode is not recommended and 'AUTO' should be used instead.
  *
- *     'AUTO':
- *       Default performance mode. If unsure, choose this mode.
- *       Will allow the GM to choose which performance mode to use.
- *       Equivalent to 'FAST' when the libWrapper 'High-Performance Mode' setting is enabled by the GM, otherwise 'NORMAL'.
+ *   'FAST':
+ *     Disables some conflict detection capabilities provided by libWrapper, in exchange for performance. Faster than 'NORMAL'.
+ *     Will guarantee wrapper call order and per-module prioritization, but fewer conflicts will be detectable.
+ *     This performance mode will result in comparable performance to traditional non-libWrapper wrapping methods.
+ *     Useful if wrapping a method called repeatedly in a tight loop, for example 'WallsLayer.testWall'.
+ *     In most other cases, this mode is not recommended and 'AUTO' should be used instead.
+ *
+ *   'AUTO':
+ *     Default performance mode. If unsure, choose this mode.
+ *     Will allow the GM to choose which performance mode to use.
+ *     Equivalent to 'FAST' when the libWrapper 'High-Performance Mode' setting is enabled by the GM, otherwise 'NORMAL'.
  */
 static register(module, target, fn, type='MIXED', options={}) { /* ... */ }
 ```
@@ -262,7 +268,7 @@ To unregister a wrapper function, you should call the method `libWrapper.unregis
 ```javascript
 /**
  * Unregister an existing wrapper.
- * 
+ *
  * Triggers FVTT hook 'libWrapper.Unregister' when successful.
  *
  * @param {string} module    The module identifier, i.e. the 'name' field in your module's manifest.
@@ -323,7 +329,8 @@ static get versions() { /* ... */ }
 
 // Methods
 /**
- * Test for a minimum libWrapper version. Available since v1.4.0.0.
+ * Test for a minimum libWrapper version.
+ * First introduced in v1.4.0.0.
  *
  * @param {number} major  Minimum major version
  * @param {number} minor  [Optional] Minimum minor version. Default is 0.
@@ -331,6 +338,35 @@ static get versions() { /* ... */ }
  * @returns {boolean}     Returns true if the libWrapper version is at least the queried version, otherwise false.
  */
 static version_at_least(major, minor=0, patch=0) { /* ... */ }
+```
+
+##### 1.3.3.4.1. Testing for a specific libWrapper version
+
+Sometimes you might wish to alert the user when an old version is detected, for example when you use functionality introduced in more recent versions.
+
+To test for libWrapper v1.4.0.0 or higher, the simplest way is to use `version_at_least`:
+
+```javascript
+if(libWrapper.version_at_least?.(major, minor, patch)) {
+    // libWrapper is at least major.minor.patch
+}
+else {
+    // libWrapper is older than major.minor.patch
+}
+```
+
+The arguments `minor` and `patch` are optional. Note the usage of `?.` to ensure this works (and is falsy) before v1.4.0.0.
+
+If you wish to detect versions below v1.4.0.0, you should instead use Foundry's `isNewerVersion` + libWrapper's `version` instead:
+
+```javascript
+const [lwmajor, lwminor, lwpatch] = libWrapper.versions;
+if(lwmajor > major || (lwmajor == major && lwminor > minor) || (lwmajor == major && lwminor == minor && lwpatch >= patch)) {
+    // libWrapper is at least major.minor.patch
+}
+else {
+    // libWrapper is older than major.minor.patch
+}
 ```
 
 
