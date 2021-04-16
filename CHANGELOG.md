@@ -1,3 +1,11 @@
+# 1.5.2.0 (2021-04-16)
+
+- Versioning updates
+  - Split `SUFFIX` field into `SUFFIX` and `META`.
+  - `SUFFIX` is now always an integer, with `META` containing the string portion.
+  - `META` is now unnecessary when comparing library versions, as any change to this field will cause one of the other fields to be incremented.
+  - Updated `version_at_least` to be able to request a minimum `SUFFIX` field.
+
 # 1.5.1.0 (2021-04-13)
 
 - Fix issue detecting module names when using minified releases of libWrapper.

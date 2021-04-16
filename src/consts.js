@@ -16,7 +16,8 @@ export let VERSION        = '';
 export let MAJOR_VERSION  = -1;
 export let MINOR_VERSION  = -1;
 export let PATCH_VERSION  = -1;
-export let SUFFIX_VERSION = '';
+export let SUFFIX_VERSION = -1;
+export let META_VERSION   = '';
 
 export function parse_manifest_version() {
 	if(VERSION)
@@ -26,7 +27,7 @@ export function parse_manifest_version() {
 	if(!version_str)
 		throw `libWrapper: Unable to find version string inside 'game.modules'`;
 
-	const match = version_str.match(/^([0-9]+)\.([0-9]+)\.([0-9]+)[.-]?(.*)$/i);
+	const match = version_str.match(/^([0-9]+)\.([0-9]+)\.([0-9]+).([0-9]+)(.*)$/i);
 	if(!match)
 		throw `libWrapper: Unable to parse version string '${version_str}'`
 
@@ -35,7 +36,7 @@ export function parse_manifest_version() {
 	MINOR_VERSION  = parseInt(match[2]);
 	PATCH_VERSION  = parseInt(match[3]);
 	SUFFIX_VERSION = parseInt(match[4]);
-	if(isNaN(SUFFIX_VERSION)) SUFFIX_VERSION = match[4];
+	META_VERSION   = match[5];
 }
 
 

@@ -4,7 +4,7 @@
 'use strict';
 
 import {
-	MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, VERSION, parse_manifest_version,
+	MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, META_VERSION, VERSION, parse_manifest_version,
 	IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug,
 	TYPES, TYPES_REVERSE, TYPES_LIST,
 	PERF_MODES, PERF_MODES_REVERSE, PERF_MODES_LIST
@@ -173,15 +173,15 @@ export class libWrapper {
 	// Properties
 	/**
 	 * Get libWrapper version
-	 * @returns {string}  libWrapper version in string form, i.e. "<MAJOR>.<MINOR>.<PATCH>.<SUFFIX>"
+	 * @returns {string}  libWrapper version in string form, i.e. "<MAJOR>.<MINOR>.<PATCH>.<SUFFIX><META>"
 	 */
 	static get version() { return VERSION; }
 
 	/**
 	 * Get libWrapper version
-	 * @returns {[number,number,number,(number|string)]}  libWrapper version in array form, i.e. [<MAJOR>, <MINOR>, <PATCH>, <SUFFIX>]
+	 * @returns {[number,number,number,number,string]}  libWrapper version in array form, i.e. [<MAJOR>, <MINOR>, <PATCH>, <SUFFIX>, <META>]
 	 */
-	static get versions() { return [MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION]; }
+	static get versions() { return [MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, META_VERSION]; }
 
 	/**
 	 * @returns {boolean}  The real libWrapper module will always return false. Fallback implementations (e.g. poly-fill / shim) should return true.
@@ -219,15 +219,21 @@ export class libWrapper {
 	 * Test for a minimum libWrapper version.
 	 * First introduced in v1.4.0.0.
 	 *
-	 * @param {number} major  Minimum major version
-	 * @param {number} minor  [Optional] Minimum minor version. Default is 0.
-	 * @param {number} patch  [Optional] Minimum patch version. Default is 0.
-	 * @returns {boolean}     Returns true if the libWrapper version is at least the queried version, otherwise false.
+	 * @param {number} major   Minimum major version
+	 * @param {number} minor   [Optional] Minimum minor version. Default is 0.
+	 * @param {number} patch   [Optional] Minimum patch version. Default is 0.
+	 * @param {number} suffix  [Optional] Minimum suffix version. Default is 0.
+	 * @returns {boolean}      Returns true if the libWrapper version is at least the queried version, otherwise false.
 	 */
-	static version_at_least(major, minor=0, patch=0) {
+	static version_at_least(major, minor=0, patch=0, suffix=0) {
 		if(MAJOR_VERSION == major) {
-			if(MINOR_VERSION == minor)
+			if(MINOR_VERSION == minor) {
+				if(PATCH_VERSION == patch) {
+					return SUFFIX_VERSION == suffix;
+				}
+
 				return PATCH_VERSION >= patch;
+			}
 
 			return MINOR_VERSION > minor;
 		}

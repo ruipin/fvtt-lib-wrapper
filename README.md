@@ -298,31 +298,37 @@ static clear_module(module) { /* ... */ }
 
 #### 1.3.3.4. Library Versioning
 
-This library follows [Semantic Versioning](https://semver.org/), with a custom fourth field `SUFFIX` used to track release meta-data (e.g. unstable versions or release candidates) and manifest-only changes (e.g. when `compatibleCoreVersion` increases).
+This library follows [Semantic Versioning](https://semver.org/), with two custom fields `SUFFIX` and `META`, used together to track release meta-data (e.g. unstable versions or release candidates) and manifest-only changes (e.g. when `compatibleCoreVersion` increases).
 
-The version string will always have format `MAJOR.MINOR.PATCH.SUFFIX`.
+The version string will always have format `<MAJOR>.<MINOR>.<PATCH>.<SUFFIX><META>`.
 
-While the `MAJOR`, `MINOR` and `PATCH` fields will always be integers, the `SUFFIX` field is not guaranteed to be one, although it will always start with one.
+The `MAJOR`, `MINOR`, `PATCH` and `SUFFIX` fields will always be integers.
 
-A few (non-exhaustive) examples of valid version strings:
-* 1.2.3.4
-* 1.3.4.0rc
-* 2.1.0.2a
-* 3.4.5.6dev
+The `META` field is always a string, although it will often be empty.
+This last field is unnecessary when comparing versions, as a change to this field will always cause one of the other fields to be incremented.
 
-The `libWrapper` object provides a few properties and methods to query or react to the library version.
+A few (non-exhaustive) examples of valid version strings and the corresponding `[MAJOR, MINOR, PATCH, SUFFIX, META]`:
+
+| `libWrapper.version` | `libWrapper.versions`     |
+| -------------------- | ------------------------- |
+| `1.2.3.4`            | `[1, 2, 3, 4, '']`        |
+| `1.3.4.0rc`          | `[1, 3, 4, 0, 'rc']`      |
+| `2.1.0.2a`           | `[2, 1, 0, 2, 'a']`       |
+| `3.4.5.6dev`         | `[3, 4, 5, 6, 'dev']`     |
+
+The `libWrapper` object provides a few properties and methods to query or react to the library version:
 
 ```javascript
 // Properties
 /**
  * Get libWrapper version
- * @returns {string}  libWrapper version in string form, i.e. "<MAJOR>.<MINOR>.<PATCH>.<SUFFIX>"
+ * @returns {string}  libWrapper version in string form, i.e. "<MAJOR>.<MINOR>.<PATCH>.<SUFFIX><META>"
  */
 static get version() { /* ... */ }
 
 /**
  * Get libWrapper version
- * @returns {[number,number,number,(number|string)]}  libWrapper version in array form, i.e. [<MAJOR>, <MINOR>, <PATCH>, <SUFFIX>]
+ * @returns {[number,number,number,number,string]}  libWrapper version in array form, i.e. [<MAJOR>, <MINOR>, <PATCH>, <SUFFIX>, <META>]
  */
 static get versions() { /* ... */ }
 
@@ -332,12 +338,13 @@ static get versions() { /* ... */ }
  * Test for a minimum libWrapper version.
  * First introduced in v1.4.0.0.
  *
- * @param {number} major  Minimum major version
- * @param {number} minor  [Optional] Minimum minor version. Default is 0.
- * @param {number} patch  [Optional] Minimum patch version. Default is 0.
- * @returns {boolean}     Returns true if the libWrapper version is at least the queried version, otherwise false.
+ * @param {number} major   Minimum major version
+ * @param {number} minor   [Optional] Minimum minor version. Default is 0.
+ * @param {number} patch   [Optional] Minimum patch version. Default is 0.
+ * @param {number} suffix  [Optional] Minimum suffix version. Default is 0. First introduced in v1.5.2.0.
+ * @returns {boolean}      Returns true if the libWrapper version is at least the queried version, otherwise false.
  */
-static version_at_least(major, minor=0, patch=0) { /* ... */ }
+static version_at_least(major, minor=0, patch=0, suffix=0) { /* ... */ }
 ```
 
 ##### 1.3.3.4.1. Testing for a specific libWrapper version
@@ -347,25 +354,31 @@ Sometimes you might wish to alert the user when an old version is detected, for 
 To test for libWrapper v1.4.0.0 or higher, the simplest way is to use `version_at_least`:
 
 ```javascript
-if(libWrapper.version_at_least?.(major, minor, patch)) {
-    // libWrapper is at least major.minor.patch
+if(libWrapper.version_at_least?.(major, minor, patch, suffix)) {
+    // libWrapper is at least major.minor.patch.suffix
 }
 else {
-    // libWrapper is older than major.minor.patch
+    // libWrapper is older than major.minor.patch.suffix
 }
 ```
 
-The arguments `minor` and `patch` are optional. Note the usage of `?.` to ensure this works (and is falsy) before v1.4.0.0.
+The arguments `minor`, `patch` and `suffix` are optional. Note the usage of `?.` to ensure this works (and is falsy) before v1.4.0.0.
 
-If you wish to detect versions below v1.4.0.0, you should instead use Foundry's `isNewerVersion` + libWrapper's `version` instead:
+If you wish to detect versions below v1.4.0.0, you should instead use `versions` instead:
 
 ```javascript
-const [lwmajor, lwminor, lwpatch] = libWrapper.versions;
-if(lwmajor > major || (lwmajor == major && lwminor > minor) || (lwmajor == major && lwminor == minor && lwpatch >= patch)) {
-    // libWrapper is at least major.minor.patch
+const [lwmajor, lwminor, lwpatch, lwsuffix] = libWrapper.versions;
+if(
+    lwmajor > major || (lwmajor == major && (
+        lwminor > minor || (lwminor == minor && (
+            lwpatch > patch || (lwpatch == patch && lwsuffix >= suffix)
+        ))
+    ))
+) {
+    // libWrapper is at least major.minor.patch.suffix
 }
 else {
-    // libWrapper is older than major.minor.patch
+    // libWrapper is older than major.minor.patch.suffix
 }
 ```
 
@@ -387,7 +400,7 @@ static get is_fallback() { /* ... */ }
 
 #### 1.3.3.6. Exceptions
 
-Various custom exception classes are used by libWrapper, and available in the global `libWrapper` object.
+Since v1.2.0.0, various custom exception classes are used by libWrapper, and available in the global `libWrapper` object.
 
 * `LibWrapperError`:
     - Base class for libWrapper exceptions.
@@ -418,7 +431,7 @@ These are available both with and without the `LibWrapper` prefix, for example `
 
 #### 1.3.3.7. Hooks
 
-The libWrapper library makes use of Hooks for various events, listed below:
+Since v1.4.0.0, the libWrapper library triggers Hooks for various events, listed below:
 
 * `libWrapper.Ready`:
     - Triggered when libWrapper is ready to register wrappers. This will happen shortly before the FVTT `init` hook.
