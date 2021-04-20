@@ -31,8 +31,7 @@ Library for [Foundry VTT](https://foundryvtt.com/) which provides module develop
       - [1.3.3.6. Exceptions](#1336-exceptions)
       - [1.3.3.7. Hooks](#1337-hooks)
       - [1.3.3.8. Examples](#1338-examples)
-    - [1.3.4. Shim](#134-shim)
-      - [1.3.4.1. Default Shim Configuration](#1341-default-shim-configuration)
+    - [1.3.4. Compatibility Shim](#134-compatibility-shim)
 
 ## 1.1. Why?
 
@@ -60,7 +59,7 @@ As a bonus, it provides the GM with module conflict detection, as well as the po
 ### 1.2.2. As a Library
 You have multiple options here.
 
-1.  Include the provided [shim](#134-shim) in your project.
+1.  Include the provided [shim](#134-compatibility-shim) in your project.
 
     or
 
@@ -81,7 +80,7 @@ You have multiple options here.
 
     or
 
-4.  Require your users to install this library. One simple example that achieves this is provided below. Reference the more complex example in the provided [shim](#134-shim) if you prefer a dialog (including an option to dismiss it permanently) instead of a simple notification.
+4.  Require your users to install this library. One simple example that achieves this is provided below. Reference the more complex example in the provided [shim](#134-compatibility-shim) if you prefer a dialog (including an option to dismiss it permanently) instead of a simple notification.
 
     ```javascript
     Hooks.once('ready', () => {
@@ -100,14 +99,14 @@ You have multiple options here.
     ]
     ```
 
-If you pick options #2 or #3 and actively recommend to the user to install libWrapper using e.g. a notification, it is a good idea to give the user a way to permanently dismiss said notification. The provided [shim](#134-shim) does this by having a "Don't remind me again" option in the alert dialog.
+If you pick options #2 or #3 and actively recommend to the user to install libWrapper using e.g. a notification, it is a good idea to give the user a way to permanently dismiss said notification. The provided [shim](#134-compatibility-shim) does this by having a "Don't remind me again" option in the alert dialog.
 
 Once your module is released, you should consider adding it to the wiki list of [Modules using libWrapper](https://github.com/ruipin/fvtt-lib-wrapper/wiki/Modules-using-libWrapper). This list can also be used as an additional (unofficial) source of libWrapper usage examples.
 
 
 ### 1.2.3. As a Contributor
 
-See [CONTRIBUTING](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 
 
@@ -385,7 +384,7 @@ else {
 
 #### 1.3.3.5. Fallback / Polyfill detection
 
-To detect whether the `libWrapper` object contains the full library or a fallback/polyfill implementation (e.g. the [shim](#134-shim)), you can check `libWrapper.is_fallback`.
+To detect whether the `libWrapper` object contains the full library or a fallback/polyfill implementation (e.g. the [shim](#134-compatibility-shim)), you can check `libWrapper.is_fallback`.
 
 The library module will set this property to `false`, while fallback/polyfill implementations will set it to `true`.
 
@@ -479,23 +478,8 @@ Since v1.4.0.0, the libWrapper library triggers Hooks for various events, listed
 A list of modules using libWrapper, which can be used as further examples, can be found in the wiki page [Modules using libWrapper](https://github.com/ruipin/fvtt-lib-wrapper/wiki/Modules-using-libWrapper).
 
 
-### 1.3.4. Shim
+### 1.3.4. Compatibility Shim
 
 The [shim.js](shim/shim.js) file in this repository can be used to avoid a hard dependency on libWrapper.
 
-The shim exports a `libWrapper` symbol which will at the `init` hook become a reference to the real libWrapper library if present, or to a fallback/polyfill implementation otherwise. This symbol will be `undefined` until the `init` hook fires.
-
-A fallback implementation is included for the `register` function only (see documentation above). This fallback implementation does not have any of the "fancy" features of the libWrapper library - most importantly, it does not check for module conflicts or enforce call order between the different wrapper types, and it does not do dynamic dispatch. *Due to these differences in behaviour, it is extremely important to test your code both with the shim and with the full library.*
-
-To programmatically detect whether the fallback implementation is active, you can check `libWrapper.is_fallback == true`.
-
-To be able to use this shim, your module needs to use `esmodules` in its manifest file. Then, you can import the shim by adding e.g. `import {libWrapper} from './relative/path/to/shim.js';` to your JS code. While the shim is mostly plug-and-play, please feel free to modify it to your liking - in particular, some places you might wish to customize are explicitly marked with `//************** USER CUSTOMIZABLE:`.
-
-#### 1.3.4.1. Default Shim Configuration
-
-By default, the shim displays a warning dialog similar to the image below when libWrapper is not installed and therefore the fallback code path is being used.
-
-This is meant to be a "sane default", but you should feel free to customize this dialog by modifying the shim code or even just strip it out completely if you do not wish to have a warning dialog at all.
-
-<img src="https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/d54d5d8c5adbd34bc65396c31f042f3f9d8d6a24/example_warning_dialog.png" width="200">
-<sup>Note: Images may be out-of-date.</sup>
+See the respective documentation in [shim/SHIM.md](shim/SHIM.md).
