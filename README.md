@@ -19,8 +19,9 @@ Library for [Foundry VTT](https://foundryvtt.com/) which provides module develop
   - [1.3. Usage](#13-usage)
     - [1.3.1. Summary](#131-summary)
     - [1.3.2. Common Pitfalls](#132-common-pitfalls)
-      - [1.3.2.1. OVERRIDE wrappers have a different call signature](#1321-override-wrappers-have-a-different-call-signature)
-      - [1.3.2.2. Arrow Functions do not support `this`](#1322-arrow-functions-do-not-support-this)
+      - [1.3.2.1. Not allowed to register wrappers before the `init` hook.](#1321-not-allowed-to-register-wrappers-before-the-init-hook)
+      - [1.3.2.2. OVERRIDE wrappers have a different call signature](#1322-override-wrappers-have-a-different-call-signature)
+      - [1.3.2.3. Arrow Functions do not support `this`](#1323-arrow-functions-do-not-support-this)
     - [1.3.3. LibWrapper API](#133-libwrapper-api)
       - [1.3.3.1. Registering a wrapper](#1331-registering-a-wrapper)
       - [1.3.3.2. Unregistering a wrapper](#1332-unregistering-a-wrapper)
@@ -114,7 +115,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### 1.3.1. Summary
 
-In order to wrap a method, you should call the `libWrapper.register` method and provide your module ID, the scope of the method you want to override, and a wrapper function.
+In order to wrap a method, you should call the `libWrapper.register` method during or after the `init` hook, and provide it with your module ID, the scope of the method you want to override, and a wrapper function.
 You can also specify the type of wrapper you want in the fourth (optional) parameter:
 
 - `WRAPPER`:
@@ -150,7 +151,13 @@ libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', function (wrapped, ..
 
 ### 1.3.2. Common Pitfalls
 
-#### 1.3.2.1. OVERRIDE wrappers have a different call signature
+#### 1.3.2.1. Not allowed to register wrappers before the `init` hook.
+
+Due to Foundry limitations, information related to installed modules is not available until the `init` hook. As such, libWrapper will wait until then to initialize itself.
+
+Any attempts to register wrappers before then will throw an exception. If using the [shim](#134-compatibility-shim), its `libWrapper` symbol will be undefined until then.
+
+#### 1.3.2.2. OVERRIDE wrappers have a different call signature
 
 When using `OVERRIDE`, wrappers do not receive the next function in the wrapper chain as the first parameter. Make sure to account for this.
 
@@ -161,7 +168,7 @@ libWrapper.register('my-fvtt-module', 'Foo.prototype.bar', function (...args) { 
 }, 'OVERRIDE');
 ```
 
-#### 1.3.2.2. Arrow Functions do not support `this`
+#### 1.3.2.3. Arrow Functions do not support `this`
 
 Per the Javascript specification, arrow function syntax (`(args) => { body() }`) does not bind a `this` object, and instead keeps whatever `this` was defined in the declaration scope.
 

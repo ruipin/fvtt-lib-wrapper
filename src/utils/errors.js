@@ -172,7 +172,7 @@ export const init_error_listeners = function() {
 	// Do nothing inside unit tests
 	if(IS_UNITTEST)
 		return;
-	
+
 	// Javascript native unhandled exception listeners
 	globalThis.addEventListener('error', onUnhandledError);
 	globalThis.addEventListener('unhandledrejection', onUnhandledError);

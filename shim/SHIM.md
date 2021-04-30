@@ -13,7 +13,9 @@ Unlike the rest of the libWrapper repository, this compatibility shim is license
 
 ## 1.2. Usage
 
-The shim exports a `libWrapper` symbol which will at the `init` hook become a reference to the real libWrapper library if present, or to a fallback/polyfill implementation otherwise. This symbol will be `undefined` until the `init` hook fires.
+The shim exports a `libWrapper` symbol which will at the `init` hook become a reference to the real libWrapper library if present, or to a fallback/polyfill implementation otherwise.
+
+⚠ Note that this symbol will be `undefined` until the `init` hook fires.
 
 A fallback implementation is included for the `register` function only (see documentation above). This fallback implementation does not have any of the "fancy" features of the libWrapper library - most importantly, it does not check for module conflicts or enforce call order between the different wrapper types, and it does not do dynamic dispatch. *Due to these differences in behaviour, it is extremely important to test your code both with the shim and with the full library.*
 
