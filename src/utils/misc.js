@@ -48,10 +48,11 @@ export function get_current_module_name(stack_trace=undefined) {
 
 // HACK: The browser doesn't expose all global variables (e.g. 'Game') inside globalThis, but it does to an eval
 // We declare this helper here so that the eval does not have access to the anonymous function scope
-const __eval_copy = eval;
+export const global_eval = eval;
+
 export function get_global_variable(varname) {
 	try {
-		return globalThis[varname] ?? __eval_copy(varname);
+		return globalThis[varname] ?? global_eval(varname);
 	}
 	catch (e) {
 		return undefined;

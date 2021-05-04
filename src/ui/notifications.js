@@ -34,7 +34,7 @@ export class LibWrapperNotifications {
 		return true;
 	}
 
-	static ui(msg, fn='error') {
+	static _ui(msg, fn) {
 		if(!this.ui_notifications_enabled)
 			return;
 
@@ -46,17 +46,18 @@ export class LibWrapperNotifications {
 
 		this.NOTIFICATION_SET.add(msg);
 
+		// Notify - ensure that ui.notifications exists as if an error occurs too early it might not be defined yet
+		let notify = globalThis?.ui?.notifications;
+		if(notify)
+			notify[fn].call(notify, `libWrapper: ${msg}`, {permanent: fn == 'error'});
+	}
+
+	static ui(msg, fn='error') {
 		// Wait until 'ready' if the error occurs early during load
-		const do_notify = (is_hook) => {
-			// Notify - ensure that ui.notifications exists as if an error occurs too early it might not be defined yet
-			let notify = globalThis?.ui?.notifications;
-			if(notify)
-				notify[fn].call(notify, `libWrapper: ${msg}`, {permanent: fn == 'error'});
-			else if(!is_hook && !game.ready) {
-				Hooks.once('ready', do_notify, true);
-			}
-		};
-		do_notify(false);
+		if(!globalThis.game?.ready)
+			Hooks.once('ready', this._ui.bind(this, msg, fn));
+		else
+			this._ui(msg, fn);
 	}
 
 

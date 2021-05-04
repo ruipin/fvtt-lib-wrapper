@@ -10,7 +10,7 @@ import {
 	PERF_MODES, PERF_MODES_REVERSE, PERF_MODES_LIST
 } from '../consts.js';
 import {Wrapper} from './wrapper.js';
-import {init_error_listeners, LibWrapperError, LibWrapperModuleError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError, LibWrapperInternalError} from '../utils/errors.js';
+import {init_error_listeners, LibWrapperError, LibWrapperModuleError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError, LibWrapperInternalError, onUnhandledError} from '../utils/errors.js';
 import {get_global_variable, get_current_module_name, WRAPPERS, decorate_name, decorate_class_function_names} from '../utils/misc.js';
 import {LibWrapperNotifications} from '../ui/notifications.js'
 import {LibWrapperStats} from '../ui/stats.js';
@@ -212,6 +212,8 @@ export class libWrapper {
 
 	static get LibWrapperInvalidWrapperChainError() { return LibWrapperInvalidWrapperChainError; };
 	static get InvalidWrapperChainError() { return LibWrapperInvalidWrapperChainError; };
+
+	static get onUnhandledError() { return onUnhandledError; };
 
 
 	// Methods
@@ -481,6 +483,9 @@ Object.defineProperty(globalThis, 'libWrapper', {
 
 
 
+// Setup unhandled error listeners
+init_error_listeners();
+
 // Initialize libWrapper right before the 'init' hook. Unit tests just initialize immediately
 {
 	const libWrapperInit = decorate_name('libWrapperInit');
@@ -515,9 +520,6 @@ Object.defineProperty(globalThis, 'libWrapper', {
 	else
 		obj[libWrapperInit](()=>{});
 }
-
-// Setup unhandled error listeners
-init_error_listeners();
 
 // Lock down registrations using module 'lib-wrapper'
 allow_libwrapper_registrations = false;

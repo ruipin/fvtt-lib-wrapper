@@ -1,3 +1,10 @@
+# 1.5.3.0 (2021-05-04)
+
+- Improve call stack for hooks ([Issue #32](https://github.com/ruipin/fvtt-lib-wrapper/issues/32))
+  - Changed the `Hooks._call` wrapper to a patched override.
+- Delay evaluation of notifications configuration until `ready` hook.
+- Announce compatibility with Foundry 0.8.2.
+
 # 1.5.2.0 (2021-04-16)
 
 - Versioning updates

@@ -3,8 +3,8 @@
 
 'use strict';
 
-import {IS_UNITTEST, MODULE_ID} from '../consts.js';
-import {get_current_module_name, decorate_name} from './misc.js';
+import {IS_UNITTEST, DEBUG} from '../consts.js';
+import {get_current_module_name, global_eval} from './misc.js';
 import {LibWrapperNotifications} from '../ui/notifications.js';
 
 
@@ -143,7 +143,7 @@ Object.freeze(LibWrapperInvalidWrapperChainError);
 
 
 // Error listeners for unhandled exceptions
-const onUnhandledError = function(e) {
+export const onUnhandledError = function(e) {
 	// We first check whether this exception is an instance of LibWrapperError.
 	// If not, we will check if it was caused by one. Otherwise, we do nothing.
 	while(!(e instanceof LibWrapperError)) {
@@ -178,32 +178,23 @@ export const init_error_listeners = function() {
 	globalThis.addEventListener('unhandledrejection', onUnhandledError);
 
 	// Wrap Hooks._call to intercept unhandled exceptions during hooks
+	// We don't use libWrapper itself here as we can guarantee we come first (well, before any libWrapper wrapper) and we want to avoid polluting the callstack of every single hook.
+	// Otherwise users might think libWrapper is causing failures, when they're actually the fault of another module.
+	// We try to patch the existing method. If anything fails, we just alert the user and skip this section.
 	try {
-		libWrapper.register('lib-wrapper', 'Hooks._call', function(wrapped, ...args) {
-			// Replace fn with a custom function containing an error handler
-			const fn = args[1];
+		// Patch original method
+		const orig = '() => function ' + Hooks._call.toString();
+		const patched = orig.replace(/^( *).*catch\((.*)\)\s*{/img, '$&\n$1  globalThis.libWrapper.onUnhandledError($2);');
+		if(orig === patched)
+			throw `Could not patch 'Hooks._call' method:\n${orig}`;
+		if(DEBUG)
+			console.log(`Patched Hooks._call: ${patched}`);
 
-			const fn_nm = `Hooks._call#hook=${args[0]}`;
-			const obj = {
-				[fn_nm]: function(...hook_args) {
-					try {
-						return fn.apply(this, hook_args);
-					}
-					catch(e) {
-						onUnhandledError(e);
-						throw e;
-					}
-				}
-			};
-			args[1] = obj[fn_nm];
+		const patched_fn = global_eval(patched)?.();
+		if(typeof patched_fn !== 'function')
+			throw `Evaluation of patched 'Hooks._call' method did not return a function:\nPatched Method: ${patched}\nReturned: ${patched_fn}`;
 
-			// Because we changed the 'fn', we need to manually check for this
-			if(this._once.includes(fn))
-				this.off(args[0], fn);
-
-			// Done
-			return wrapped(...args);
-		}, 'WRAPPER', {perf_mode: 'FAST'});
+		Hooks._call = patched_fn;
 	}
 	catch(e) {
 		// Handle a possible error gracefully
