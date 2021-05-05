@@ -1,3 +1,12 @@
+# 1.5.4.0 (2021-05-05)
+
+- Improve support for systems and world scripts. ([Issue #19](https://github.com/ruipin/fvtt-lib-wrapper/issues/19))
+  - World scripts are now supported.
+  - Shim ID/title auto-detection now supports both world scripts and systems.
+- Do not use positive look-behind in regexes. ([Issue #34](https://github.com/ruipin/fvtt-lib-wrapper/issues/34))
+  - This fixes support for Safari Technical Preview. (Note: Safari is still officially unsupported by both Foundry and libWrapper)
+  - Corresponding update to the shim, which will be required if modules wish to support Safari.
+
 # 1.5.3.0 (2021-05-04)
 
 - Improve call stack for hooks ([Issue #32](https://github.com/ruipin/fvtt-lib-wrapper/issues/32))

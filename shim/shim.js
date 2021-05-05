@@ -67,17 +67,23 @@ Hooks.once('init', () => {
 	// Set up the ready hook that shows the "libWrapper not installed" warning dialog
 	if(WARN_FALLBACK) {
 		//************** USER CUSTOMIZABLE:
-		// Module ID - by default attempts to auto-detect, but you might want to hardcode your module ID here to avoid potential auto-detect issues
-		const MODULE_ID = ((import.meta?.url ?? Error().stack)?.match(/(?<=\/)modules\/.+(?=\/)/i)??[])[0]?.split('/')?.find(n => n && game.modules.has(n));
-		if(!MODULE_ID) {
-			console.error("libWrapper Shim: Could not auto-detect module ID. The libWrapper fallback warning dialog will be disabled.");
+		// Module ID & Module Title - by default attempts to auto-detect, but you might want to hardcode your module ID and title here to avoid potential auto-detect issues
+		const [MODULE_ID, MODULE_TITLE] = (()=>{
+			const match = (import.meta?.url ?? Error().stack)?.match(/\/(worlds|systems|modules)\/(.+)(?=\/)/i);
+			if(match?.length !== 3) return [null,null];
+			const dirs = match[2].split('/');
+			if(match[1] === 'worlds') return dirs.find(n => n && game.world.id === n) ? [game.world.id, game.world.title] : [null,null];
+			if(match[1] === 'systems') return dirs.find(n => n && game.system.id === n) ? [game.system.id, game.system.data.title] : [null,null];
+			const id = dirs.find(n => n && game.modules.has(n));
+			return [id, game.modules.get(id)?.data?.title];
+		})();
+
+		if(!MODULE_ID || !MODULE_TITLE) {
+			console.error("libWrapper Shim: Could not auto-detect module ID and/or title. The libWrapper fallback warning dialog will be disabled.");
 			return;
 		}
 
 		Hooks.once('ready', () => {
-			// Module title
-			const MODULE_TITLE = game.modules.get(MODULE_ID).data.title;
-
 			//************** USER CUSTOMIZABLE:
 			// Title and message for the dialog shown when the real libWrapper is not installed.
 			const FALLBACK_MESSAGE_TITLE = MODULE_TITLE;

@@ -499,7 +499,11 @@ init_error_listeners();
 			LibWrapperStats.init();
 			LibWrapperNotifications.init();
 
-			// Sanity check
+			// Sanity checks
+			const world_id = game.data.world.id;
+			if(game.modules.get(world_id)?.active)
+				LibWrapperNotifications.console_ui(`Module '${world_id}' is active and has same ID as the current world '${world_id}'. This could cause issues, and is not recommended.`, '', 'warn');
+
 			const system_id = game.data.system.id;
 			if(game.modules.get(system_id)?.active)
 				LibWrapperNotifications.console_ui(`Module '${system_id}' is active and has same ID as the current system '${system_id}'. This could cause issues, and is not recommended.`, '', 'warn');

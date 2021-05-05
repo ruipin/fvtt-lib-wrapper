@@ -85,7 +85,7 @@ export class LibWrapperAlreadyOverriddenError extends LibWrapperError {
 	constructor(module, conflicting_module, target, ...args) {
 		super(
 			`Conflict detected between '${module}' and '${conflicting_module}'.`,
-			`Failed to wrap '${target}' for '${module}' with type OVERRIDE. A OVERRIDE wrapper for the same method has already been registered by '${conflicting_module}'.`,
+			`Failed to wrap '${target}' for '${module}' with type OVERRIDE. An OVERRIDE wrapper for the same method has already been registered by '${conflicting_module}'.`,
 			'error',
 			...args
 		);

@@ -77,6 +77,9 @@ class Game {
 			],
 			system: {
 				id: 'example-system'
+			},
+			world: {
+				id: 'example-world'
 			}
 		}
 		this.ready = true;

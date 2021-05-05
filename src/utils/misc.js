@@ -18,7 +18,7 @@ export function get_current_module_name(stack_trace=undefined) {
 			return null;
 	}
 
-	const matches = stack_trace.matchAll(/(?<=\/)(modules|systems)\/(.+?)(?=\/)/ig);
+	const matches = stack_trace.matchAll(/\/(worlds|systems|modules)\/(.+?)(?=\/)/ig);
 	if(!matches)
 		return null;
 
@@ -26,7 +26,11 @@ export function get_current_module_name(stack_trace=undefined) {
 		const type = match[1];
 		const name = match[2];
 
-		if(type === 'systems') {
+		if(type === 'worlds') {
+			if(name == game.data.world.id)
+				return name;
+		}
+		else if(type === 'systems') {
 			if(name == game.data.system.id)
 				return name;
 		}
@@ -37,8 +41,7 @@ export function get_current_module_name(stack_trace=undefined) {
 			return name;
 		}
 		else {
-			console.error("invalid type");
-			throw new (globalThis.libWrapper?.LibWrapperInternalError ?? Error)(`Invalid type: ${type}`);
+			throw new Error(`libWrapper: Invalid script type: ${type}`);
 		}
 	}
 
