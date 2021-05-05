@@ -143,28 +143,24 @@ Object.freeze(LibWrapperInvalidWrapperChainError);
 
 
 // Error listeners for unhandled exceptions
-export const onUnhandledError = function(e) {
-	// We first check whether this exception is an instance of LibWrapperError.
-	// If not, we will check if it was caused by one. Otherwise, we do nothing.
-	while(!(e instanceof LibWrapperError)) {
-		if(e.reason === undefined)
-			return;
-
-		e = e.reason;
-	}
-
+export const onUnhandledError = function(event) {
 	// This is a LibWrapperError exception, and we need to handle it
 	try {
+		// We first check whether the cause of the event is an instance of LibWrapperError. Otherwise, we do nothing.
+		const exc = event.reason ?? event.error ?? event;
+		if(!exc || !(exc instanceof LibWrapperError))
+			return;
+
 		// Notify user of the issue
-		if(e.ui_msg && e.notification_fn)
-			LibWrapperNotifications.ui(`${e.ui_msg} (See JS console)`, e.notification_fn);
+		if(exc.ui_msg && exc.notification_fn)
+			LibWrapperNotifications.ui(`${exc.ui_msg} (See JS console)`, exc.notification_fn);
 
 		// Trigger 'onUnhandled'
-		if(e.onUnhandled)
-			e.onUnhandled.apply(e);
+		if(exc.onUnhandled)
+			exc.onUnhandled.apply(exc);
 	}
 	catch (e) {
-		console.warn('libWrapper: Exception thrown while processing unhandled libWrapper Exception.', e);
+		console.warn('libWrapper: Exception thrown while processing an unhandled exception.', e);
 	}
 }
 
@@ -201,6 +197,25 @@ export const init_error_listeners = function() {
 		LibWrapperNotifications.console_ui(
 			"A non-critical error occurred while initializing libWrapper.",
 			"Could not setup 'Hooks._call' wrapper.\n",
+			'warn',
+			e
+		);
+	}
+
+	// Wrap Application.prototype._render to intercept unhandled exceptions when rendering Applications
+	try {
+		libWrapper.register('lib-wrapper', 'Application.prototype._render', function(wrapped, ...args) {
+			return wrapped(...args).catch(err => {
+				onUnhandledError(err);
+				throw err;
+			});
+		}, 'WRAPPER', {perf_mode: 'FAST'});
+	}
+	catch(e) {
+		// Handle a possible error gracefully
+		LibWrapperNotifications.console_ui(
+			"A non-critical error occurred while initializing libWrapper.",
+			"Could not setup 'Application.prototype._render' wrapper.\n",
 			'warn',
 			e
 		);

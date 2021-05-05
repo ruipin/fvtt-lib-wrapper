@@ -1,3 +1,8 @@
+# 1.5.6.0 (2021-05-05)
+
+- Improve unhandled error detection mechanism.
+- Also detect errors that occur inside `Application.prototype.render`.
+
 # 1.5.5.0 (2021-05-05)
 
 - Fix sorting of unprioritized modules in the settings dialog.

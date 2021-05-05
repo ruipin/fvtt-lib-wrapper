@@ -12,10 +12,6 @@ import {get_current_module_name, WRAPPERS} from '../utils/misc.js';
 export const PRIORITIES = new Map();
 
 export const load_priorities = function(value=null) {
-	const module = get_current_module_name();
-	if(module)
-		throw new LibWrapperModuleError(`Module '${module}' is not allowed to call libWrapper.load_priorities()`, module);
-
 	// Create existing priorities
 	PRIORITIES.clear();
 
