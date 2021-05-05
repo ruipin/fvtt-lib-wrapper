@@ -1,3 +1,7 @@
+# 1.5.5.0 (2021-05-05)
+
+- Fix sorting of unprioritized modules in the settings dialog.
+
 # 1.5.4.0 (2021-05-05)
 
 - Improve support for systems and world scripts. ([Issue #19](https://github.com/ruipin/fvtt-lib-wrapper/issues/19))

@@ -254,7 +254,7 @@ export class LibWrapperSettings extends FormApplication {
 					title: module_data.title
 				});
 			});
-			data.normal.sort((a,b) => {return a.id - b.id});
+			data.normal.sort((a,b) => a.id.localeCompare(b.id));
 		}
 
 		// Prioritized modules
