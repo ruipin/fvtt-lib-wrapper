@@ -4,8 +4,11 @@
 'use strict';
 
 import {IS_UNITTEST, DEBUG} from '../consts.js';
-import {get_current_module_name, global_eval} from './misc.js';
+import {global_eval} from './misc.js';
 import {LibWrapperNotifications} from '../ui/notifications.js';
+import {PackageInfo} from './package_info.js';
+import {LibWrapperStats} from '../ui/stats.js';
+
 
 
 // Custom libWrapper Error
@@ -32,14 +35,16 @@ export class LibWrapperError extends Error {
 }
 Object.freeze(LibWrapperError);
 
+
+
 // Internal error
 export class LibWrapperInternalError extends LibWrapperError {
 	constructor(console_msg, ...args) {
-		const module = get_current_module_name();
+		const package_info = new PackageInfo();
 
 		super(
-			module ? `Internal error detected, possibly related to '${module}'.`
-			       : 'Internal error detected.'
+			package_info.known ? `Internal error detected, possibly related to ${package_info.logString}.`
+			                   : 'Internal error detected.'
 			,
 			console_msg,
 			'error',
@@ -47,61 +52,107 @@ export class LibWrapperInternalError extends LibWrapperError {
 		);
 
 		// Custom debugging information
-		this.module = module;
+		this.package_info = package_info;
 	}
+
+	/**
+	 * Returns the package ID
+	 */
+	get package_id() { return this.package_info?.id; }
+
+	/**
+	 * Deprecated since v1.6.0.0
+	 * Returns the package ID
+	 */
+	get module() { return this.package_id; }
 }
 Object.freeze(LibWrapperInternalError);
 
-// Error caused by a module
-export class LibWrapperModuleError extends LibWrapperError {
-	constructor(console_msg, module, ...args) {
+
+
+// Error caused by a package
+export class LibWrapperPackageError extends LibWrapperError {
+	constructor(console_msg, package_info, ...args) {
 		let possibly = false;
 
-		if(!module) {
-			module = module ?? get_current_module_name();
+		if(!package_info) {
+			package_info = new PackageInfo();
 			possibly = true;
+		}
+		else if(package_info?.constructor !== PackageInfo) {
+			package_info = new PackageInfo(package_info);
 		}
 
 		super(
-			(module ? (
-				possibly ? `Error detected, possibly in '${module}'.` :
-				           `Error detected in '${module}'.`
-				) :
-				'Error detected in unknown module.'
-			),
+			possibly ? `Error detected, possibly in ${package_info.logString}.` :
+			           `Error detected in ${package_info.logString}.`,
 			console_msg,
 			'error',
 			...args
 		);
 
 		// Custom debugging information
-		this.module = module;
+		this.package_info = package_info;
 	}
+
+	/**
+	 * Returns the package ID
+	 */
+	get package_id() { return this.package_info?.id; }
+
+	/**
+	 * Deprecated since v1.6.0.0
+	 * Returns the package ID
+	 */
+	get module() { return this.package_id; }
 }
-Object.freeze(LibWrapperModuleError);
+Object.freeze(LibWrapperPackageError);
+
+
 
 // Already Overridden Error
 export class LibWrapperAlreadyOverriddenError extends LibWrapperError {
-	constructor(module, conflicting_module, target, ...args) {
+	constructor(package_info, conflicting_info, target, ...args) {
+		if(package_info?.constructor !== PackageInfo)
+			package_info = new PackageInfo(package_info);
+
+		if(conflicting_info?.constructor !== PackageInfo)
+			conflicting_info = new PackageInfo(conflicting_info);
+
 		super(
-			`Conflict detected between '${module}' and '${conflicting_module}'.`,
-			`Failed to wrap '${target}' for '${module}' with type OVERRIDE. An OVERRIDE wrapper for the same method has already been registered by '${conflicting_module}'.`,
+			`Conflict detected between ${package_info.logString} and ${conflicting_info.logString}.`,
+			`Failed to wrap '${target}' for ${package_info.logString} with type OVERRIDE. An OVERRIDE wrapper for the same method has already been registered by ${conflicting_info.logString}.`,
 			'error',
 			...args
 		);
 
 		// Custom debugging information
-		this.module = module;
-		this.conflicting_module = conflicting_module;
+		this.package_info = package_info;
+		this.conflicting_info = conflicting_info;
 		this.target = target;
 	}
 
 	/**
-	 * Returns the title of the module that caused the wrapping conflict
+	 * Returns the package ID
 	 */
-	get conflicting_module_title() {
-		return game.modules.get(this.conflicting_module)?.data?.title;
-	}
+	get package_id() { return this.package_info?.id; }
+
+	/**
+	 * Deprecated since v1.6.0.0
+	 * Returns the package ID
+	 */
+	get module() { return this.package_id; }
+
+	/**
+	 * Returns the conflicting package ID
+	 */
+	get conflicting_id() { return this.conflicting_info?.id; }
+
+	/**
+	 * Deprecated since v1.6.0.0
+	 * Returns the conflicting package ID
+	 */
+	get conflicting_module() { return this.conflicting_id; }
 
 	/**
 	 * Called if this error is unhandled
@@ -109,21 +160,21 @@ export class LibWrapperAlreadyOverriddenError extends LibWrapperError {
 	onUnhandled() {
 		super.onUnhandled();
 
-		LibWrapperStats.register_conflict(this.module, this.conflicting_module, this.target);
+		LibWrapperStats.register_conflict(this.package_info, this.conflicting_info, this.target);
 	}
 }
 Object.freeze(LibWrapperAlreadyOverriddenError);
 
+
+
 // Invalid Wrapper Chain Error
 export class LibWrapperInvalidWrapperChainError extends LibWrapperError {
-	constructor(wrapper, module, console_msg, ...args) {
-		let user_msg = (module) ?
-			`Error detected in '${module}'.`:
-			`Error detected in wrapper '${wrapper.name}'.`
-		;
+	constructor(wrapper, package_info, console_msg, ...args) {
+		if(package_info?.constructor !== PackageInfo)
+			package_info = new PackageInfo(package_info);
 
 		super(
-			user_msg,
+			`Error detected in '${package_info.logString}'.`,
 			console_msg,
 			'error',
 			...args
@@ -131,11 +182,20 @@ export class LibWrapperInvalidWrapperChainError extends LibWrapperError {
 
 		// Custom debugging information
 		this._wrapper = wrapper;
-		this.module = module;
+		this.package_info = package_info;
 	}
 
-	get wrapper_name() {
-		return this._wrapper.name;
+	/**
+	 * Returns the package ID
+	 */
+	get package_id() { return this.package_info?.id; }
+
+	/**
+	 * Deprecated since v1.6.0.0
+	 * Returns the package ID
+	 */
+	get module() {
+		return this.package_id;
 	}
 }
 Object.freeze(LibWrapperInvalidWrapperChainError);
@@ -175,7 +235,7 @@ export const init_error_listeners = function() {
 
 	// Wrap Hooks._call to intercept unhandled exceptions during hooks
 	// We don't use libWrapper itself here as we can guarantee we come first (well, before any libWrapper wrapper) and we want to avoid polluting the callstack of every single hook.
-	// Otherwise users might think libWrapper is causing failures, when they're actually the fault of another module.
+	// Otherwise users might think libWrapper is causing failures, when they're actually the fault of another package.
 	// We try to patch the existing method. If anything fails, we just alert the user and skip this section.
 	try {
 		// Patch original method

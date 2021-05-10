@@ -4,9 +4,9 @@
 'use strict';
 
 //*********************
-// Module information
-export const MODULE_ID    = 'lib-wrapper';
-export const MODULE_TITLE = 'libWrapper';
+// Package information
+export const PACKAGE_ID    = 'lib-wrapper';
+export const PACKAGE_TITLE = 'libWrapper';
 
 
 //*********************
@@ -23,7 +23,7 @@ export function parse_manifest_version() {
 	if(VERSION)
 		return;
 
-	const version_str = game.modules?.get(MODULE_ID)?.data?.version;
+	const version_str = game.modules?.get(PACKAGE_ID)?.data?.version;
 	if(!version_str)
 		throw `libWrapper: Unable to find version string inside 'game.modules'`;
 

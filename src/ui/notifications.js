@@ -3,7 +3,7 @@
 
 'use strict';
 
-import {MODULE_ID} from '../consts.js';
+import {PACKAGE_ID} from '../consts.js';
 import {decorate_class_function_names} from '../utils/misc.js';
 import {game_user_isGM} from '../utils/polyfill.js'
 
@@ -17,11 +17,11 @@ export class LibWrapperNotifications {
 		// Make sure we don't accidentally throw a second time, while handling what might be another exception
 		try {
 			if(game_user_isGM()) {
-				if(!game?.settings?.get(MODULE_ID, 'notify-issues-gm'))
+				if(!game?.settings?.get(PACKAGE_ID, 'notify-issues-gm'))
 					return false;
 			}
 			else {
-				if(!game?.settings?.get(MODULE_ID, 'notify-issues-player'))
+				if(!game?.settings?.get(PACKAGE_ID, 'notify-issues-player'))
 					return false;
 			}
 		}
@@ -68,21 +68,15 @@ export class LibWrapperNotifications {
 	}
 
 
-	static conflict(module, other, potential, console_msg) {
-		if(!module)
-			module = 'an unknown module';
-		else if(module.startsWith("\u00AB") && module.endsWith("\u00BB"))
-			module = `module ${module}`;
+	static conflict(package_info, other_info, potential, console_msg) {
+		let other;
+		if(Array.isArray(other_info))
+			other = (other_info.length > 1) ? `[${other_info.map((x) => x.id).join(', ')}]` : other_info[0].logString
 		else
-			module = `module '${module}'`;
-
-		if(Array.isArray(other))
-			other = (other.length > 1) ? `[${other.join(', ')}]` : `'${other[0]}'`
-		else
-			other = `'${other}'`;
+			other = other_info.logString;
 
 		this.console_ui(
-			potential ? `Potential conflict detected between ${module} and ${other}.` : `Conflict detected between ${module} and ${other}.`,
+			potential ? `Potential conflict detected between ${package_info.logString} and ${other}.` : `Conflict detected between ${package_info.logString} and ${other}.`,
 			console_msg,
 			potential ? 'warn' : 'error'
 		);

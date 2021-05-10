@@ -10,64 +10,64 @@
 		<h1>Priorities</h1>
 		{{#if about.collect_stats}}
 		{{^}}
-			<p style="margin:auto; width:100%; text-align: center; padding-bottom: 5px"><b>Note: Statistics collection is disabled, not able to show unprioritized modules.</b></p>
+			<p style="margin:auto; width:100%; text-align: center; padding-bottom: 5px"><b>Note: Statistics collection is disabled, not able to show unprioritized packages.</b></p>
 		{{/if}}
-		<div class="module-priority-group">
+		<div class="package-priority-group">
 			<div class="form-group" style="width: 90%; float:left">
-				<label for="modules-prioritized">Prioritized Modules
-					<p class="notes">These modules will be prioritized compared to any module not in this list.<br>Higher positions in the list result in a higher priority.</p>
+				<label for="packages-prioritized">Prioritized Packages
+					<p class="notes">These packages will be prioritized compared to any package not in this list.<br>Higher positions in the list result in a higher priority.</p>
 				</label>
-				<select name="modules-prioritized" id="modules-prioritized" size="8">
-					{{#if modules.prioritized}}
-					{{#each modules.prioritized}}
-						<option value="{{this.id}}">{{this.title}} ({{this.id}})</option>
+				<select name="packages-prioritized" id="packages-prioritized" size="8">
+					{{#if packages.prioritized}}
+					{{#each packages.prioritized}}
+						<option value="{{this.key}}">{{this.title}} ({{this.id}})</option>
 					{{/each}}
 					{{/if}}
 				</select>
 			</div>
 			<div class="vertical-arrow-btn-group" style="width: 5%; padding-top: 45px;">
-				<button type="button" class="change-priority" data-which="modules-prioritized" data-direction="up">&uarr;</button>
-				<button type="button" class="change-priority" data-which="modules-prioritized" data-direction="down">&darr;</button>
+				<button type="button" class="change-priority" data-which="packages-prioritized" data-direction="up">&uarr;</button>
+				<button type="button" class="change-priority" data-which="packages-prioritized" data-direction="down">&darr;</button>
 			</div>
 			<div class="arrow-btn-group" style="width: 10%">
-				<button type="button" style="width:50%" class="change-category" data-from="modules-normal" data-to="modules-prioritized">&uarr;</button>
-				<button type="button" style="width:50%" class="change-category" data-from="modules-prioritized" data-to="modules-normal">&darr;</button>
+				<button type="button" style="width:50%" class="change-category" data-from="packages-normal" data-to="packages-prioritized">&uarr;</button>
+				<button type="button" style="width:50%" class="change-category" data-from="packages-prioritized" data-to="packages-normal">&darr;</button>
 			</div>
 		</div>
-		<div class="module-priority-group">
+		<div class="package-priority-group">
 			<div class="form-group" style="width: 90%">
-				<label for="modules-normal">Unprioritized Modules
-					<p class="notes">These modules will be neither prioritized nor deprioritized.<br>Priorities among these modules are decided on a first-come-first-served basis.<br>New modules will default to this list.</p>
+				<label for="packages-normal">Unprioritized Packages
+					<p class="notes">These packages will be neither prioritized nor deprioritized.<br>Priorities among these packages are decided on a first-come-first-served basis.<br>New packages will default to this list.</p>
 				</label>
-				<select name="modules-normal" id="modules-normal" size="8">
-					{{#if modules.normal}}
-					{{#each modules.normal}}
-						<option value="{{this.id}}">{{this.title}} ({{this.id}})</option>
+				<select name="packages-normal" id="packages-normal" size="8">
+					{{#if packages.normal}}
+					{{#each packages.normal}}
+						<option value="{{this.key}}">{{this.title}} ({{this.id}})</option>
 					{{/each}}
 					{{/if}}
 				</select>
 			</div>
 			<div class="arrow-btn-group" style="width: 10%">
-				<button type="button" style="width:50%" class="change-category" data-from="modules-deprioritized" data-to="modules-normal">&uarr;</button>
-				<button type="button" style="width:50%" class="change-category" data-from="modules-normal" data-to="modules-deprioritized">&darr;</button>
+				<button type="button" style="width:50%" class="change-category" data-from="packages-deprioritized" data-to="packages-normal">&uarr;</button>
+				<button type="button" style="width:50%" class="change-category" data-from="packages-normal" data-to="packages-deprioritized">&darr;</button>
 			</div>
 		</div>
-		<div class="module-priority-group">
+		<div class="package-priority-group">
 			<div class="form-group" style="width: 90%; float:left">
-				<label for="modules-deprioritized">Deprioritized Modules
-					<p class="notes">These modules will be deprioritized compared to any module not in this list.<br>Higher positions in the list result in a higher priority.<br><b>Note that modules that do not use libWrapper are deprioritized even compared to these.</b></p>
+				<label for="packages-deprioritized">Deprioritized Packages
+					<p class="notes">These packages will be deprioritized compared to any package not in this list.<br>Higher positions in the list result in a higher priority.<br><b>Note that packages that do not use libWrapper are deprioritized even compared to these.</b></p>
 				</label>
-				<select name="modules-deprioritized" id="modules-deprioritized" size="8">
-					{{#if modules.deprioritized}}
-					{{#each modules.deprioritized}}
-						<option value="{{this.id}}">{{this.title}} ({{this.id}})</option>
+				<select name="packages-deprioritized" id="packages-deprioritized" size="8">
+					{{#if packages.deprioritized}}
+					{{#each packages.deprioritized}}
+						<option value="{{this.key}}">{{this.title}} ({{this.id}})</option>
 					{{/each}}
 					{{/if}}
 				</select>
 			</div>
 			<div class="vertical-arrow-btn-group" style="width: 5%; padding-top: 45px;">
-				<button type="button" class="change-priority" data-which="modules-deprioritized" data-direction="up">&uarr;</button>
-				<button type="button" class="change-priority" data-which="modules-deprioritized" data-direction="down">&darr;</button>
+				<button type="button" class="change-priority" data-which="packages-deprioritized" data-direction="up">&uarr;</button>
+				<button type="button" class="change-priority" data-which="packages-deprioritized" data-direction="down">&darr;</button>
 			</div>
 		</div>
 		<div style="margin: auto; width: 50%; padding-top: 60px">
@@ -82,8 +82,8 @@
 		{{#if about.collect_stats}}
 			{{#if conflicts}}
 				{{#each conflicts}}
-				<ul id="{{this.module}}_{{this.other}}" class="has-nested">
-					<li><span class="caret has-nested">{{this.module}} vs. {{this.other}} (x{{this.count}})</span>
+				<ul id="{{this.package_id}}_{{this.other_id}}" class="has-nested">
+					<li><span class="caret has-nested">{{this.package_id}} vs. {{this.other_id}} (x{{this.count}})</span>
 						<ul class="nested">
 						{{#each this.targets}}
 							<li>{{this.target}} (x{{this.count}})</li>
@@ -109,9 +109,9 @@
 		{{#if wrappers}}
 			{{#each wrappers}}
 			<ul id="{{this.name}}" class="has-nested">
-				<li><span class="caret has-nested">{{this.name}} (x{{this.modules.length}})</span>
+				<li><span class="caret has-nested">{{this.name}} (x{{this.packages.length}})</span>
 					<ul class="nested">
-					{{#each this.modules}}
+					{{#each this.packages}}
 						<li>{{this.name}} ({{this.type}}{{this.perf_mode}})</li>
 					{{/each}}
 					</ul>
@@ -131,7 +131,7 @@
 		<h1>About libWrapper</h1>
 		<p style="text-align: center"><b>{{about.name}} {{about.version}} by Rui Pinheiro.</b></p>
 
-		<p>'libWrapper' is a library which provides module developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other modules.</p>
+		<p>'libWrapper' is a library which provides package developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other packages.</p>
 		<p>You can find more information about this module in the <a href="https://foundryvtt.com/packages/lib-wrapper">Foundry VTT package repository</a>, as well as the project's <a href="https://github.com/ruipin/fvtt-lib-wrapper/">Github page</a>.</p>
 
 		<p><b>If you find any issues and/or bugs</b>, feel free to contact me on the <a href="https://discordapp.com/invite/DDBZUDf">official Foundry VTT Discord</a>, or submit a bug report in the <a href="https://github.com/ruipin/fvtt-lib-wrapper/issues">Github Issue Tracker</a> for the project.</p>

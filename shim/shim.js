@@ -18,7 +18,7 @@ Hooks.once('init', () => {
 	libWrapper = class {
 		static get is_fallback() { return true };
 
-		static register(module, target, fn, type="MIXED", {chain=undefined}={}) {
+		static register(package_id, target, fn, type="MIXED", {chain=undefined}={}) {
 			const is_setter = target.endsWith('#set');
 			target = !is_setter ? target : target.slice(0, -4);
 			const split = target.split('.');
@@ -67,8 +67,8 @@ Hooks.once('init', () => {
 	// Set up the ready hook that shows the "libWrapper not installed" warning dialog
 	if(WARN_FALLBACK) {
 		//************** USER CUSTOMIZABLE:
-		// Module ID & Module Title - by default attempts to auto-detect, but you might want to hardcode your module ID and title here to avoid potential auto-detect issues
-		const [MODULE_ID, MODULE_TITLE] = (()=>{
+		// Package ID & Package Title - by default attempts to auto-detect, but you might want to hardcode your package ID and title here to avoid potential auto-detect issues
+		const [PACKAGE_ID, PACKAGE_TITLE] = (()=>{
 			const match = (import.meta?.url ?? Error().stack)?.match(/\/(worlds|systems|modules)\/(.+)(?=\/)/i);
 			if(match?.length !== 3) return [null,null];
 			const dirs = match[2].split('/');
@@ -78,19 +78,19 @@ Hooks.once('init', () => {
 			return [id, game.modules.get(id)?.data?.title];
 		})();
 
-		if(!MODULE_ID || !MODULE_TITLE) {
-			console.error("libWrapper Shim: Could not auto-detect module ID and/or title. The libWrapper fallback warning dialog will be disabled.");
+		if(!PACKAGE_ID || !PACKAGE_TITLE) {
+			console.error("libWrapper Shim: Could not auto-detect package ID and/or title. The libWrapper fallback warning dialog will be disabled.");
 			return;
 		}
 
 		Hooks.once('ready', () => {
 			//************** USER CUSTOMIZABLE:
 			// Title and message for the dialog shown when the real libWrapper is not installed.
-			const FALLBACK_MESSAGE_TITLE = MODULE_TITLE;
+			const FALLBACK_MESSAGE_TITLE = PACKAGE_TITLE;
 			const FALLBACK_MESSAGE = `
-				<p><b>'${MODULE_TITLE}' depends on the 'libWrapper' module, which is not present.</b></p>
+				<p><b>'${PACKAGE_TITLE}' depends on the 'libWrapper' module, which is not present.</b></p>
 				<p>A fallback implementation will be used, which increases the chance of compatibility issues with other modules.</p>
-				<small><p>'libWrapper' is a library which provides module developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other modules.</p>
+				<small><p>'libWrapper' is a library which provides package developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other packages.</p>
 				<p>You can install it from the "Add-on Modules" tab in the <a href="javascript:game.shutDown()">Foundry VTT Setup</a>, from the <a href="https://foundryvtt.com/packages/lib-wrapper">Foundry VTT package repository</a>, or from <a href="https://github.com/ruipin/fvtt-lib-wrapper/">libWrapper's Github page</a>.</p></small>
 			`;
 
@@ -98,14 +98,14 @@ Hooks.once('init', () => {
 			const DONT_REMIND_AGAIN_KEY = "libwrapper-dont-remind-again";
 
 			// Dialog code
-			console.warn(`${MODULE_TITLE}: libWrapper not present, using fallback implementation.`);
-			game.settings.register(MODULE_ID, DONT_REMIND_AGAIN_KEY, { name: '', default: false, type: Boolean, scope: 'world', config: false });
-			if(game.user.isGM && !game.settings.get(MODULE_ID, DONT_REMIND_AGAIN_KEY)) {
+			console.warn(`${PACKAGE_TITLE}: libWrapper not present, using fallback implementation.`);
+			game.settings.register(PACKAGE_ID, DONT_REMIND_AGAIN_KEY, { name: '', default: false, type: Boolean, scope: 'world', config: false });
+			if(game.user.isGM && !game.settings.get(PACKAGE_ID, DONT_REMIND_AGAIN_KEY)) {
 				new Dialog({
 					title: FALLBACK_MESSAGE_TITLE,
 					content: FALLBACK_MESSAGE, buttons: {
 						ok: { icon: '<i class="fas fa-check"></i>', label: 'Understood' },
-						dont_remind: { icon: '<i class="fas fa-times"></i>', label: "Don't remind me again", callback: () => game.settings.set(MODULE_ID, DONT_REMIND_AGAIN_KEY, true) }
+						dont_remind: { icon: '<i class="fas fa-times"></i>', label: "Don't remind me again", callback: () => game.settings.set(PACKAGE_ID, DONT_REMIND_AGAIN_KEY, true) }
 					}
 				}).render(true);
 			}

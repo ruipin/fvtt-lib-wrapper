@@ -3,9 +3,10 @@
 
 'use strict';
 
-import {MODULE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG, PERF_MODES} from '../consts.js';
-import {get_current_module_name, decorate_name, set_function_name, decorate_class_function_names} from '../utils/misc.js';
-import {LibWrapperInternalError, LibWrapperModuleError, LibWrapperInvalidWrapperChainError} from '../utils/errors.js';
+import {PACKAGE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG, PERF_MODES} from '../consts.js';
+import {decorate_name, set_function_name, decorate_class_function_names} from '../utils/misc.js';
+import {PackageInfo} from '../utils/package_info.js';
+import {LibWrapperInternalError, LibWrapperPackageError, LibWrapperInvalidWrapperChainError} from '../utils/errors.js';
 import {LibWrapperNotifications} from '../ui/notifications.js';
 import {LibWrapperStats} from '../ui/stats.js';
 
@@ -26,7 +27,7 @@ export class Wrapper {
 
 
 	// Constructor
-	constructor (obj, fn_name, name=undefined, module=undefined) {
+	constructor (obj, fn_name, name=undefined, package_info=undefined) {
 		// Basic instance variables
 		this.fn_name = fn_name;
 		this.object  = obj;
@@ -46,7 +47,7 @@ export class Wrapper {
 			}
 
 			if(descriptor.configurable === false) {
-				throw new LibWrapperModuleError(`libWrapper: '${name}' cannot be wrapped, the corresponding descriptor has 'configurable=false'.`, module);
+				throw new LibWrapperPackageError(`libWrapper: '${name}' cannot be wrapped, the corresponding descriptor has 'configurable=false'.`, package_info);
 			}
 			else {
 				if(descriptor.get) {
@@ -64,7 +65,7 @@ export class Wrapper {
 			descriptor = this._get_inherited_descriptor();
 
 			if(!descriptor)
-				throw new LibWrapperModuleError(`libWrapper: Can't wrap '${name}', target does not exist or could not be found.`, module);
+				throw new LibWrapperPackageError(`libWrapper: Can't wrap '${name}', target does not exist or could not be found.`, package_info);
 
 			const wrapper = descriptor.get?._lib_wrapper;
 
@@ -92,7 +93,6 @@ export class Wrapper {
 		this.active  = false;
 
 		this._outstanding_wrappers = 0;
-		this._warned_detected_classic_wrapper = false;
 		this._current_handler_id = 0;
 
 		if(!this.is_property) {
@@ -259,7 +259,7 @@ export class Wrapper {
 			return false;
 		else /* PERF_MODES.AUTO */ {
 			// Default to static dispatch in user-enabled high performance mode
-			if(game?.settings?.get(MODULE_ID, 'high-performance-mode'))
+			if(game?.settings?.get(PACKAGE_ID, 'high-performance-mode'))
 				return true;
 
 			// Finally, default to false
@@ -578,7 +578,7 @@ export class Wrapper {
 		if('valid' in state && !state.valid) {
 			throw new LibWrapperInvalidWrapperChainError(
 				this,
-				state.prev_data?.module,
+				state.prev_data?.package_info,
 				`This wrapper function for '${this.name}' is no longer valid, and must not be called.`
 			);
 		}
@@ -608,33 +608,34 @@ export class Wrapper {
 		try {
 			// Check that next_fn was called
 			if(!next_state.called) {
-				// We need to collect affected modules information if we're collecting statistics, or we haven't warned the user of this conflict yet.
+				// We need to collect affected package information if we're collecting statistics, or we haven't warned the user of this conflict yet.
 				let collect_affected = (!data.warned_conflict || LibWrapperStats.collect_stats);
-				let affectedModules = null;
+				let affectedPackages = null;
 				let is_last_wrapper = false;
 
 				if(collect_affected) {
-					affectedModules = fn_data.slice(next_state.index).filter((x) => {
-						return x.module != data.module;
+					affectedPackages = fn_data.slice(next_state.index).filter((x) => {
+						return !x.package_info.equals(data.package_info);
 					}).map((x) => {
-						return x.module;
+						return x.package_info;
 					});
 
-					is_last_wrapper = (affectedModules.length == 0);
+					is_last_wrapper = (affectedPackages.length == 0);
 
-					LibWrapperStats.register_conflict(data.module, affectedModules, this.name);
+					if(affectedPackages.length > 0)
+						LibWrapperStats.register_conflict(data.package_info, affectedPackages, this.name);
 				}
 
 				// WRAPPER-type functions that do this are breaking an API requirement, as such we need to be loud about this.
 				// As a "punishment" of sorts, we forcefully unregister them and ignore whatever they did.
 				if(data.type == TYPES.WRAPPER) {
 					LibWrapperNotifications.console_ui(
-						`Error detected in module '${data.module}'.`,
-						`The wrapper for '${data.target}' registered by module '${data.module}' with type WRAPPER did not chain the call to the next wrapper, which breaks a libWrapper API requirement. This wrapper will be unregistered.`,
+						`Error detected in ${data.package_info.logString}.`,
+						`The wrapper for '${data.target}' registered by ${data.package_info.logString} with type WRAPPER did not chain the call to the next wrapper, which breaks a libWrapper API requirement. This wrapper will be unregistered.`,
 						'error'
 					);
 
-					globalThis.libWrapper.unregister(data.module, data.target);
+					globalThis.libWrapper.unregister(data.package_info.id, data.target);
 
 					// Manually chain to the next wrapper if there are more in the chain
 					if(!is_last_wrapper)
@@ -643,7 +644,7 @@ export class Wrapper {
 
 				// Other TYPES get a generic 'conflict' message
 				else if(!data.warned_conflict && !is_last_wrapper) {
-					LibWrapperNotifications.conflict(data.module, affectedModules, true, `Module '${data.module}' did not chain the wrapper for '${data.target}'.`);
+					LibWrapperNotifications.conflict(data.package_info, affectedPackages, true, `${data.package_info.logStringCapitalized} did not chain the wrapper for '${data.target}'.`);
 					data.warned_conflict = true;
 				}
 			}
@@ -689,23 +690,23 @@ export class Wrapper {
 
 
 	// Conflict logging utilities
-	get_affected_modules() {
-		const affectedModules = this.getter_data.map((x) => {
-			return x.module;
+	get_affected_packages() {
+		const affectedPackages = this.getter_data.map((x) => {
+			return x.package_info;
 		});
 
-		return affectedModules;
+		return affectedPackages;
 	}
 
 	warn_classic_wrapper() {
-		const module_name = get_current_module_name() ?? '\u00ABunknown\u00BB';
-		const affectedModules = this.get_affected_modules();
+		const package_info = new PackageInfo();
+		const affectedPackages = this.get_affected_packages();
 
-		if(affectedModules.length > 0) {
-			const notify = LibWrapperStats.register_conflict(module_name, affectedModules, this.name);
+		if(affectedPackages.length > 0) {
+			const notify = LibWrapperStats.register_conflict(package_info, affectedPackages, this.name);
 
 			if(notify) {
-				LibWrapperNotifications.conflict(module_name, affectedModules, true, `Detected non-libWrapper wrapping of '${this.name}' by '${module_name}'. This will potentially lead to conflicts.`);
+				LibWrapperNotifications.conflict(package_info, affectedPackages, true, `Detected non-libWrapper wrapping of '${this.name}' by ${package_info.logString}. This will potentially lead to conflicts.`);
 
 				if(DEBUG && console.trace)
 					console.trace();
@@ -714,7 +715,7 @@ export class Wrapper {
 
 		if(!this.detected_classic_wrapper)
 			this.detected_classic_wrapper = []
-		this.detected_classic_wrapper.push(module_name);
+		this.detected_classic_wrapper.push(package_info.key);
 	}
 
 
@@ -767,7 +768,7 @@ export class Wrapper {
 		// Try to set a function name if there is none already
 		const fn = data.fn;
 		if(!fn.name || fn.name === 'anonymous')
-			set_function_name(fn, this._callstack_name(data.module ?? '<unknown>'));
+			set_function_name(fn, this._callstack_name(data.package_info.id ?? '<unknown>'));
 
 		// Add to fn_data
 		const fn_data = this.get_fn_data(data.setter, true);

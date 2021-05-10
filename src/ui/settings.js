@@ -3,10 +3,10 @@
 
 'use strict';
 
-import {MODULE_ID, MODULE_TITLE, VERSION, TYPES_REVERSE, PERF_MODES_REVERSE} from '../consts.js';
-import {LibWrapperModuleError} from '../utils/errors.js'
+import {PACKAGE_ID, PACKAGE_TITLE, VERSION, TYPES_REVERSE, PERF_MODES_REVERSE} from '../consts.js';
 import {LibWrapperStats} from './stats.js';
-import {get_current_module_name, WRAPPERS} from '../utils/misc.js';
+import {WRAPPERS} from '../utils/misc.js';
+import {PackageInfo, PACKAGE_TYPES} from '../utils/package_info.js';
 
 // Map of currently loaded priorities
 export const PRIORITIES = new Map();
@@ -16,7 +16,7 @@ export const load_priorities = function(value=null) {
 	PRIORITIES.clear();
 
 	// Parse config
-	const priority_cfg = value ?? game?.settings?.get(MODULE_ID, 'module-priorities');
+	const priority_cfg = value ?? game?.settings?.get(PACKAGE_ID, 'module-priorities');
 	if(!priority_cfg)
 		return;
 
@@ -27,13 +27,21 @@ export const load_priorities = function(value=null) {
 
 		const base_priority = (type == 'prioritized') ? 10000 : -10000;
 
+		let new_current = null;
 		Object.entries(current).forEach(entry => {
-			const [module_id, module_info] = entry;
+			let [key, data] = entry;
 
-			if(PRIORITIES.has(module_id))
+			// Handle legacy format, if found
+			if(!data.id) {
+				data = new PackageInfo(key, PACKAGE_TYPES.MODULE);
+				key = data.key;
+			}
+
+			// Add to priorities dictionary
+			if(PRIORITIES.has(key))
 				return;
 
-			PRIORITIES.set(module_id, base_priority - module_info.index);
+			PRIORITIES.set(key, base_priority - data.index);
 		});
 	}
 }
@@ -43,7 +51,7 @@ export const load_priorities = function(value=null) {
 // Main settings class
 export class LibWrapperSettings extends FormApplication {
 	static init() {
-		game.settings.register(MODULE_ID, 'notify-issues-gm', {
+		game.settings.register(PACKAGE_ID, 'notify-issues-gm', {
 			name: 'Notify GM of Issues',
 			default: true,
 			type: Boolean,
@@ -52,7 +60,7 @@ export class LibWrapperSettings extends FormApplication {
 			hint: 'Whether to notify GMs when an issue is detected, for example a conflict.'
 		});
 
-		game.settings.register(MODULE_ID, 'notify-issues-player', {
+		game.settings.register(PACKAGE_ID, 'notify-issues-player', {
 			name: 'Notify Players of Issues',
 			default: false,
 			type: Boolean,
@@ -61,24 +69,24 @@ export class LibWrapperSettings extends FormApplication {
 			hint: 'Whether to notify Players when an issue is detected, for example a conflict.'
 		});
 
-		game.settings.register(MODULE_ID, 'high-performance-mode', {
+		game.settings.register(PACKAGE_ID, 'high-performance-mode', {
 			name: 'High-Performance Mode',
 			default: false,
 			type: Boolean,
 			scope: 'world',
 			config: true,
-			hint: 'This disables most dynamic conflict detection capabilities in exchange for performance, especially relevant on low-end systems. Note that this will significantly decrease the chance conflicts are detected. As such, it is recommended to turn this off when installing or updating modules.'
+			hint: 'This disables most dynamic conflict detection capabilities in exchange for performance, especially relevant on low-end systems. Note that this will significantly decrease the chance conflicts are detected. As such, it is recommended to turn this off when installing or updating packages.'
 		});
 
-		game.settings.registerMenu(MODULE_ID, 'menu', {
+		game.settings.registerMenu(PACKAGE_ID, 'menu', {
 			name: '',
-			label: `${MODULE_TITLE} Settings Menu`,
+			label: `${PACKAGE_TITLE} Settings Menu`,
 			icon: "fas fa-cog",
 			type: LibWrapperSettings,
 			restricted: true
 		});
 
-		game.settings.register(MODULE_ID, 'module-priorities', {
+		game.settings.register(PACKAGE_ID, 'module-priorities', {
 			name: '',
 			default: {},
 			type: Object,
@@ -96,11 +104,11 @@ export class LibWrapperSettings extends FormApplication {
 	static get defaultOptions() {
 		return {
 			...super.defaultOptions,
-			template: `modules/${MODULE_ID}/templates/settings.html`,
+			template: `modules/${PACKAGE_ID}/templates/settings.html`,
 			height: 700,
-			title: `${MODULE_TITLE} Settings Menu`,
+			title: `${PACKAGE_TITLE} Settings Menu`,
 			width: 600,
-			classes: [MODULE_ID, "settings"],
+			classes: [PACKAGE_ID, "settings"],
 			tabs: [
 				{
 					navSelector: '.tabs',
@@ -134,15 +142,6 @@ export class LibWrapperSettings extends FormApplication {
 		}).render(true);
 	}
 
-	_get_module_data(module_id) {
-		if(module_id === game.data.system.id) {
-			console.log(game.data.system);
-			return game.data.system.data;
-		}
-
-		return game.modules.get(module_id)?.data;
-	}
-
 	getActiveWrappers() {
 		let data = [];
 
@@ -157,15 +156,15 @@ export class LibWrapperSettings extends FormApplication {
 
 				let _d = {
 					name  : name,
-					modules: []
+					packages: []
 				};
 
 				wrapper.get_fn_data(is_setter).forEach((fn_data) => {
-					if(fn_data.module == MODULE_ID)
+					if(fn_data.package_info.id == PACKAGE_ID)
 						return;
 
 					const d = {
-						name     : fn_data.module,
+						name     : fn_data.package_info.settingsName,
 						type     : TYPES_REVERSE[fn_data.type],
 						perf_mode: PERF_MODES_REVERSE[fn_data.perf_mode]
 					};
@@ -175,25 +174,25 @@ export class LibWrapperSettings extends FormApplication {
 					else
 						d.perf_mode = `, ${d.perf_mode}`;
 
-					_d.modules.push(d);
+					_d.packages.push(d);
 				});
 
 				if(wrapper.detected_classic_wrapper) {
-					wrapper.detected_classic_wrapper.forEach((module) => {
-						_d.modules.push({
-							name     : module,
+					wrapper.detected_classic_wrapper.forEach((key) => {
+						_d.packages.push({
+							info     : new PackageInfo(key),
 							type     : 'MANUAL',
 							perf_mode: null
 						});
 					});
 				}
 
-				if(_d.modules.length > 0)
+				if(_d.packages.length > 0)
 					data.push(_d);
 			}
 		});
 
-		data.sort((a,b) => b.modules.length - a.modules.length);
+		data.sort((a,b) => b.packages.length - a.packages.length);
 
 		return data;
 	}
@@ -209,8 +208,8 @@ export class LibWrapperSettings extends FormApplication {
 
 			data.push({
 				count: conflict.count,
-				module: conflict.module,
-				other: conflict.other,
+				package_id: conflict.package_info.settingsName,
+				other_id: conflict.other_info.settingsName,
 				targets: targets
 			});
 
@@ -226,79 +225,89 @@ export class LibWrapperSettings extends FormApplication {
 		return data;
 	}
 
-	getModules() {
-		let data = {
+	getPackages() {
+		let ret = {
 			prioritized: [],
 			normal: [],
 			deprioritized: []
 		};
 
-		const priorities = game.settings.get(MODULE_ID, 'module-priorities');
+		const priorities = game.settings.get(PACKAGE_ID, 'module-priorities');
 		const cfg_prioritized   = priorities.prioritized   ?? {};
 		const cfg_deprioritized = priorities.deprioritized ?? {};
 
-		// Normal modules
+		// Normal packages
 		if(LibWrapperStats.collect_stats) {
-			LibWrapperStats.modules.forEach((module_id) => {
-				const module_data = this._get_module_data(module_id);
+			LibWrapperStats.packages.forEach((key) => {
+				const info = new PackageInfo(key);
 
-				if(module_id in cfg_prioritized || module_id in cfg_deprioritized)
+				if(info.key in cfg_prioritized || info.key in cfg_deprioritized)
 					return;
 
-				data.normal.push({
-					id: module_id,
-					title: module_data.title
-				});
+				ret.normal.push(info);
 			});
-			data.normal.sort((a,b) => a.id.localeCompare(b.id));
+			ret.normal.sort((a,b) => a.id.localeCompare(b.id));
 		}
 
-		// Prioritized modules
+		// Prioritized packages
 		Object.entries(cfg_prioritized).forEach((entry) => {
-			const [module_id, module_info] = entry;
-			const module_data = this._get_module_data(module_id);
+			let [key, data] = entry;
 
-			data.prioritized.push({
-				id: module_id,
-				title: module_data?.title ?? `${module_info.title} <Inactive>`,
-				index: module_info.index
+			// Handle legacy format, if found
+			if(!data.id) {
+				data = new PackageInfo(key, PACKAGE_TYPES.MODULE);
+				key = data.key;
+			}
+
+			// Push data
+			ret.prioritized.push({
+				key  : key,
+				id   : data.id,
+				title: data.title ?? `${data.title} <Inactive>`,
+				index: data.index
 			});
 		});
-		data.prioritized.sort((a,b) => { return a.index - b.index });
+		ret.prioritized.sort((a,b) => { return a.index - b.index });
 
-		// Deprioritized modules
+		// Deprioritized packages
 		Object.entries(cfg_deprioritized).forEach((entry) => {
-			const [module_id, module_info] = entry;
+			let [key, data] = entry;
 
-			// In case something went wrong and we have a duplicate module
-			if(module_id in cfg_prioritized)
+			// In case something went wrong and we have a duplicate package
+			if(key in cfg_prioritized)
 				return;
 
-			const module_data = this._get_module_data(module_id);
+			// Handle legacy format, if found
+			if(!data.id) {
+				data = new PackageInfo(key, PACKAGE_TYPES.MODULE);
+				key = data.key;
+			}
 
-			data.deprioritized.push({
-				id: module_id,
-				title: module_data?.title ?? `${module_info.title} <Inactive>`,
-				index: module_info.index
+			// Push data
+			ret.deprioritized.push({
+				key  : key,
+				id   : data.id,
+				title: data.title ?? `${data.title} <Inactive>`,
+				index: data.index
 			});
 		});
-		data.deprioritized.sort((a,b) => { return a.index - b.index });
+		ret.deprioritized.sort((a,b) => { return a.index - b.index });
 
 		// Done
-		return data;
+		return ret;
 	}
 
 	getData() {
 		let data = {
 			about: {
-				name: MODULE_TITLE,
+				name: PACKAGE_TITLE,
 				version: VERSION,
 				collect_stats: LibWrapperStats.collect_stats
 			},
 
 			wrappers: this.getActiveWrappers(),
 			conflicts: this.getConflicts(),
-			modules: this.getModules()
+			packages: this.getPackages()
 		};
 
 		return data;
@@ -323,7 +332,7 @@ export class LibWrapperSettings extends FormApplication {
 		});
 
 		// Easily focus the priority groups
-		html.find('.module-priority-group').on('click', function(event) {
+		html.find('.package-priority-group').on('click', function(event) {
 			const $this = $(this);
 
 			const select = $this.find('select');
@@ -375,7 +384,7 @@ export class LibWrapperSettings extends FormApplication {
 			to.append(element);
 
 			// If the destination was the 'normal', we need to sort it alphabetically
-			if(_to == 'modules-normal') {
+			if(_to == 'packages-normal') {
 				const options = to.find('option');
 				options.sort((a,b) => { return $(a).val() > $(b).val() ? 1 : -1 });
 				to.empty().append(options);
@@ -391,7 +400,7 @@ export class LibWrapperSettings extends FormApplication {
 		// Submit 'Priorities'
 		html.find('#submit').on('click', function(event) {
 			// Collect prioritization order into hidden fields that will be submitted
-			for(let type of ['modules-prioritized', 'modules-deprioritized']) {
+			for(let type of ['packages-prioritized', 'packages-deprioritized']) {
 				const select = html.find(`#${type}`);
 
 				const options = select.find('option');
@@ -411,8 +420,8 @@ export class LibWrapperSettings extends FormApplication {
 		html.find('#reset').on('click', function(event) {
 			$('input[type=hidden]').remove();
 
-			LibWrapperSettings.showYesNoDialog("<p>Resetting the module priorities will move all modules back to 'Unprioritized'. This action cannot be undone. Are you sure you want to continue?</p>", () => {
-				for(let type of ['modules-prioritized', 'modules-deprioritized']) {
+			LibWrapperSettings.showYesNoDialog("<p>Resetting the package priorities will move all packages back to 'Unprioritized'. This action cannot be undone. Are you sure you want to continue?</p>", () => {
+				for(let type of ['packages-prioritized', 'packages-deprioritized']) {
 					$('<input>').attr('type', 'hidden').attr('name', `${type}-hidden`).attr('value', '').appendTo(html);
 				}
 
@@ -423,10 +432,10 @@ export class LibWrapperSettings extends FormApplication {
 
 	async _updateObject(ev, formData) {
 		// Parse priorities
-		const priorities = game.settings.get(MODULE_ID, 'module-priorities');
+		const priorities = game.settings.get(PACKAGE_ID, 'module-priorities');
 
 		for(let type of ['prioritized', 'deprioritized']) {
-			const fld = `modules-${type}-hidden`;
+			const fld = `packages-${type}-hidden`;
 
 			if(!(fld in formData))
 				continue;
@@ -438,15 +447,16 @@ export class LibWrapperSettings extends FormApplication {
 			let new_prio = {};
 			let counter = 0;
 
-			split.forEach((module_id) => {
-				if(!module_id)
+			split.forEach((key) => {
+				if(!key)
 					return;
 
-				const old_data = old_prio[old_prio];
-				const new_data = this._get_module_data(module_id);
+				const old_data = old_prio[key];
+				const new_data = new PackageInfo(key);
 
-				new_prio[module_id] = {
-					title: new_data?.title ?? old_data?.title ?? '<Unknown>',
+				new_prio[key] = {
+					id   : new_data.id,
+					title: new_data.exists ? new_data.title : old_data.title,
 					index: counter++
 				};
 			});
@@ -461,13 +471,13 @@ export class LibWrapperSettings extends FormApplication {
 		});
 
 		// Save
-		await game.settings.set(MODULE_ID, 'module-priorities', priorities);
+		await game.settings.set(PACKAGE_ID, 'module-priorities', priorities);
 
 		// Re-render
 		this.render(true);
 
 		// Ask user to refresh page
-		LibWrapperSettings.showYesNoDialog("<p>It is recommended you reload this page to apply the new module priorities. Do you wish to reload?</p>", () => location.reload());
+		LibWrapperSettings.showYesNoDialog("<p>It is recommended you reload this page to apply the new package priorities. Do you wish to reload?</p>", () => location.reload());
 	}
 }
 Object.freeze(LibWrapperSettings);

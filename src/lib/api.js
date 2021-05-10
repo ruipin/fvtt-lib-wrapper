@@ -4,14 +4,15 @@
 'use strict';
 
 import {
-	MODULE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, META_VERSION, VERSION, parse_manifest_version,
+	PACKAGE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, META_VERSION, VERSION, parse_manifest_version,
 	IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug,
 	TYPES, TYPES_REVERSE, TYPES_LIST,
 	PERF_MODES, PERF_MODES_REVERSE, PERF_MODES_LIST
 } from '../consts.js';
 import {Wrapper} from './wrapper.js';
-import {init_error_listeners, LibWrapperError, LibWrapperModuleError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError, LibWrapperInternalError, onUnhandledError} from '../utils/errors.js';
-import {get_global_variable, get_current_module_name, WRAPPERS, decorate_name, decorate_class_function_names} from '../utils/misc.js';
+import {init_error_listeners, LibWrapperError, LibWrapperPackageError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError, LibWrapperInternalError, onUnhandledError} from '../utils/errors.js';
+import {get_global_variable, WRAPPERS, decorate_name, decorate_class_function_names} from '../utils/misc.js';
+import {PackageInfo} from '../utils/package_info.js';
 import {LibWrapperNotifications} from '../ui/notifications.js'
 import {LibWrapperStats} from '../ui/stats.js';
 import {LibWrapperSettings, PRIORITIES} from '../ui/settings.js';
@@ -22,8 +23,8 @@ let allow_libwrapper_registrations = true;
 
 
 // Internal Methods
-export function _create_wrapper_from_object(obj, fn_name, name=undefined, module=undefined) {
-	const wrapper = new Wrapper(obj, fn_name, name, module);
+export function _create_wrapper_from_object(obj, fn_name, name=undefined, package_info=undefined) {
+	const wrapper = new Wrapper(obj, fn_name, name, package_info);
 	WRAPPERS.add(wrapper);
 	return wrapper;
 }
@@ -39,7 +40,7 @@ function _valid_identifier(ident) {
 	return /^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(ident);
 }
 
-function _get_target_object(_target, module=undefined) {
+function _get_target_object(_target, package_info=undefined) {
 	// Parse the target
 	const target = _split_target_and_setter(_target)[0];
 
@@ -49,31 +50,31 @@ function _get_target_object(_target, module=undefined) {
 	// Get root object
 	const root_nm = split.splice(0,1)[0];
 	if(!_valid_identifier(root_nm))
-		throw new LibWrapperModuleError(`Invalid target '${target}.'`, module);
+		throw new LibWrapperPackageError(`Invalid target '${target}.'`, package_info);
 	if(root_nm == 'libWrapper')
-		throw new LibWrapperModuleError(`Not allowed to wrap libWrapper internals.`, module);
+		throw new LibWrapperPackageError(`Not allowed to wrap libWrapper internals.`, package_info);
 
 	const root = get_global_variable(root_nm);
 	if(!root)
-		throw new LibWrapperModuleError(`Could not find target '${target}'.`, module);
+		throw new LibWrapperPackageError(`Could not find target '${target}'.`, package_info);
 
 	// Get target object
 	let obj = root;
 	for(let scope of split) {
 		if(!_valid_identifier(scope))
-			throw new LibWrapperModuleError(`Invalid target '${target}'.`, module);
+			throw new LibWrapperPackageError(`Invalid target '${target}'.`, package_info);
 
 		obj = obj[scope];
 		if(!obj)
-			throw new LibWrapperModuleError(`Could not find target '${target}'.`, module);
+			throw new LibWrapperPackageError(`Could not find target '${target}'.`, package_info);
 	}
 
 	return [obj, fn_name, target];
 }
 
-function _create_wrapper(target, module=null) {
+function _create_wrapper(target, package_info=null) {
 	// Create wrapper
-	return _create_wrapper_from_object(..._get_target_object(target), module);
+	return _create_wrapper_from_object(..._get_target_object(target), package_info);
 }
 
 function _find_wrapper_by_name(_name) {
@@ -87,11 +88,11 @@ function _find_wrapper_by_name(_name) {
 	return null;
 }
 
-function _find_module_data_in_wrapper(module, wrapper, is_setter) {
-	return wrapper.get_fn_data(is_setter).find((x) => { return x.module == module; });
+function _find_package_data_in_wrapper(package_info, wrapper, is_setter) {
+	return wrapper.get_fn_data(is_setter).find((x) => x.package_info?.equals(package_info));
 }
 
-function _find_module_data_with_target(module, _target) {
+function _find_package_data_with_target(package_info, _target) {
 	const target_and_setter = _split_target_and_setter(_target);
 	const target    = target_and_setter[0];
 	const is_setter = target_and_setter[1];
@@ -100,14 +101,14 @@ function _find_module_data_with_target(module, _target) {
 	if(!wrapper)
 		return null;
 
-	return _find_module_data_in_wrapper(module, wrapper, is_setter);
+	return _find_package_data_in_wrapper(package_info, wrapper, is_setter);
 }
 
-function _get_default_priority(module, target) {
-	if(module === MODULE_ID)
+function _get_default_priority(package_info, target) {
+	if(package_info.id === PACKAGE_ID)
 		return Number.MAX_VALUE;
 
-	const priority_cfg = PRIORITIES.get(module);
+	const priority_cfg = PRIORITIES.get(package_info.key);
 	if(priority_cfg !== undefined)
 		return priority_cfg;
 
@@ -142,23 +143,30 @@ export function _unwrap_all() {
 	WRAPPERS.clear();
 }
 
-function _validate_module(module) {
-	const real_module = get_current_module_name();
+function _get_package_info(package_id) {
+	let package_info = new PackageInfo();
 
-	if(!module || typeof module !== 'string')
-		throw new LibWrapperModuleError('Parameter \'module\' must be a string.', real_module);
+	if(!package_id || typeof package_id !== 'string')
+		throw new LibWrapperPackageError('Parameter \'package_id\' must be a string.', package_info);
 
-	if(module == MODULE_ID) {
-		if(!allow_libwrapper_registrations)
-			throw new LibWrapperModuleError(`Not allowed to call libWrapper with module='${module}'.`, real_module);
+	if(package_info.exists) {
+		if(package_id != package_info.id)
+			throw new LibWrapperPackageError(`${package_info.logStringCapitalized} is not allowed to call libWrapper with package_id='${package_id}'.`, package_info);
 	}
 	else {
-		if(module != game.data.system.id && !game.modules.get(module)?.active)
-			throw new LibWrapperModuleError(`Module '${module}' is not a valid module.`, real_module);
+		package_info = new PackageInfo(package_id);
 	}
 
-	if(real_module && module != real_module)
-		throw new LibWrapperModuleError(`Module '${real_module}' is not allowed to call libWrapper with module='${module}'.`, real_module);
+	if(package_id == PACKAGE_ID) {
+		if(!allow_libwrapper_registrations)
+			throw new LibWrapperPackageError(`Not allowed to call libWrapper with package_id='${package_id}'.`, package_info);
+	}
+	else {
+		if(!package_info.exists)
+			throw new LibWrapperPackageError(`Package '${package_id}' is not a valid package.`, package_info);
+	}
+
+	return package_info;
 }
 
 let FORCE_FAST_MODE = false;
@@ -204,8 +212,11 @@ export class libWrapper {
 	static get LibWrapperInternalError() { return LibWrapperInternalError; };
 	static get InternalError() { return LibWrapperInternalError; }
 
-	static get LibWrapperModuleError() { return LibWrapperModuleError; };
-	static get ModuleError() { return LibWrapperModuleError; };
+	static get LibWrapperPackageError() { return LibWrapperPackageError; };
+	static get PackageError() { return LibWrapperPackageError; };
+
+	static get LibWrapperModuleError() { return LibWrapperPackageError; }; // Deprecated since v1.6.0.0
+	static get ModuleError() { return LibWrapperPackageError; }; // Deprecated since v1.6.0.0
 
 	static get LibWrapperAlreadyOverriddenError() { return LibWrapperAlreadyOverriddenError; };
 	static get AlreadyOverriddenError() { return LibWrapperAlreadyOverriddenError; };
@@ -251,12 +262,12 @@ export class libWrapper {
 	 *
 	 * Triggers FVTT hook 'libWrapper.Register' when successful.
 	 *
-	 * @param {string} module  The module identifier, i.e. the 'name' field in your module's manifest.
-	 * @param {string} target  A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
-	 *                         This works for both normal methods, as well as properties with getters. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
-	 * @param {function} fn    Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.
-	 *                         The remaining arguments will correspond to the parameters passed to the wrapped method.
-	 * @param {string} type    [Optional] The type of the wrapper. Default is 'MIXED'.
+	 * @param {string} package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest.
+	 * @param {string} target      A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
+	 *                             This works for both normal methods, as well as properties with getters. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
+	 * @param {function} fn        Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.
+	 *                             The remaining arguments will correspond to the parameters passed to the wrapped method.
+	 * @param {string} type        [Optional] The type of the wrapper. Default is 'MIXED'.
 	 *
 	 *   The possible types are:
 	 *
@@ -271,9 +282,9 @@ export class libWrapper {
 	 *
 	 *   'OVERRIDE':
 	 *     Use if your wrapper will *never* call the next function in the chain. This type has the lowest priority, and will always be called last.
-	 *     If another module already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <libWrapper.LibWrapperAlreadyOverriddenError> exception.
+	 *     If another package already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <libWrapper.LibWrapperAlreadyOverriddenError> exception.
 	 *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
-	 *     Note that if the GM has explicitly given your module priority over the existing one, no exception will be thrown and your wrapper will take over.
+	 *     Note that if the GM has explicitly given your package priority over the existing one, no exception will be thrown and your wrapper will take over.
 	 *
 	 * @param {Object} options [Optional] Additional options to libWrapper.
 	 *
@@ -290,12 +301,12 @@ export class libWrapper {
 	 *
 	 *   'NORMAL':
 	 *     Enables all conflict detection capabilities provided by libWrapper. Slower than 'FAST'.
-	 *     Useful if wrapping a method commonly modified by other modules, to ensure most issues are detected.
+	 *     Useful if wrapping a method commonly modified by other packages, to ensure most issues are detected.
 	 *     In most other cases, this mode is not recommended and 'AUTO' should be used instead.
 	 *
 	 *   'FAST':
 	 *     Disables some conflict detection capabilities provided by libWrapper, in exchange for performance. Faster than 'NORMAL'.
-	 *     Will guarantee wrapper call order and per-module prioritization, but fewer conflicts will be detectable.
+	 *     Will guarantee wrapper call order and per-package prioritization, but fewer conflicts will be detectable.
 	 *     This performance mode will result in comparable performance to traditional non-libWrapper wrapping methods.
 	 *     Useful if wrapping a method called repeatedly in a tight loop, for example 'WallsLayer.testWall'.
 	 *     In most other cases, this mode is not recommended and 'AUTO' should be used instead.
@@ -305,34 +316,34 @@ export class libWrapper {
 	 *     Will allow the GM to choose which performance mode to use.
 	 *     Equivalent to 'FAST' when the libWrapper 'High-Performance Mode' setting is enabled by the GM, otherwise 'NORMAL'.
 	 */
-	static register(module, target, fn, type='MIXED', options={}) {
-		// Validate module
-		_validate_module(module);
+	static register(package_id, target, fn, type='MIXED', options={}) {
+		// Get package information
+		const package_info = _get_package_info(package_id);
 
 		// Validate we're allowed to register wrappers at this moment
-		if(module != MODULE_ID && !libwrapper_ready)
-			throw new LibWrapperModuleError('Not allowed to register wrappers before the \'libWrapperReady\' hook fires', module);
+		if(package_id != PACKAGE_ID && !libwrapper_ready)
+			throw new LibWrapperPackageError('Not allowed to register wrappers before the \'libWrapperReady\' hook fires', package_info);
 
 		// Validate other arguments
 		if(!target || typeof target !== 'string')
-			throw new LibWrapperModuleError('Parameter \'target\' must be a string.', module);
+			throw new LibWrapperPackageError('Parameter \'target\' must be a string.', package_info);
 
 		if(!fn || !(fn instanceof Function))
-			throw new LibWrapperModuleError('Parameter \'fn\' must be a function.', module);
+			throw new LibWrapperPackageError('Parameter \'fn\' must be a function.', package_info);
 
 		type = TYPES[type.toUpperCase()];
 		if(typeof type === 'undefined' || !(type in TYPES_REVERSE))
-			throw new LibWrapperModuleError(`Parameter 'type' must be one of [${TYPES_LIST.join(', ')}].`, module);
+			throw new LibWrapperPackageError(`Parameter 'type' must be one of [${TYPES_LIST.join(', ')}].`, package_info);
 
 		const chain = options?.chain ?? (type < TYPES.OVERRIDE);
 		if(typeof chain !== 'boolean')
-			throw new LibWrapperModuleError(`Parameter 'chain' must be a boolean.`, module);
+			throw new LibWrapperPackageError(`Parameter 'chain' must be a boolean.`, package_info);
 
 		if(IS_UNITTEST && FORCE_FAST_MODE)
 			options.perf_mode = 'FAST';
 		const perf_mode = PERF_MODES[options?.perf_mode?.toUpperCase() ?? 'AUTO'];
 		if(typeof perf_mode === 'undefined' || !(perf_mode in PERF_MODES_REVERSE))
-			throw new LibWrapperModuleError(`Parameter 'perf_mode' must be one of [${PERF_MODES_LIST.join(', ')}].`, module);
+			throw new LibWrapperPackageError(`Parameter 'perf_mode' must be one of [${PERF_MODES_LIST.join(', ')}].`, package_info);
 
 
 		// Split '#set' from the target
@@ -341,23 +352,23 @@ export class libWrapper {
 		const is_setter          = target_and_setter[1];
 
 		// Create wrapper
-		let wrapper = _create_wrapper(target, module);
+		let wrapper = _create_wrapper(target, package_info);
 
 		// Only allow '#set' when the wrapper is wrapping a property
 		if(is_setter && !wrapper.is_property)
-			throw new LibWrapperModuleError(`Cannot register a wrapper for '${target}' by '${module}' because '${target_without_set}' is not a property, and therefore has no setter.`, module);
+			throw new LibWrapperPackageError(`Cannot register a wrapper for '${target}' by ${package_info.logString}' because '${target_without_set}' is not a property, and therefore has no setter.`, package_info);
 
 		// Check if this wrapper is already registered
-		if(_find_module_data_in_wrapper(module, wrapper, is_setter))
-			throw new LibWrapperModuleError(`Module '${module}' has already registered a wrapper for '${target}'.`, module);
+		if(_find_package_data_in_wrapper(package_info, wrapper, is_setter))
+			throw new LibWrapperPackageError(`A wrapper for '${target}' has already been registered by ${package_info.logString}.`, package_info);
 
 		// Get priority
-		const priority = _get_default_priority(module, target);
+		const priority = _get_default_priority(package_info, target);
 
-		// Register this module as having wrapped something
-		// We do this before checking for duplicate OVERRIDEs to ensure users can change this module's priorities regardless
-		if(module != MODULE_ID)
-			LibWrapperStats.register_module(module);
+		// Register this package as having wrapped something
+		// We do this before checking for duplicate OVERRIDEs to ensure users can change this package's priorities regardless
+		if(package_info.id != PACKAGE_ID)
+			LibWrapperStats.register_package(package_info);
 
 		// Only allow one 'OVERRIDE' type
 		if(type >= TYPES.OVERRIDE) {
@@ -365,14 +376,14 @@ export class libWrapper {
 
 			if(existing) {
 				if(priority <= existing.priority) {
-					throw new LibWrapperAlreadyOverriddenError(module, existing.module, wrapper.name);
+					throw new LibWrapperAlreadyOverriddenError(package_info, existing.package_info, wrapper.name);
 				}
 				else {
 					// We trigger a hook first
-					if(Hooks.call('libWrapper.OverrideLost', existing.module, module, wrapper.name) !== false) {
-						LibWrapperStats.register_conflict(module, existing.module, wrapper.name);
-						LibWrapperNotifications.conflict(existing.module, module, false,
-							`Module '${module}' has higher priority, and is replacing the OVERRIDE registered by '${existing.module}' for '${wrapper.name}'.`
+					if(Hooks.call('libWrapper.OverrideLost', existing.package_info.id, package_info.id, wrapper.name) !== false) {
+						LibWrapperStats.register_conflict(package_info, existing.package_info, wrapper.name);
+						LibWrapperNotifications.conflict(existing.package_info, package_info, false,
+							`${package_info.logStringCapitalized} has higher priority, and is replacing the 'OVERRIDE' registered by ${package_info.logString} for '${wrapper.name}'.`
 						);
 					}
 				}
@@ -381,23 +392,23 @@ export class libWrapper {
 
 		// Wrap
 		let data = {
-			module   : module,
-			target   : target,
-			setter   : is_setter,
-			fn       : fn,
-			type     : type,
-			wrapper  : wrapper,
-			priority : priority,
-			chain    : chain,
-			perf_mode: perf_mode
+			package_info : package_info,
+			target       : target,
+			setter       : is_setter,
+			fn           : fn,
+			type         : type,
+			wrapper      : wrapper,
+			priority     : priority,
+			chain        : chain,
+			perf_mode    : perf_mode
 		};
 
 		wrapper.add(data);
 
 		// Done
-		if(DEBUG || (!IS_UNITTEST && module != MODULE_ID)) {
-			Hooks.callAll('libWrapper.Register', module, target, type, options);
-			console.info(`libWrapper: Registered a wrapper for '${target}' by '${module}' with type ${TYPES_REVERSE[type]}.`);
+		if(DEBUG || (!IS_UNITTEST && package_info.id != PACKAGE_ID)) {
+			Hooks.callAll('libWrapper.Register', package_info.id, target, type, options);
+			console.info(`libWrapper: Registered a wrapper for '${target}' by ${package_info.logString} with type ${TYPES_REVERSE[type]}.`);
 		}
 	}
 
@@ -406,19 +417,19 @@ export class libWrapper {
 	 *
 	 * Triggers FVTT hook 'libWrapper.Unregister' when successful.
 	 *
-	 * @param {string} module    The module identifier, i.e. the 'name' field in your module's manifest.
-	 * @param {string} target    A string containing the path to the function you wish to remove the wrapper from, starting at global scope. For example: 'SightLayer.prototype.updateToken'
-	 * @param {function} fail    [Optional] If true, this method will throw an exception if it fails to find the method to unwrap. Default is 'true'.
+	 * @param {string} package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest.
+	 * @param {string} target      A string containing the path to the function you wish to remove the wrapper from, starting at global scope. For example: 'SightLayer.prototype.updateToken'
+	 * @param {function} fail      [Optional] If true, this method will throw an exception if it fails to find the method to unwrap. Default is 'true'.
 	 */
-	static unregister(module, target, fail=true) {
-		// Validate module
-		_validate_module(module);
+	static unregister(package_id, target, fail=true) {
+		// Get package information
+		const package_info = _get_package_info(package_id);
 
 		// Find wrapper
-		const data = _find_module_data_with_target(module, target);
+		const data = _find_package_data_with_target(package_info, target);
 		if(!data) {
 			if(fail)
-				throw new LibWrapperModuleError(`Cannot unregister '${target}' by '${module}' as no such wrapper has been registered`, module);
+				throw new LibWrapperPackageError(`Cannot unregister '${target}' by ${package_info.logString} as no such wrapper has been registered`, package_info);
 			return;
 		}
 
@@ -429,36 +440,40 @@ export class libWrapper {
 		_unwrap_if_possible(wrapper);
 
 		// Done
-		if(DEBUG || module != MODULE_ID) {
-			Hooks.callAll('libWrapper.Unregister', module, target);
-			console.info(`libWrapper: Unregistered the wrapper for '${target}' by '${module}'.`);
+		if(DEBUG || package_info.id != PACKAGE_ID) {
+			Hooks.callAll('libWrapper.Unregister', package_info.id, target);
+			console.info(`libWrapper: Unregistered the wrapper for '${target}' by ${package_info.logString}.`);
 		}
 	}
 
 	/**
-	 * Clear all wrappers created by a given module.
+	 * Unregister all wrappers created by a given package.
 	 *
-	 * Triggers FVTT hook 'libWrapper.ClearModule' when successful.
+	 * Triggers FVTT hook 'libWrapper.UnregisterAll' when successful.
 	 *
-	 * @param {string} module    The module identifier, i.e. the 'name' field in your module's manifest.
+	 * @param {string} package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest.
 	 */
-	static clear_module(module) {
-		// Validate module
-		_validate_module(module);
+	static unregister_all(package_id) {
+		// Get package information
+		const package_info = _get_package_info(package_id);
 
-		// Clear module wrappers
+		// Clear package wrappers
 		for(let wrapper of WRAPPERS) {
-			this.unregister(module, wrapper.name, false);
+			this.unregister(package_info.id, wrapper.name, false);
 
 			if(wrapper.is_property)
-				this.unregister(module, `${wrapper.name}#set`, false);
+				this.unregister(package_info.id, `${wrapper.name}#set`, false);
 		}
 
-		if(DEBUG || module != MODULE_ID) {
-			Hooks.callAll('libWrapper.ClearModule', module);
-			console.info(`libWrapper: Cleared all wrapper functions by module '${module}'.`);
+		if(DEBUG || package_info.id != PACKAGE_ID) {
+			Hooks.callAll('libWrapper.UnregisterAll', package_info.id);
+			Hooks.callAll('libWrapper.ClearModule', package_info.id); // Deprecated in v1.6.0.0
+			console.info(`libWrapper: Unregistered all wrapper functions by ${package_info.logString}.`);
 		}
 	}
+
+	// Deprecated in v1.6.0.0
+	static get clear_module() { return this.unregister_all; }
 };
 decorate_class_function_names(libWrapper);
 if(IS_UNITTEST) {
@@ -499,18 +514,8 @@ init_error_listeners();
 			LibWrapperStats.init();
 			LibWrapperNotifications.init();
 
-			// Sanity checks
-			const world_id = game.data.world.id;
-			if(game.modules.get(world_id)?.active)
-				LibWrapperNotifications.console_ui(`Module '${world_id}' is active and has same ID as the current world '${world_id}'. This could cause issues, and is not recommended.`, '', 'warn');
-
-			const system_id = game.data.system.id;
-			if(game.modules.get(system_id)?.active)
-				LibWrapperNotifications.console_ui(`Module '${system_id}' is active and has same ID as the current system '${system_id}'. This could cause issues, and is not recommended.`, '', 'warn');
-
 			// Notify everyone the library has loaded and is ready to start registering wrappers
 			console.info(`libWrapper ${VERSION}: Ready.`);
-			Hooks.callAll('libWrapperReady', libWrapper); // Deprecated since v1.4.0.0
 			Hooks.callAll('libWrapper.Ready', libWrapper);
 
 			const result = wrapped(...args);
@@ -525,5 +530,5 @@ init_error_listeners();
 		obj[libWrapperInit](()=>{});
 }
 
-// Lock down registrations using module 'lib-wrapper'
+// Lock down registrations using package ID 'lib-wrapper'
 allow_libwrapper_registrations = false;

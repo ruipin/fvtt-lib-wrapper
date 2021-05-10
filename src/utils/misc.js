@@ -3,50 +3,7 @@
 
 'use strict';
 
-import {IS_UNITTEST, MODULE_ID} from '../consts.js';
-
-
-// Find currently executing module name (that is not libWrapper)
-export function get_current_module_name(stack_trace=undefined) {
-	if(stack_trace === undefined) {
-		const old_stack_limit = Error.stackTraceLimit;
-		Error.stackTraceLimit = Infinity;
-		stack_trace = Error().stack;
-		Error.stackTraceLimit = old_stack_limit;
-
-		if(!stack_trace)
-			return null;
-	}
-
-	const matches = stack_trace.matchAll(/\/(worlds|systems|modules)\/(.+?)(?=\/)/ig);
-	if(!matches)
-		return null;
-
-	for(let match of matches) {
-		const type = match[1];
-		const name = match[2];
-
-		if(type === 'worlds') {
-			if(name == game.data.world.id)
-				return name;
-		}
-		else if(type === 'systems') {
-			if(name == game.data.system.id)
-				return name;
-		}
-		else if(type === 'modules') {
-			if(!name || name == MODULE_ID || !game?.modules?.has(name))
-				continue;
-
-			return name;
-		}
-		else {
-			throw new Error(`libWrapper: Invalid script type: ${type}`);
-		}
-	}
-
-	return null;
-}
+import {IS_UNITTEST, PACKAGE_ID} from '../consts.js';
 
 
 // HACK: The browser doesn't expose all global variables (e.g. 'Game') inside globalThis, but it does to an eval

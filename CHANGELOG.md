@@ -1,3 +1,18 @@
+# 1.6.0.0 (2021-05-10)
+
+- **[BREAKING]** Remove `libWrapperReady` hook (deprecated since v1.5.0.0, `libWrapper.Ready` should be used instead).
+- Rename all instances of `module` to `package`, given the library now officially supports systems and worlds.
+  - Deprecate `libWrapper.clear_module` method (now `libWrapper.unregister_all`) and the `libWrapper.ClearModule` hook (now `libWrapper.UnregisterAll`).
+  - Deprecate `libWrapper.ModuleError` (now `libWrapper.PackageError`).
+  - Deprecate all `libWrapper.Error.module` getters (now `libWrapper.Error.package_id`).
+- Rewrite module auto-detection functionality to be able to handle systems and worlds correctly.
+  - Allows modules/systems/worlds to co-exist even when they share the same package ID.
+- Make it explicit when a package ID corresponds to a world or system.
+  - Error and warning messages now display `world` and `system` instead of `module`, when applicable.
+  - Display `[World]` and `[System]` next to the package IDs in the settings dialog when packages are not modules.
+- Miscellaneous code clean-up in preparation for future work.
+- Announce compatibility with Foundry 0.8.3.
+
 # 1.5.6.0 (2021-05-05)
 
 - Improve unhandled error detection mechanism.

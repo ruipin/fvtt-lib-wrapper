@@ -2,7 +2,7 @@
 // Copyright © 2021 fvtt-lib-wrapper Rui Pinheiro
 
 import test from 'tape';
-import {MODULE_ID} from '../src/consts.js';
+import {PACKAGE_ID} from '../src/consts.js';
 
 
 // Tell Node to give us longer callstacks
@@ -42,8 +42,8 @@ class GameSettings {
 	}
 
 	register(module, name, data) {
-		if(module !== MODULE_ID)
-			throw `game.settings.register module must be '${MODULE_ID}', got '${module}'`;
+		if(module !== PACKAGE_ID)
+			throw `game.settings.register module must be '${PACKAGE_ID}', got '${module}'`;
 
 		this.set(module, name, data?.default);
 	}
@@ -86,9 +86,9 @@ class Game {
 	}
 
 	add_module(nm) {
-		const mdl = { active: true, data: { title: nm } };
+		const mdl = { id: nm, active: true, data: { title: nm } };
 
-		if(nm === MODULE_ID)
+		if(nm === PACKAGE_ID)
 			mdl.data.version = '12.13.14.15ut';
 
 		game.modules.set(nm, mdl);

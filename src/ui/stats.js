@@ -3,7 +3,7 @@
 
 'use strict';
 
-import {MODULE_ID, IS_UNITTEST} from '../consts.js';
+import {PACKAGE_ID, IS_UNITTEST} from '../consts.js';
 import {LibWrapperNotifications} from './notifications.js';
 import {game_user_can} from '../utils/polyfill.js'
 
@@ -36,47 +36,50 @@ export class LibWrapperStats {
 		if(!this.collect_stats)
 			return;
 
-		this.MODULES   = new Set();
+		this.PACKAGES  = new Set();
 		this.CONFLICTS = new Map();
 	}
 
-	static register_module(module) {
+	static register_package(package_info) {
 		if(!this.collect_stats)
 			return;
 
-		if(module == MODULE_ID)
+		if(package_info.id == PACKAGE_ID)
 			return;
 
-		this.MODULES.add(module);
+		this.PACKAGES.add(package_info.key);
 	}
 
-	static register_conflict(module, other, target) {
+	static register_conflict(package_info, other_info, target) {
 		if(!this.collect_stats)
 			return;
 
-		if(Array.isArray(other)) {
+		if(!other_info)
+			return;
+
+		if(Array.isArray(other_info)) {
 			let notify = false;
-			other.forEach((m) => {
-				notify |= LibWrapperStats.register_conflict(module, m, target);
+			other_info.forEach((other) => {
+				notify |= LibWrapperStats.register_conflict(package_info, other, target);
 			});
 			return notify;
 		}
 
-		// We first notify everyone that an override was just lost. This hook being handled will prevent us from registering the module conflict
-		if(Hooks.call('libWrapper.ConflictDetected', module, other, target) === false) {
-			console.debug(`Conflict between '${module}' and '${other}' over '${target}' ignored, as 'libWrapper.ConflictDetected' hook returned false.`);
+		// We first notify everyone that an override was just lost. This hook being handled will prevent us from registering the package conflict
+		if(Hooks.call('libWrapper.ConflictDetected', package_info.id, other_info.id, target) === false) {
+			console.debug(`Conflict between ${package_info.logString} and ${other_info.logString} over '${target}' ignored, as 'libWrapper.ConflictDetected' hook returned false.`);
 			return false;
 		}
 
 		// We now register the conflict
-		const key = `${module}/${other}`;
+		const key = `${package_info.key}/${other_info.key}`;
 
 		let data = this.CONFLICTS.get(key);
 		if(!data) {
 			data = {
 				count: 0,
-				module: module,
-				other: other,
+				package_info: package_info,
+				other_info: other_info,
 				targets: new Map()
 			};
 			this.CONFLICTS.set(key, data);
@@ -93,7 +96,7 @@ export class LibWrapperStats {
 		return this.CONFLICTS;
 	}
 
-	static get modules() {
-		return this.MODULES;
+	static get packages() {
+		return this.PACKAGES;
 	}
 }

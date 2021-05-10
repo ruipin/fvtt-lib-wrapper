@@ -42,7 +42,7 @@ test_combinations('Library: Main', async function (t) {
 
 	// Registering the same method twice with the same module should fail
 	t.throws(function() {
-		libWrapper.register('module1', 'A.prototype.x', () => {});
+		libWrapper.register('m1', 'A.prototype.x', () => {});
 	}, libWrapper.Error, 'Registering twice with same module should fail');
 	await chkr.call(a, 'x', ['m1:Mix:1','Orig',-2]);
 
@@ -170,7 +170,7 @@ test_combinations('Library: Special', async function (t) {
 	// Clear inside wrapper (before call)
 	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:2',
 		function(frm, chain) {
-			libWrapper.clear_module('m1');
+			libWrapper.unregister_all('m1');
 			return chain();
 		}
 	), 'WRAPPER');
@@ -184,7 +184,7 @@ test_combinations('Library: Special', async function (t) {
 	libWrapper.register('m1', 'A.prototype.x', chkr.gen_fn('m1:Wrp:3',
 		function(frm, chain) {
 			return sync_async_then(chain(), v => {
-				libWrapper.clear_module('m1');
+				libWrapper.unregister_all('m1');
 				return v;
 			})
 		}
