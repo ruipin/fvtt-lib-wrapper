@@ -1,3 +1,8 @@
+# 1.6.0.1 (2021-05-24)
+
+- No code changes.
+- Explicitly announce compatibility with Foundry 0.8.5.
+
 # 1.6.0.0 (2021-05-10)
 
 - **[BREAKING]** Remove `libWrapperReady` hook (deprecated since v1.5.0.0, `libWrapper.Ready` should be used instead).
