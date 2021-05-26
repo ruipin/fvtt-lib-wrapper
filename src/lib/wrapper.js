@@ -124,7 +124,7 @@ export class Wrapper {
 		// Create a handler function
 		const _this = this;
 		const handler_nm = this._callstack_name(handler_id);
-		const wrapped = this._wrapped;
+		const wrapped = this._wrapped ?? null; // we explicitly convert undefined to null here, to force a inheritance chain search when calling get_wrapped
 
 		// We use a trick here to be able to convince the browser to name the method the way we want it
 		const obj = {
@@ -375,14 +375,21 @@ export class Wrapper {
 		return null;
 	}
 
-	get_wrapped(obj, setter=false, wrapped=this._wrapped) {
+	get_wrapped(obj, setter=false, wrapped=undefined) {
 		let result;
 
-		// Properties return the getter or setter, depending on what is requested
-		if(this.is_property)
+		// A non-undefined "wrapped" parameter is taken as-is
+		if(wrapped !== undefined)
+			result = wrapped;
+		// Otherwise we grab what is currently wrapped
+		else if(this.is_property)
 			result = setter ? this._wrapped_setter : this._wrapped_getter;
 		else
-			result = wrapped;
+			result = this._wrapped;
+
+		// We convert 'null' to undefined. This means passing parameter 'wrapped==null' forces an inheritance chain search
+		if(result === null)
+			result = undefined;
 
 		// If this wrapper is 'empty', we need to search up the inheritance hierarchy for the return value
 		if(result === undefined) {

@@ -224,7 +224,9 @@ test_combinations('Wrapper: Inherited Methods', async function(t) {
 		}
 	}
 
-	class G extends A {}
+	class G extends A {};
+
+	class H extends A {};
 
 
 	// Instantiate A
@@ -320,6 +322,26 @@ test_combinations('Wrapper: Inherited Methods', async function(t) {
 
 	// Confirm G still sees A's wrappers
 	await chkr.call(g, 'x', ['Man:g:1','A:2','A:1','A:Orig',-4], {title: 'g.A:2'});
+
+
+	// Instantiate H
+	let h = new H();
+	await chkr.call(h, 'x', ['A:2','A:1','A:Orig',-3], {title: 'h.Orig'});
+
+
+	// Create full wrapper for H
+	wrap_front(H.prototype, 'x', chkr.gen_wr('H:1'));
+	await chkr.call(h, 'x', ['H:1','A:2','A:1','A:Orig',-4], {title: 'h.H:1'});
+
+
+	// Create manual wrapper for H
+	// This is to confirm whether we can correctly handle manual wrappers on top of inherited-method wrappers
+	H.prototype.x = (function() {
+		const wrapped = H.prototype.x;
+		return chkr.gen_rt('Man:H:1', {next: wrapped});
+	})();
+	await chkr.call(h, 'x', ['H:1','Man:H:1','A:2','A:1','A:Orig',-5], {title: 'h.Man:H:1'});
+
 
 
 	// Done

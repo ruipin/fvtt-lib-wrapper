@@ -1,3 +1,9 @@
+# 1.6.1.0 (2021-05-26)
+
+- Fix infinite loop leading to a `RangeError: Maximum call stack size exceeded` error when both libWrapper wrappers and manual wrappers are present on a method inherited from a parent class.
+  - Fixes the incompatibility between "TouchVTT" and "Drag Ruler" when libWrapper was active.
+- Fix module ID not displaying correctly in settings dialog for `MANUAL` wrappers.
+
 # 1.6.0.1 (2021-05-24)
 
 - No code changes.

@@ -180,7 +180,7 @@ export class LibWrapperSettings extends FormApplication {
 				if(wrapper.detected_classic_wrapper) {
 					wrapper.detected_classic_wrapper.forEach((key) => {
 						_d.packages.push({
-							info     : new PackageInfo(key),
+							name     : new PackageInfo(key).settingsName,
 							type     : 'MANUAL',
 							perf_mode: null
 						});
