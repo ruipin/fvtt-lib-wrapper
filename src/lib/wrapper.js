@@ -25,7 +25,6 @@ export class Wrapper {
 	}
 
 
-
 	// Constructor
 	constructor (obj, fn_name, name=undefined, package_info=undefined) {
 		// Basic instance variables
@@ -37,13 +36,15 @@ export class Wrapper {
 
 		if(descriptor) {
 			if(descriptor.get?._lib_wrapper) {
-				let wrapper = descriptor.get?._lib_wrapper;
+				const wrapper = descriptor.get?._lib_wrapper;
+
+				if(!(wrapper instanceof this.constructor))
+					throw new LibWrapperInternalError(`libWrapper: '${name}' cannot be wrapped, the descriptor already has a wrapper, but of an unexpected class ('${wrapper.constructor.name}' vs '${this.constructor.name}').`);
 
 				if(name && !wrapper.names.indexOf(name))
 					wrapper.names.push(name);
 
-				if(wrapper && wrapper instanceof this.constructor)
-					return wrapper;
+				return wrapper;
 			}
 
 			if(descriptor.configurable === false) {
