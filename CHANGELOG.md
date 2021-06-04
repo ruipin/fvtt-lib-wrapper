@@ -1,3 +1,11 @@
+# 1.6.2.0 (2021-06-04)
+
+- Fix errors seen when wrapping inherited properties.
+  - These were caused by a terser bug ([terser/terser #1003](https://github.com/terser/terser/issues/1003)).
+- Clean up `Wrapper` singleton detection code.
+- Explicitly announce compatibility with Foundry 0.8.6.
+
+
 # 1.6.1.0 (2021-05-26)
 
 - Fix infinite loop leading to a `RangeError: Maximum call stack size exceeded` error when both libWrapper wrappers and manual wrappers are present on a method inherited from a parent class.
