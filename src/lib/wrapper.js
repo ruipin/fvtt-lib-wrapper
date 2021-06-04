@@ -397,7 +397,7 @@ export class Wrapper {
 
 			if(descriptor) {
 				if(this.is_property) {
-					if(!(descriptor.get ?? descriptor.set))
+					if(!descriptor.get && !descriptor.set)
 						throw new LibWrapperInternalError(`This wrapper is set up to wrap a property, but the inherited descriptor is a method.`);
 
 					if(setter)
