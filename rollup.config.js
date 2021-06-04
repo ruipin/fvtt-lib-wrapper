@@ -27,7 +27,7 @@ export default {
 			]
 		}),*/
 		terser({
-			ecma: 2020,
+			ecma: 2021,
 			toplevel: true,
 			module: true,
 			/*mangle: {
