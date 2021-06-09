@@ -1,3 +1,11 @@
+# 1.7.0.0 (2021-06-09)
+
+- **[BREAKING]** Removed `libWrapper.clear_modules` API, `libWrapper.ClearModule` hook, and `LibWrapperModuleError` exception class (all deprecated since v1.6.0.0).
+- Implement backend system for ignoring known potential conflicts (part of [Issue #33](https://github.com/ruipin/fvtt-lib-wrapper/issues/33))
+  - Added `libWrapper.ignore_conflicts` API method to allow package developers to have libWrapper not warn the user about certain conflicts.
+  - Add a toggle to the 'Conflicts' tab in the settings dialog to display detected conflicts that were ignored. These are hidden by default.
+  - Hooks `libWrapper.ConflictDetected` and `libWrapper.OverrideLost` now also get passed a list of all unique `target` parameters that have been used to register wrappers for a given method, instead of just the first one ever used. This is important for methods that are reachable through more than one target path.
+
 # 1.6.2.0 (2021-06-04)
 
 - Fix errors seen when wrapping inherited properties.

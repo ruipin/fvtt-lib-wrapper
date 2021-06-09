@@ -95,8 +95,14 @@ export class LibWrapperSettings extends FormApplication {
 			onChange: value => load_priorities()
 		});
 
+		// Variables
+		this.show_ignored_conflicts = false;
+
 		// When done, load the priorities
 		load_priorities();
+
+		// Seal to prevent accidental modification
+		Object.seal(this);
 	}
 
 
@@ -204,23 +210,42 @@ export class LibWrapperSettings extends FormApplication {
 		let data = [];
 
 		LibWrapperStats.conflicts.forEach((conflict) => {
-			let targets = [];
+			let total = conflict.count;
+			if(this.show_ignored_conflicts)
+				total += conflict.ignored;
+
+			if(total == 0)
+				return;
+
+			const targets = [];
 
 			data.push({
 				count: conflict.count,
+				ignored: this.show_ignored_conflicts ? conflict.ignored : 0,
+				total: total,
 				package_id: conflict.package_info.settingsName,
 				other_id: conflict.other_info.settingsName,
 				targets: targets
 			});
 
-			conflict.targets.forEach((count, target) => {
-				targets.push({target: target, count: count});
+			conflict.targets.forEach((obj, target) => {
+				let obj_total = obj.count;
+				if(this.show_ignored_conflicts)
+					obj_total += obj.ignored;
+
+				if(obj_total > 0)
+					targets.push({
+						target: target,
+						count: obj.count,
+						total: obj_total,
+						ignored: this.show_ignored_conflicts ? obj.ignored : 0
+					});
 			});
 
-			targets.sort((a,b) => a.count - b.count);
+			targets.sort((a,b) => a.total - b.total);
 		});
 
-		data.sort((a,b) => a.count - b.count);
+		data.sort((a,b) => a.total - b.total);
 
 		return data;
 	}
@@ -307,7 +332,8 @@ export class LibWrapperSettings extends FormApplication {
 
 			wrappers: this.getActiveWrappers(),
 			conflicts: this.getConflicts(),
-			packages: this.getPackages()
+			packages: this.getPackages(),
+			show_ignored_conflicts: this.show_ignored_conflicts
 		};
 
 		return data;
@@ -327,7 +353,17 @@ export class LibWrapperSettings extends FormApplication {
 		});
 
 		// Reload button
-		html.find('button#reload').on('click', function(event) {
+		html.find('button.reload').on('click', function(event) {
+			_this.render(true);
+		});
+
+		// Show ignored conflicts checkbox
+		html.find('.lw-show-ignored-conflicts').on('click', function(event) {
+			const $this = $(this);
+
+			const checkbox = $this.find('input[type=checkbox]');
+
+			_this.show_ignored_conflicts = !checkbox.prop('checked');
 			_this.render(true);
 		});
 
@@ -349,7 +385,7 @@ export class LibWrapperSettings extends FormApplication {
 			const direction = $this.data('direction');
 			const up = (direction === 'up');
 
-			const list = html.find(`#${which}`);
+			const list = html.find(`.${which}`);
 			const selected = list.find('option:selected');
 
 			const insertPos = up ? selected.prev() : selected.next();
@@ -370,8 +406,8 @@ export class LibWrapperSettings extends FormApplication {
 			const _from = $this.data('from');
 			const _to = $this.data('to');
 
-			const from = html.find(`#${_from}`);
-			const to = html.find(`#${_to}`);
+			const from = html.find(`.${_from}`);
+			const to = html.find(`.${_to}`);
 
 			const element = from.find('option:selected');
 
@@ -398,10 +434,10 @@ export class LibWrapperSettings extends FormApplication {
 		});
 
 		// Submit 'Priorities'
-		html.find('#submit').on('click', function(event) {
+		html.find('.submit').on('click', function(event) {
 			// Collect prioritization order into hidden fields that will be submitted
 			for(let type of ['packages-prioritized', 'packages-deprioritized']) {
-				const select = html.find(`#${type}`);
+				const select = html.find(`.${type}`);
 
 				const options = select.find('option');
 
@@ -417,7 +453,7 @@ export class LibWrapperSettings extends FormApplication {
 		});
 
 		// Reset button
-		html.find('#reset').on('click', function(event) {
+		html.find('.reset').on('click', function(event) {
 			$('input[type=hidden]').remove();
 
 			LibWrapperSettings.showYesNoDialog("<p>Resetting the package priorities will move all packages back to 'Unprioritized'. This action cannot be undone. Are you sure you want to continue?</p>", () => {
@@ -480,4 +516,3 @@ export class LibWrapperSettings extends FormApplication {
 		LibWrapperSettings.showYesNoDialog("<p>It is recommended you reload this page to apply the new package priorities. Do you wish to reload?</p>", () => location.reload());
 	}
 }
-Object.freeze(LibWrapperSettings);

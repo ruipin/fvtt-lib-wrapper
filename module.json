@@ -2,7 +2,7 @@
 	"name": "lib-wrapper",
 	"title": "libWrapper",
 	"description": "Library for wrapping core Foundry VTT methods, meant to improve compatibility between packages that wrap the same methods.",
-	"version": "1.6.2.0",
+	"version": "1.7.0.0",
 	"author": "Rui Pinheiro",
 	"esmodules": ["src/index.js"],
 	"styles": ["dist/lib-wrapper.css"],

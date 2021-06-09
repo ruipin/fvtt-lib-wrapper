@@ -26,12 +26,13 @@ Library for [Foundry VTT](https://foundryvtt.com/) which provides package develo
       - [1.3.3.1. Registering a wrapper](#1331-registering-a-wrapper)
       - [1.3.3.2. Unregistering a wrapper](#1332-unregistering-a-wrapper)
       - [1.3.3.3. Clear all wrappers for a given package](#1333-clear-all-wrappers-for-a-given-package)
-      - [1.3.3.4. Library Versioning](#1334-library-versioning)
-        - [1.3.3.4.1. Testing for a specific libWrapper version](#13341-testing-for-a-specific-libwrapper-version)
-      - [1.3.3.5. Fallback / Polyfill detection](#1335-fallback--polyfill-detection)
-      - [1.3.3.6. Exceptions](#1336-exceptions)
-      - [1.3.3.7. Hooks](#1337-hooks)
-      - [1.3.3.8. Examples](#1338-examples)
+      - [1.3.3.4. Ignore conflicts matching specific filters](#1334-ignore-conflicts-matching-specific-filters)
+      - [1.3.3.5. Library Versioning](#1335-library-versioning)
+        - [1.3.3.5.1. Testing for a specific libWrapper version](#13351-testing-for-a-specific-libwrapper-version)
+      - [1.3.3.6. Fallback / Polyfill detection](#1336-fallback--polyfill-detection)
+      - [1.3.3.7. Exceptions](#1337-exceptions)
+      - [1.3.3.8. Hooks](#1338-hooks)
+      - [1.3.3.9. Examples](#1339-examples)
     - [1.3.4. Compatibility Shim](#134-compatibility-shim)
 
 ## 1.1. Why?
@@ -298,7 +299,36 @@ static unregister_all(package_id) { /* ... */ }
 ```
 
 
-#### 1.3.3.4. Library Versioning
+#### 1.3.3.4. Ignore conflicts matching specific filters
+To ask libWrapper to ignore specific conflicts when detected, instead of warning the user, you should call the method `libWrapper.ignore_conflicts(package_id, ignore_ids, targets)`.
+
+```javascript
+/**
+ * Ignore conflicts matching specific filters when detected, instead of warning the user.
+ *
+ * This can be used when there are conflict warnings that are known not to cause any issues, but are unable to be resolved.
+ * Conflicts will be ignored if they involve both 'package_id' and one of 'ignore_ids', and relate to one of 'targets'.
+ *
+ * Note that the user can still see the list of detected conflicts that were ignored, by toggling "Show ignored conflicts" in the "Conflicts" tab in the libWrapper settings.
+ *
+ * First introduced in v1.7.0.0.
+ *
+ * @param {string}            package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest. This will be the module that owns this ignore entry.
+ * @param {(string|string[])} ignore_ids  Other package ID(s) with which conflicts should be ignored.
+ * @param {(string|string[])} targets     Target(s) for which conflicts should be ignored, corresponding to the 'target' parameter to libWrapper.register.
+ *
+ * @param {Object} options [Optional] Additional options to libWrapper.
+ *
+ * @param {boolean} options.ignore_errors  [Optional] If 'true', will also ignore confirmed conflicts (i.e. errors), rather than only potential conflicts (i.e. warnings).
+ *     Be careful when setting this to 'true', as confirmed conflicts are almost certainly something the user should be made aware of.
+ *     Defaults to 'false'.
+ */
+static ignore_conflicts(package_id, ignore_ids, targets, options={}) { /* ... */ }
+```
+
+
+
+#### 1.3.3.5. Library Versioning
 
 This library follows [Semantic Versioning](https://semver.org/), with two custom fields `SUFFIX` and `META`, used together to track release meta-data (e.g. unstable versions or release candidates) and manifest-only changes (e.g. when `compatibleCoreVersion` increases).
 
@@ -349,7 +379,7 @@ static get versions() { /* ... */ }
 static version_at_least(major, minor=0, patch=0, suffix=0) { /* ... */ }
 ```
 
-##### 1.3.3.4.1. Testing for a specific libWrapper version
+##### 1.3.3.5.1. Testing for a specific libWrapper version
 
 Sometimes you might wish to alert the user when an old version is detected, for example when you use functionality introduced in more recent versions.
 
@@ -385,7 +415,7 @@ else {
 ```
 
 
-#### 1.3.3.5. Fallback / Polyfill detection
+#### 1.3.3.6. Fallback / Polyfill detection
 
 To detect whether the `libWrapper` object contains the full library or a fallback/polyfill implementation (e.g. the [shim](#134-compatibility-shim)), you can check `libWrapper.is_fallback`.
 
@@ -400,7 +430,7 @@ static get is_fallback() { /* ... */ }
 
 
 
-#### 1.3.3.6. Exceptions
+#### 1.3.3.7. Exceptions
 
 Since v1.2.0.0, various custom exception classes are used by libWrapper, and available in the global `libWrapper` object.
 
@@ -431,7 +461,7 @@ Since v1.2.0.0, various custom exception classes are used by libWrapper, and ava
 
 These are available both with and without the `LibWrapper` prefix, for example `libWrapper.Error` and `libWrapper.LibWrapperError` are equivalent and return the same exception class.
 
-#### 1.3.3.7. Hooks
+#### 1.3.3.8. Hooks
 
 Since v1.4.0.0, the libWrapper library triggers Hooks for various events, listed below:
 
@@ -463,7 +493,8 @@ Since v1.4.0.0, the libWrapper library triggers Hooks for various events, listed
     - Parameters:
         - `1`: Package ID which triggered the conflict, or `«unknown»` if unknown.
         - `2`: Conflicting package ID.
-        - `3`: Wrapper target (the `target` parameter to `libWrapper.register`).
+        - `3`: Wrapper name (first `target` parameter provided by any module when registering a wrapper to the same method).
+        - `4`: List of all unique `target` strings provided by modules when registering a wrapper to the same method.
     - If this hook returns `false`, the user will not be notified of this conflict.
 
 * `libWrapper.OverrideLost`:
@@ -471,11 +502,12 @@ Since v1.4.0.0, the libWrapper library triggers Hooks for various events, listed
     - Parameters:
         - `1`: Existing package ID whose wrapper is being unregistered.
         - `2`: New package ID whose wrapper is being registered.
-        - `3`: Wrapper target (the `target` parameter to `libWrapper.register`).
+        - `3`: Wrapper name (first `target` parameter provided by any module when registering a wrapper to the same method).
+        - `4`: List of all unique `target` strings provided by modules when registering a wrapper to the same method.
     - If this hook returns `false`, this event will not be treated as a conflict.
 
 
-#### 1.3.3.8. Examples
+#### 1.3.3.9. Examples
 
 A list of packages using libWrapper, which can be used as further examples, can be found in the wiki page [Modules using libWrapper](https://github.com/ruipin/fvtt-lib-wrapper/wiki/Modules-using-libWrapper).
 

@@ -1,3 +1,16 @@
-# trims trailing whitespace for all files; filter like [*.{json,xml}]
+# See https://editorconfig.org/
+
+# top-most EditorConfig file
+root = true
+
+
 [*]
+# use unix-style line endings for all files
+end_of_line = lf
+# trims trailing whitespace for all files
 trim_trailing_whitespace = true
+
+# JS and JSON files should be UTF-8 and use tabs
+[*.{js,json}]
+charset = utf-8
+indent_style = tab

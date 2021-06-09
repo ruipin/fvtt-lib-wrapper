@@ -6,16 +6,36 @@
 import {PACKAGE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG, PERF_MODES} from '../consts.js';
 import {decorate_name, set_function_name, decorate_class_function_names} from '../utils/misc.js';
 import {PackageInfo} from '../utils/package_info.js';
-import {LibWrapperInternalError, LibWrapperPackageError, LibWrapperInvalidWrapperChainError} from '../utils/errors.js';
+
+import {LibWrapperInternalError, LibWrapperPackageError} from '../utils/errors/base_errors.js';
+import {LibWrapperInvalidWrapperChainError} from '../utils/errors/api_errors.js';
+
 import {LibWrapperNotifications} from '../ui/notifications.js';
 import {LibWrapperStats} from '../ui/stats.js';
+import {LibWrapperConflicts} from '../ui/conflicts.js';
+
 
 
 // Wrapper class - this class is responsible for the actual wrapping
 export class Wrapper {
-	// Properties
+	// Names
 	get name() {
 		return this.names[0];
+	}
+
+	get frozen_names() {
+		Object.freeze(this.names);
+		return this.names;
+	}
+
+	_add_name(name) {
+		if(!this.names.includes(name)) {
+			// Note: 'this._names' might be frozen, assuming the 'this.frozen_names' getter has ever been used, in which case we need to clone it.
+			if(Object.isFrozen(this.names))
+				this.names = this.names.slice();
+
+			this.names.push(name);
+		}
 	}
 
 
@@ -31,7 +51,7 @@ export class Wrapper {
 		this.fn_name = fn_name;
 		this.object  = obj;
 
-		// Calidate whether we can wrap this object
+		// Validate whether we can wrap this object
 		let descriptor = Object.getOwnPropertyDescriptor(obj, fn_name);
 
 		if(descriptor) {
@@ -41,8 +61,7 @@ export class Wrapper {
 				if(!(wrapper instanceof this.constructor))
 					throw new LibWrapperInternalError(`libWrapper: '${name}' cannot be wrapped, the descriptor already has a wrapper, but of an unexpected class ('${wrapper.constructor.name}' vs '${this.constructor.name}').`);
 
-				if(name && !wrapper.names.indexOf(name))
-					wrapper.names.push(name);
+				wrapper._add_name(name);
 
 				return wrapper;
 			}
@@ -82,7 +101,7 @@ export class Wrapper {
 		}
 
 		// Setup instance variables
-		this.names   = [];
+		this.names = [];
 
 		this.getter_data = [];
 		this._getter_data_id = 0;
@@ -106,9 +125,7 @@ export class Wrapper {
 		// Add name
 		if(!name)
 			name = fn_name;
-
-		if(this.names.indexOf(name) == -1)
-			this.names.push(name);
+		this._add_name(name);
 
 		// Do actual wrapping
 		this._wrap();
@@ -631,7 +648,7 @@ export class Wrapper {
 					is_last_wrapper = (affectedPackages.length == 0);
 
 					if(affectedPackages.length > 0)
-						LibWrapperStats.register_conflict(data.package_info, affectedPackages, this.name);
+						LibWrapperConflicts.register_conflict(data.package_info, affectedPackages, this, null, true);
 				}
 
 				// WRAPPER-type functions that do this are breaking an API requirement, as such we need to be loud about this.
@@ -711,7 +728,7 @@ export class Wrapper {
 		const affectedPackages = this.get_affected_packages();
 
 		if(affectedPackages.length > 0) {
-			const notify = LibWrapperStats.register_conflict(package_info, affectedPackages, this.name);
+			const notify = LibWrapperConflicts.register_conflict(package_info, affectedPackages, this, null, true);
 
 			if(notify) {
 				LibWrapperNotifications.conflict(package_info, affectedPackages, true, `Detected non-libWrapper wrapping of '${this.name}' by ${package_info.logString}. This will potentially lead to conflicts.`);

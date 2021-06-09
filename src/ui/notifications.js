@@ -11,6 +11,10 @@ import {game_user_isGM} from '../utils/polyfill.js'
 // Notify user
 export class LibWrapperNotifications {
 	static init() {
+		this.NOTIFICATION_SET = new Set();
+
+		// Seal to prevent accidental modification
+		Object.seal(this);
 	}
 
 	static get ui_notifications_enabled() {
@@ -39,9 +43,7 @@ export class LibWrapperNotifications {
 			return;
 
 		// Check if we've already notified the user of this
-		if(!this.NOTIFICATION_SET)
-			this.NOTIFICATION_SET = new Set();
-		else if(this.NOTIFICATION_SET.has(msg))
+		if(this.NOTIFICATION_SET.has(msg))
 			return;
 
 		this.NOTIFICATION_SET.add(msg);

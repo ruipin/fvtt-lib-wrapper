@@ -9,13 +9,21 @@ import {
 	TYPES, TYPES_REVERSE, TYPES_LIST,
 	PERF_MODES, PERF_MODES_REVERSE, PERF_MODES_LIST
 } from '../consts.js';
+
 import {Wrapper} from './wrapper.js';
-import {init_error_listeners, LibWrapperError, LibWrapperPackageError, LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError, LibWrapperInternalError, onUnhandledError} from '../utils/errors.js';
 import {get_global_variable, WRAPPERS, decorate_name, decorate_class_function_names} from '../utils/misc.js';
 import {PackageInfo} from '../utils/package_info.js';
+
+import {init_error_listeners, onUnhandledError} from '../utils/errors/error_listeners.js';
+import {LibWrapperError, LibWrapperPackageError, LibWrapperInternalError} from '../utils/errors/base_errors.js';
+import {LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError} from '../utils/errors/api_errors.js';
+
 import {LibWrapperNotifications} from '../ui/notifications.js'
 import {LibWrapperStats} from '../ui/stats.js';
+import {LibWrapperConflicts} from '../ui/conflicts.js';
 import {LibWrapperSettings, PRIORITIES} from '../ui/settings.js';
+
+
 
 // Internal variables
 let libwrapper_ready = false;
@@ -36,8 +44,9 @@ function _split_target_and_setter(target) {
 	return [_target, is_setter];
 }
 
-function _valid_identifier(ident) {
-	return /^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(ident);
+function _valid_identifier(ident, allow_dot=false) {
+	const re = allow_dot ? /^[a-zA-Z_$][0-9a-zA-Z_$.]*$/ : /^[a-zA-Z_$][0-9a-zA-Z_$]*$/;
+	return re.test(ident);
 }
 
 function _get_target_object(_target, package_info=undefined) {
@@ -81,7 +90,7 @@ function _find_wrapper_by_name(_name) {
 	const name = _split_target_and_setter(_name)[0];
 
 	for(let wrapper of WRAPPERS) {
-		if(wrapper.names.indexOf(name) != -1)
+		if(wrapper.names.includes(name))
 			return wrapper;
 	}
 
@@ -215,15 +224,13 @@ export class libWrapper {
 	static get LibWrapperPackageError() { return LibWrapperPackageError; };
 	static get PackageError() { return LibWrapperPackageError; };
 
-	static get LibWrapperModuleError() { return LibWrapperPackageError; }; // Deprecated since v1.6.0.0
-	static get ModuleError() { return LibWrapperPackageError; }; // Deprecated since v1.6.0.0
-
 	static get LibWrapperAlreadyOverriddenError() { return LibWrapperAlreadyOverriddenError; };
 	static get AlreadyOverriddenError() { return LibWrapperAlreadyOverriddenError; };
 
 	static get LibWrapperInvalidWrapperChainError() { return LibWrapperInvalidWrapperChainError; };
 	static get InvalidWrapperChainError() { return LibWrapperInvalidWrapperChainError; };
 
+	/* Undocumented on purpose, do not use */
 	static get onUnhandledError() { return onUnhandledError; };
 
 
@@ -376,12 +383,12 @@ export class libWrapper {
 
 			if(existing) {
 				if(priority <= existing.priority) {
-					throw new LibWrapperAlreadyOverriddenError(package_info, existing.package_info, wrapper.name);
+					throw new LibWrapperAlreadyOverriddenError(package_info, existing.package_info, wrapper, target);
 				}
 				else {
 					// We trigger a hook first
-					if(Hooks.call('libWrapper.OverrideLost', existing.package_info.id, package_info.id, wrapper.name) !== false) {
-						LibWrapperStats.register_conflict(package_info, existing.package_info, wrapper.name);
+					if(Hooks.call('libWrapper.OverrideLost', existing.package_info.id, package_info.id, wrapper.name, wrapper.frozen_names) !== false) {
+						LibWrapperConflicts.register_conflict(package_info, existing.package_info, wrapper, null, false);
 						LibWrapperNotifications.conflict(existing.package_info, package_info, false,
 							`${package_info.logStringCapitalized} has higher priority, and is replacing the 'OVERRIDE' registered by ${package_info.logString} for '${wrapper.name}'.`
 						);
@@ -467,13 +474,75 @@ export class libWrapper {
 
 		if(DEBUG || package_info.id != PACKAGE_ID) {
 			Hooks.callAll('libWrapper.UnregisterAll', package_info.id);
-			Hooks.callAll('libWrapper.ClearModule', package_info.id); // Deprecated in v1.6.0.0
 			console.info(`libWrapper: Unregistered all wrapper functions by ${package_info.logString}.`);
 		}
 	}
 
-	// Deprecated in v1.6.0.0
-	static get clear_module() { return this.unregister_all; }
+	/**
+	 * Ignore conflicts matching specific filters when detected, instead of warning the user.
+	 *
+	 * This can be used when there are conflict warnings that are known not to cause any issues, but are unable to be resolved.
+	 * Conflicts will be ignored if they involve both 'package_id' and one of 'ignore_ids', and relate to one of 'targets'.
+	 *
+	 * Note that the user can still see which detected conflicts were ignored, by toggling "Show ignored conflicts" in the "Conflicts" tab in the libWrapper settings.
+	 *
+	 * First introduced in v1.7.0.0.
+	 *
+	 * @param {string}            package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest. This will be the module that owns this ignore entry.
+	 * @param {(string|string[])} ignore_ids  Other package ID(s) with which conflicts should be ignored.
+	 * @param {(string|string[])} targets     Target(s) for which conflicts should be ignored, corresponding to the 'target' parameter to 'libWrapper.register'.
+	 *
+	 * @param {Object} options [Optional] Additional options to libWrapper.
+	 *
+	 * @param {boolean} options.ignore_errors  [Optional] If 'true', will also ignore confirmed conflicts (i.e. errors), rather than only potential conflicts (i.e. warnings).
+	 *     Be careful when setting this to 'true', as confirmed conflicts are almost certainly something the user should be made aware of.
+	 *     Defaults to 'false'.
+	 */
+	static ignore_conflicts(package_id, ignore_ids, targets, options={}) {
+		// Get package information
+		const package_info = _get_package_info(package_id);
+
+		// Validate we are allowed to call this method right now
+		if(!libwrapper_ready)
+			throw new LibWrapperPackageError('Not allowed to ignore conflicts before the \'libWrapperReady\' hook fires', package_info);
+
+		// Convert parameters to arrays
+		if(!Array.isArray(ignore_ids))
+			ignore_ids = [ignore_ids];
+		if(!Array.isArray(targets))
+			targets = [targets];
+
+		// Validate parameters #2
+		const is_string = (x) => (typeof x === 'string');
+
+		if(!ignore_ids.every(is_string))
+			throw new LibWrapperPackageError(`Parameter 'ignore_ids' must be a string, or an array of strings.`, package_info);
+
+		if(!targets.every(is_string))
+			throw new LibWrapperPackageError(`Parameter 'targets' must be a string, or an array of strings.`, package_info);
+		if(!targets.every((x) => _valid_identifier(x, true)))
+			throw new LibWrapperPackageError(`Parameter 'targets' must only contain valid targets.`, package_info);
+
+		const ignore_errors = options.ignore_errors ?? false;
+		if(typeof ignore_errors !== 'boolean')
+			throw new LibWrapperPackageError(`Parameter 'options.ignore_errors' must be a boolean.`, package_info);
+
+
+		// Convert 'other_ids' to PackageInfo objects and filter out any that do not exist
+		const ignore_infos = ignore_ids.map((x) => new PackageInfo(x)).filter((x) => x.exists);
+
+		// Ignore API call if no packages to be ignored
+		if(ignore_infos.length == 0) {
+			console.debug(`libWrapper: Ignoring 'ignore_conflict' call for ${package_info.logString} since none of the package IDs provided exist or are active.`)
+			return;
+		}
+
+		// Register ignores
+		LibWrapperConflicts.register_ignore(package_info, ignore_infos, targets, ignore_errors);
+
+		if(DEBUG || package_info.id != PACKAGE_ID)
+			console.debug(`libWrapper: Ignoring conflicts involving ${package_info.logString} and [${ignore_infos.map((x) => x.logString).join(', ')}] for targets [${targets.join(', ')}].`);
+	}
 };
 decorate_class_function_names(libWrapper);
 if(IS_UNITTEST) {
@@ -483,6 +552,7 @@ if(IS_UNITTEST) {
 	libWrapper._UT_clear = _clear;
 	libWrapper._UT_force_fast_mode = _force_fast_mode;
 	libWrapper._UT_get_force_fast_mode = (() => FORCE_FAST_MODE);
+	libWrapper._UT_clear_ignores = (() => LibWrapperConflicts.clear_ignores());
 }
 Object.freeze(libWrapper);
 
@@ -512,15 +582,14 @@ init_error_listeners();
 			parse_manifest_version();
 			LibWrapperSettings.init();
 			LibWrapperStats.init();
+			LibWrapperConflicts.init();
 			LibWrapperNotifications.init();
 
 			// Notify everyone the library has loaded and is ready to start registering wrappers
 			console.info(`libWrapper ${VERSION}: Ready.`);
 			Hooks.callAll('libWrapper.Ready', libWrapper);
 
-			const result = wrapped(...args);
-
-			return result;
+			return wrapped(...args);
 		}
 	};
 

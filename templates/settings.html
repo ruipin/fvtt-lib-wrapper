@@ -17,7 +17,7 @@
 				<label for="packages-prioritized">Prioritized Packages
 					<p class="notes">These packages will be prioritized compared to any package not in this list.<br>Higher positions in the list result in a higher priority.</p>
 				</label>
-				<select name="packages-prioritized" id="packages-prioritized" size="8">
+				<select name="packages-prioritized" class="packages-prioritized" size="8">
 					{{#if packages.prioritized}}
 					{{#each packages.prioritized}}
 						<option value="{{this.key}}">{{this.title}} ({{this.id}})</option>
@@ -39,7 +39,7 @@
 				<label for="packages-normal">Unprioritized Packages
 					<p class="notes">These packages will be neither prioritized nor deprioritized.<br>Priorities among these packages are decided on a first-come-first-served basis.<br>New packages will default to this list.</p>
 				</label>
-				<select name="packages-normal" id="packages-normal" size="8">
+				<select name="packages-normal" class="packages-normal" size="8">
 					{{#if packages.normal}}
 					{{#each packages.normal}}
 						<option value="{{this.key}}">{{this.title}} ({{this.id}})</option>
@@ -57,7 +57,7 @@
 				<label for="packages-deprioritized">Deprioritized Packages
 					<p class="notes">These packages will be deprioritized compared to any package not in this list.<br>Higher positions in the list result in a higher priority.<br><b>Note that packages that do not use libWrapper are deprioritized even compared to these.</b></p>
 				</label>
-				<select name="packages-deprioritized" id="packages-deprioritized" size="8">
+				<select name="packages-deprioritized" class="packages-deprioritized" size="8">
 					{{#if packages.deprioritized}}
 					{{#each packages.deprioritized}}
 						<option value="{{this.key}}">{{this.title}} ({{this.id}})</option>
@@ -71,9 +71,9 @@
 			</div>
 		</div>
 		<div style="margin: auto; width: 50%; padding-top: 60px">
-			<button type="button" id='submit' style="width:30%">Save</button>
-			<button type="button" id="reload" style="width:30%">Reload</button>
-			<button type="button" id="reset" style="width:30%">Reset</button>
+			<button type="button" class='submit' style="width:30%">Save</button>
+			<button type="button" class="reload" style="width:30%">Reload</button>
+			<button type="button" class="reset" style="width:30%">Reset</button>
 		</div>
 	</section>
 
@@ -83,10 +83,15 @@
 			{{#if conflicts}}
 				{{#each conflicts}}
 				<ul id="{{this.package_id}}_{{this.other_id}}" class="has-nested">
-					<li><span class="caret has-nested">{{this.package_id}} vs. {{this.other_id}} (x{{this.count}})</span>
+					<li>
+						<span class="caret has-nested">
+							{{this.package_id}} vs. {{this.other_id}} ({{#if this.count}}x{{this.count}}{{/if}}{{#if this.count}}{{#if this.ignored}}; {{/if}}{{/if}}{{#if this.ignored}}ignored x{{this.ignored}}{{/if}})
+						</span>
 						<ul class="nested">
 						{{#each this.targets}}
-							<li>{{this.target}} (x{{this.count}})</li>
+							<li>
+								{{this.target}} ({{#if this.count}}x{{this.count}}{{/if}}{{#if this.count}}{{#if this.ignored}}; {{/if}}{{/if}}{{#if this.ignored}}ignored x{{this.ignored}}{{/if}})
+							</li>
 						{{/each}}
 						</ul>
 					</li>
@@ -99,8 +104,12 @@
 			<p>Statistics collection is disabled.</p>
 		{{/if}}
 
-		<div style="margin: auto; width: 15%; padding-top: 60px">
-			<button type="button" id="reload" style="width:100%">Reload</button>
+		<div style="margin: auto; width: 60%; padding-top: 60px; text-align: center">
+			<button type="button" class="reload" style="width: 40%">Reload</button>
+			<span style="position: relative; top: 5px; padding-left: 20px" class="lw-show-ignored-conflicts">
+				<input type="checkbox" id="lw-ignored-conflicts-checkbox" name="lw-show-ignored-conflicts-checkbox" {{#if show_ignored_conflicts}}checked{{/if}}>
+				<label for="lw-ignored-conflicts-checkbox" style="position: relative; top: -5px"> Show ignored conflicts</label>
+			</span>
 		</div>
 	</section>
 
@@ -123,7 +132,7 @@
 		{{/if}}
 
 		<div style="margin: auto; width: 15%; padding-top: 60px">
-			<button type="button" id="reload" style="width:100%">Reload</button>
+			<button type="button" class="reload" style="width:100%">Reload</button>
 		</div>
 	</section>
 
