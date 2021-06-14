@@ -1,3 +1,9 @@
+# 1.7.1.0 (2021-06-14)
+
+- Include Git commit hash in manifest.
+  - Update release scripts.
+  - Update version parsing code.
+
 # 1.7.0.0 (2021-06-09)
 
 - **[BREAKING]** Removed `libWrapper.clear_modules` API, `libWrapper.ClearModule` hook, and `LibWrapperModuleError` exception class (all deprecated since v1.6.0.0).

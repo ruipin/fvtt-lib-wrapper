@@ -330,14 +330,14 @@ static ignore_conflicts(package_id, ignore_ids, targets, options={}) { /* ... */
 
 #### 1.3.3.5. Library Versioning
 
-This library follows [Semantic Versioning](https://semver.org/), with two custom fields `SUFFIX` and `META`, used together to track release meta-data (e.g. unstable versions or release candidates) and manifest-only changes (e.g. when `compatibleCoreVersion` increases).
+This library follows [Semantic Versioning](https://semver.org/), with two custom fields `SUFFIX` and `META`. These are used to track manifest-only changes (e.g. when `compatibleCoreVersion` increases) and track release meta-data (e.g. release candidates and unstable versions) respectively. See below for examples.
 
 The version string will always have format `<MAJOR>.<MINOR>.<PATCH>.<SUFFIX><META>`.
 
 The `MAJOR`, `MINOR`, `PATCH` and `SUFFIX` fields will always be integers.
 
-The `META` field is always a string, although it will often be empty.
-This last field is unnecessary when comparing versions, as a change to this field will always cause one of the other fields to be incremented.
+The `META` field is always a string, although it will often be empty. The `-` character between `SUFFIX` and `META` is optional if `META` is empty or does not start with a digit.
+This last field `META` is unnecessary when comparing versions, as a change to this field will always cause one of the other fields to be incremented.
 
 A few (non-exhaustive) examples of valid version strings and the corresponding `[MAJOR, MINOR, PATCH, SUFFIX, META]`:
 
@@ -363,6 +363,12 @@ static get version() { /* ... */ }
  * @returns {[number,number,number,number,string]}  libWrapper version in array form, i.e. [<MAJOR>, <MINOR>, <PATCH>, <SUFFIX>, <META>]
  */
 static get versions() { /* ... */ }
+
+/**
+ * Get the Git version identifier.
+ * @returns {string}  Git version identifier, usually 'HEAD' or the commit hash.
+ */
+static get git_version() { return GIT_VERSION };
 
 
 // Methods
@@ -396,7 +402,7 @@ else {
 
 The arguments `minor`, `patch` and `suffix` are optional. Note the usage of `?.` to ensure this works (and is falsy) before v1.4.0.0.
 
-If you wish to detect versions below v1.4.0.0, you should instead use `versions` instead:
+If you wish to detect versions below v1.4.0.0, you should use `versions` instead:
 
 ```javascript
 const [lwmajor, lwminor, lwpatch, lwsuffix] = libWrapper.versions;

@@ -10,22 +10,35 @@ export const PACKAGE_TITLE = 'libWrapper';
 
 
 //*********************
-// Semantic versioning
+// Versioning
 
-export let VERSION        = '';
-export let MAJOR_VERSION  = -1;
-export let MINOR_VERSION  = -1;
-export let PATCH_VERSION  = -1;
-export let SUFFIX_VERSION = -1;
-export let META_VERSION   = '';
+export let   VERSION           = '';
+export let   MAJOR_VERSION     = -1;
+export let   MINOR_VERSION     = -1;
+export let   PATCH_VERSION     = -1;
+export let   SUFFIX_VERSION    = -1;
+export let   META_VERSION      = '';
+export let   GIT_VERSION       = '';
+export let   GIT_VERSION_SHORT = '';
+export let   VERSION_WITH_GIT  = '';
 
 export function parse_manifest_version() {
 	if(VERSION)
 		return;
 
-	const version_str = game.modules?.get(PACKAGE_ID)?.data?.version;
+	// Find package manifest
+	const manifest = game.modules?.get(PACKAGE_ID)?.data;
+	if(!manifest)
+		throw `libWrapper: Unable to find package manifest inside 'game.modules'`;
+
+	// Grab git version
+	GIT_VERSION       = manifest.flags?.git_version ?? 'unknown';
+	GIT_VERSION_SHORT = (GIT_VERSION.length >= 40) ? GIT_VERSION.slice(0,7) : GIT_VERSION;
+
+	// Parse version string
+	const version_str = manifest.version;
 	if(!version_str)
-		throw `libWrapper: Unable to find version string inside 'game.modules'`;
+		throw `libWrapper: Unable to find version string inside package manifest`;
 
 	const match = version_str.match(/^([0-9]+)\.([0-9]+)\.([0-9]+).([0-9]+)(.*)$/i);
 	if(!match)
@@ -36,7 +49,10 @@ export function parse_manifest_version() {
 	MINOR_VERSION  = parseInt(match[2]);
 	PATCH_VERSION  = parseInt(match[3]);
 	SUFFIX_VERSION = parseInt(match[4]);
-	META_VERSION   = match[5];
+	META_VERSION   = match[5].replace(/^-/gi, '');
+
+	// Conclude
+	VERSION_WITH_GIT = `${VERSION} (${GIT_VERSION_SHORT})`;
 }
 
 

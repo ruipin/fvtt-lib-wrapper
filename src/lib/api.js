@@ -4,7 +4,7 @@
 'use strict';
 
 import {
-	PACKAGE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, META_VERSION, VERSION, parse_manifest_version,
+	PACKAGE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, META_VERSION, VERSION, GIT_VERSION, VERSION_WITH_GIT, parse_manifest_version,
 	IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug,
 	TYPES, TYPES_REVERSE, TYPES_LIST,
 	PERF_MODES, PERF_MODES_REVERSE, PERF_MODES_LIST
@@ -199,6 +199,13 @@ export class libWrapper {
 	 * @returns {[number,number,number,number,string]}  libWrapper version in array form, i.e. [<MAJOR>, <MINOR>, <PATCH>, <SUFFIX>, <META>]
 	 */
 	static get versions() { return [MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, META_VERSION]; }
+
+	/**
+	 * Get the Git version identifier.
+	 * @returns {string}  Git version identifier, usually 'HEAD' or the commit hash.
+	 */
+	static get git_version() { return GIT_VERSION };
+
 
 	/**
 	 * @returns {boolean}  The real libWrapper module will always return false. Fallback implementations (e.g. poly-fill / shim) should return true.
@@ -586,7 +593,7 @@ init_error_listeners();
 			LibWrapperNotifications.init();
 
 			// Notify everyone the library has loaded and is ready to start registering wrappers
-			console.info(`libWrapper ${VERSION}: Ready.`);
+			console.info(`libWrapper ${VERSION_WITH_GIT}: Ready.`);
 			Hooks.callAll('libWrapper.Ready', libWrapper);
 
 			return wrapped(...args);

@@ -3,7 +3,7 @@
 
 'use strict';
 
-import {PACKAGE_ID, PACKAGE_TITLE, VERSION, TYPES_REVERSE, PERF_MODES_REVERSE} from '../consts.js';
+import {PACKAGE_ID, PACKAGE_TITLE, VERSION_WITH_GIT, TYPES_REVERSE, PERF_MODES_REVERSE} from '../consts.js';
 import {LibWrapperStats} from './stats.js';
 import {WRAPPERS} from '../utils/misc.js';
 import {PackageInfo, PACKAGE_TYPES} from '../utils/package_info.js';
@@ -326,7 +326,7 @@ export class LibWrapperSettings extends FormApplication {
 		let data = {
 			about: {
 				name: PACKAGE_TITLE,
-				version: VERSION,
+				version: VERSION_WITH_GIT,
 				collect_stats: LibWrapperStats.collect_stats
 			},
 
