@@ -18,10 +18,12 @@ Library for [Foundry VTT](https://foundryvtt.com/) which provides package develo
     - [1.2.3. As a Contributor](#123-as-a-contributor)
   - [1.3. Usage](#13-usage)
     - [1.3.1. Summary](#131-summary)
-    - [1.3.2. Common Pitfalls](#132-common-pitfalls)
+    - [1.3.2. Common Issues and Pitfalls](#132-common-issues-and-pitfalls)
       - [1.3.2.1. Not allowed to register wrappers before the `init` hook.](#1321-not-allowed-to-register-wrappers-before-the-init-hook)
       - [1.3.2.2. OVERRIDE wrappers have a different call signature](#1322-override-wrappers-have-a-different-call-signature)
       - [1.3.2.3. Arrow Functions do not support `this`](#1323-arrow-functions-do-not-support-this)
+      - [1.3.2.4. Using `super` inside wrappers](#1324-using-super-inside-wrappers)
+      - [1.3.2.5. Patching Mixins](#1325-patching-mixins)
     - [1.3.3. LibWrapper API](#133-libwrapper-api)
       - [1.3.3.1. Registering a wrapper](#1331-registering-a-wrapper)
       - [1.3.3.2. Unregistering a wrapper](#1332-unregistering-a-wrapper)
@@ -33,19 +35,23 @@ Library for [Foundry VTT](https://foundryvtt.com/) which provides package develo
       - [1.3.3.7. Exceptions](#1337-exceptions)
       - [1.3.3.8. Hooks](#1338-hooks)
       - [1.3.3.9. Examples](#1339-examples)
-    - [1.3.4. Compatibility Shim](#134-compatibility-shim)
+    - [1.3.4. Using libWrapper inside a System](#134-using-libwrapper-inside-a-system)
+    - [1.3.5. Compatibility Shim](#135-compatibility-shim)
+
 
 ## 1.1. Why?
 
 One of the biggest causes of incompatibility between packages is them patching the same method, breaking each other. This module attempts to improve this situation, and also provide package developers with a flexible and easy-to-use API to wrap/monkey-patch core Foundry VTT code.
 
-As a bonus, it provides the GM with package conflict detection, as well as the possibility of prioritizing and/or deprioritizing certain packages, which can help resolve conflicts if they do arise.
+As a bonus, it provides the Game Master with package conflict detection, as well as the possibility of prioritizing and/or deprioritizing certain packages, which can help resolve conflicts if they do arise.
 
 <img src="https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/7cb19d4def1d5ebf84f4df5753f8e48ecfc1523c/example_priorities.png" width="200">
 <img src="https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/7cb19d4def1d5ebf84f4df5753f8e48ecfc1523c/example_conflicts.png" width="200">
 <img src="https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/7cb19d4def1d5ebf84f4df5753f8e48ecfc1523c/example_active_wrappers.png" width="200">
 
 <sup>Note: Images may be out-of-date.</sup>
+
+
 
 
 ## 1.2. Installation
@@ -61,7 +67,7 @@ As a bonus, it provides the GM with package conflict detection, as well as the p
 ### 1.2.2. As a Library
 You have multiple options here.
 
-1.  Include the provided [shim](#134-compatibility-shim) in your project.
+1.  Include the provided [shim](#135-compatibility-shim) in your project.
 
     or
 
@@ -82,7 +88,7 @@ You have multiple options here.
 
     or
 
-4.  Require your users to install this library. One simple example that achieves this is provided below. Reference the more complex example in the provided [shim](#134-compatibility-shim) if you prefer a dialog (including an option to dismiss it permanently) instead of a simple notification.
+4.  Require your users to install this library. One simple example that achieves this is provided below. Reference the more complex example in the provided [shim](#135-compatibility-shim) if you prefer a dialog (including an option to dismiss it permanently) instead of a simple notification.
 
     ```javascript
     Hooks.once('ready', () => {
@@ -101,7 +107,7 @@ You have multiple options here.
     ]
     ```
 
-If you pick options #2 or #3 and actively recommend to the user to install libWrapper using e.g. a notification, it is a good idea to give the user a way to permanently dismiss said notification. The provided [shim](#134-compatibility-shim) does this by having a "Don't remind me again" option in the alert dialog.
+If you pick options #2 or #3 and actively recommend to the user to install libWrapper using e.g. a notification, it is a good idea to give the user a way to permanently dismiss said notification. The provided [shim](#135-compatibility-shim) does this by having a "Don't remind me again" option in the alert dialog.
 
 Once your package is released, you should consider adding it to the wiki list of [Modules using libWrapper](https://github.com/ruipin/fvtt-lib-wrapper/wiki/Modules-using-libWrapper). This list can also be used as an additional (unofficial) source of libWrapper usage examples.
 
@@ -109,6 +115,7 @@ Once your package is released, you should consider adding it to the wiki list of
 ### 1.2.3. As a Contributor
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 
 
 
@@ -150,13 +157,14 @@ libWrapper.register('my-fvtt-package', 'Foo.prototype.bar', function (wrapped, .
 ```
 
 
-### 1.3.2. Common Pitfalls
+### 1.3.2. Common Issues and Pitfalls
 
 #### 1.3.2.1. Not allowed to register wrappers before the `init` hook.
 
 Due to Foundry limitations, information related to installed packages is not available until the `init` hook. As such, libWrapper will wait until then to initialize itself.
 
-Any attempts to register wrappers before then will throw an exception. If using the [shim](#134-compatibility-shim), its `libWrapper` symbol will be undefined until then.
+Any attempts to register wrappers before then will throw an exception. If using the [shim](#135-compatibility-shim), its `libWrapper` symbol will be undefined until then.
+
 
 #### 1.3.2.2. OVERRIDE wrappers have a different call signature
 
@@ -168,6 +176,7 @@ libWrapper.register('my-fvtt-package', 'Foo.prototype.bar', function (...args) {
     return;
 }, 'OVERRIDE');
 ```
+
 
 #### 1.3.2.3. Arrow Functions do not support `this`
 
@@ -190,9 +199,71 @@ libWrapper.register('my-fvtt-package', 'Foo.prototype.bar', function (wrapped, .
 ```
 
 
+#### 1.3.2.4. Using `super` inside wrappers
+
+Sometimes, it is desired to call a superclass method directly. Traditionally, `super` would be the right tool to do this. However, due to the specifics of how `super` works in Javascript it cannot be used outside of the class definition, and therefore does not work inside wrappers.
+
+As a result, to call a superclass method directly you will need to manually find the superclass method definition yourself. This can be done multiple ways, and two examples are provided below.
+
+The examples below assume `this` is of class `ChildClass`, that the superclass has the name `SuperClass`, and that the method we wish to call is `superclass_method`.
+
+1. Travel the class hierarchy automatically, using `Object.getPrototypeOf`:
+
+    ```javascript
+    Object.getPrototypeOf(ChildClass).prototype.superclass_method.apply(this, args);
+    ```
+
+2. Hardcode the class we wish to call:
+
+    ```javascript
+    SuperClass.prototype.superclass_method.apply(this, args);
+    ```
+
+The first option should be preferred, as it will work even if the superclass name (`SuperClass` in this example) changes in a future Foundry update.
+
+
+#### 1.3.2.5. Patching Mixins
+
+Since FoundryVTT 0.8.x, the core Foundry code makes heavy use of mixins. Since mixins are essentially a function that returns a class, patching the mixin directly is not possible.
+
+Instead, you should patch these methods on the classes that inherit from the mixins.
+
+For example, in the Foundry code we have the following (with irrelevant code stripped):
+
+```javascript
+const CanvasDocumentMixin = Base => class extends ClientDocumentMixin(Base) {
+    /* ... */
+
+    _onCreate(data, options, userId) {
+        /* ... */
+    }
+
+    /* ... */
+}
+
+/* ... */
+
+class TileDocument extends CanvasDocumentMixin(foundry.documents.BaseTile) {
+    /* ... */
+}
+```
+
+If we wanted to patch the method `_onCreate` which `TileDocument` inherits from `CanvasDocumentMixin(foundry.documents.BaseTile)`, we could do the following:
+
+```javascript
+libWrapper.register('navbar-tweaks', 'TileDocument.prototype._onCreate', function(wrapped, ...args) {
+  console.log("TileDocument.prototype._onCreate called");
+  return wrapped(...args);
+}, 'WRAPPER');
+```
+
+
+
+
 ### 1.3.3. LibWrapper API
 
 ⚠ Anything not documented in this section is not officially supported, and could change or break at any moment without notice.
+
 
 #### 1.3.3.1. Registering a wrapper
 To register a wrapper function, you should call the method `libWrapper.register(package_id, target, fn, type)`:
@@ -327,7 +398,6 @@ static ignore_conflicts(package_id, ignore_ids, targets, options={}) { /* ... */
 ```
 
 
-
 #### 1.3.3.5. Library Versioning
 
 This library follows [Semantic Versioning](https://semver.org/), with two custom fields `SUFFIX` and `META`. These are used to track manifest-only changes (e.g. when `compatibleCoreVersion` increases) and track release meta-data (e.g. release candidates and unstable versions) respectively. See below for examples.
@@ -385,6 +455,7 @@ static get git_version() { return GIT_VERSION };
 static version_at_least(major, minor=0, patch=0, suffix=0) { /* ... */ }
 ```
 
+
 ##### 1.3.3.5.1. Testing for a specific libWrapper version
 
 Sometimes you might wish to alert the user when an old version is detected, for example when you use functionality introduced in more recent versions.
@@ -423,7 +494,7 @@ else {
 
 #### 1.3.3.6. Fallback / Polyfill detection
 
-To detect whether the `libWrapper` object contains the full library or a fallback/polyfill implementation (e.g. the [shim](#134-compatibility-shim)), you can check `libWrapper.is_fallback`.
+To detect whether the `libWrapper` object contains the full library or a fallback/polyfill implementation (e.g. the [shim](#135-compatibility-shim)), you can check `libWrapper.is_fallback`.
 
 The library module will set this property to `false`, while fallback/polyfill implementations will set it to `true`.
 
@@ -433,7 +504,6 @@ The library module will set this property to `false`, while fallback/polyfill im
  */
 static get is_fallback() { /* ... */ }
 ```
-
 
 
 #### 1.3.3.7. Exceptions
@@ -466,6 +536,7 @@ Since v1.2.0.0, various custom exception classes are used by libWrapper, and ava
         - `package_id`: Package ID which triggered the error, if any.
 
 These are available both with and without the `LibWrapper` prefix, for example `libWrapper.Error` and `libWrapper.LibWrapperError` are equivalent and return the same exception class.
+
 
 #### 1.3.3.8. Hooks
 
@@ -518,7 +589,17 @@ Since v1.4.0.0, the libWrapper library triggers Hooks for various events, listed
 A list of packages using libWrapper, which can be used as further examples, can be found in the wiki page [Modules using libWrapper](https://github.com/ruipin/fvtt-lib-wrapper/wiki/Modules-using-libWrapper).
 
 
-### 1.3.4. Compatibility Shim
+
+
+### 1.3.4. Using libWrapper inside a System
+
+The libWrapper library has official support for all types of packages, including systems.
+
+However, it is recommended that you read through the warnings and recommendations in [SYSTEMS.md](SYSTEMS.md) before you use it inside a system.
+
+
+
+### 1.3.5. Compatibility Shim
 
 The [shim.js](shim/shim.js) file in this repository can be used to avoid a hard dependency on libWrapper.
 
