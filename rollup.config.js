@@ -16,7 +16,13 @@ export default {
 		compact: true,
 		interop: false,
 		sourcemap: 'dist/lib-wrapper.js.map',
-		sourcemapPathTransform: (nm) => path.join(path.dirname(nm), 'libWrapper-' + path.basename(nm))
+		sourcemapPathTransform: (nm) => {
+			const basename = path.basename(nm);
+			if(basename == 'listeners.js')
+				return nm;
+			else
+				return path.join(path.dirname(nm), 'libWrapper-' + path.basename(nm));
+		}
 	},
 	plugins: [
 		cleanup({

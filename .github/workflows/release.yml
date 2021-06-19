@@ -97,12 +97,19 @@ jobs:
 
           npm run build
 
+          MANIFEST_EDITS=()
+          function add_manifest_edit {
+            MANIFEST_EDITS+=('-e' 's~(["'"'"']'"$1"'["'"'"'][[:space:]]*:).*[^,[:space:]](,?)[[:space:]]*$~\1 '"$2"'\2~')
+          }
+
+          add_manifest_edit 'git_version' '"${{ steps.prepare_env.outputs.GIT_HASH }}"'
+          add_manifest_edit 'esmodules' '\["lib-wrapper.js"\]'
+          add_manifest_edit 'styles' '\["lib-wrapper.css"\]'
+          add_manifest_edit 'manifest' '"https://github.com/ruipin/${{ steps.prepare_env.outputs.PROJECT }}/releases/latest/download/module.json"'
+          add_manifest_edit 'download' '"https://github.com/ruipin/${{ steps.prepare_env.outputs.PROJECT }}/releases/download/v${{ steps.prepare_env.outputs.VERSION }}/${{ steps.prepare_env.outputs.PROJECT_NO_FVTT }}-v${{ steps.prepare_env.outputs.VERSION }}.zip"'
+
           sed -r \
-            -e 's~("git_version":).*~\1 "${{ steps.prepare_env.outputs.GIT_HASH }}"~' \
-            -e 's~("esmodules":).*~\1 ["lib-wrapper.js"],~' \
-            -e 's~("styles":).*~\1 ["lib-wrapper.css"],~' \
-            -e 's~("manifest":)[^,]*~\1 "https://github.com/ruipin/${{ steps.prepare_env.outputs.PROJECT }}/releases/latest/download/module.json"~' \
-            -e 's~("download":)[^,]*~\1 "https://github.com/ruipin/${{ steps.prepare_env.outputs.PROJECT }}/releases/download/v${{ steps.prepare_env.outputs.VERSION }}/${{ steps.prepare_env.outputs.PROJECT_NO_FVTT }}-v${{ steps.prepare_env.outputs.VERSION }}.zip"~' \
+            "${MANIFEST_EDITS[@]}" \
             module.json > dist/module.json
 
           cd dist

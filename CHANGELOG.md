@@ -1,3 +1,16 @@
+# 1.7.2.0 (2021-06-19)
+
+- Rename `error-listeners.js` to `listeners.js` (see [Issue #42](https://github.com/ruipin/fvtt-lib-wrapper/issues/42)).
+- Do not prefix `libWrapper-` to `listeners.js` file in the sourcemap.
+- Explicitly announce compatibility with Foundry 0.8.7.
+- Add `bugs` attribute to manifest, and enable [Bug Reporter](https://github.com/League-of-Foundry-Developers/bug-reporter) support.
+- Miscellaneous code cleanup.
+- Update documentation:
+  - Add section about Systems.
+  - Add section about Mixins.
+  - Add section about `super`.
+- Update release script to properly handle commas in the manifest file, as well as be easier to maintain.
+
 # 1.7.1.0 (2021-06-14)
 
 - Include Git commit hash in manifest.

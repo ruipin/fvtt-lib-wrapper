@@ -380,10 +380,9 @@ export class Wrapper {
 	// Utilities related to getting the wrapped value
 	_get_inherited_descriptor() {
 		let iObj = Object.getPrototypeOf(this.object);
-		let descriptor = null;
 
 		while(iObj) {
-			descriptor = Object.getOwnPropertyDescriptor(iObj, this.fn_name);
+			const descriptor = Object.getOwnPropertyDescriptor(iObj, this.fn_name);
 			if(descriptor)
 				return descriptor;
 

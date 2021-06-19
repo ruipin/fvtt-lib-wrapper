@@ -14,7 +14,7 @@ import {Wrapper} from './wrapper.js';
 import {get_global_variable, WRAPPERS, decorate_name, decorate_class_function_names} from '../utils/misc.js';
 import {PackageInfo} from '../utils/package_info.js';
 
-import {init_error_listeners, onUnhandledError} from '../utils/errors/error_listeners.js';
+import {init_error_listeners, onUnhandledError} from '../utils/errors/listeners.js';
 import {LibWrapperError, LibWrapperPackageError, LibWrapperInternalError} from '../utils/errors/base_errors.js';
 import {LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError} from '../utils/errors/api_errors.js';
 
