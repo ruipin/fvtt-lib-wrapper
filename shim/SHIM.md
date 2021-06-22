@@ -4,26 +4,63 @@ The [shim.js](shim.js) file can be used to avoid a hard dependency on libWrapper
 
 - [1. Shim](#1-shim)
   - [1.1. License](#11-license)
-  - [1.2. Usage](#12-usage)
-      - [1.2.1. Default Shim Configuration](#121-default-shim-configuration)
+  - [1.2. Differences compared to the full library](#12-differences-compared-to-the-full-library)
+  - [1.3. Usage](#13-usage)
+    - [1.3.1. Default Shim Configuration](#131-default-shim-configuration)
+
+
 
 ## 1.1. License
 
 Unlike the rest of the libWrapper repository, this compatibility shim is licensed under [MIT](LICENSE).
 
-## 1.2. Usage
+
+
+## 1.2. Differences compared to the full library
+
+This section contains a list of the most significant differences between the shim and the full library.
+
+⚠ *Due to these differences in behaviour, it is extremely important to test your code both with the shim and with the full library.*
+
+1. This shim does not support any user-facing functionality. Think prioritization of modules, conflict detection, list of wrappers, etc. Basically, anything you can access through the libWrapper settings menu.
+
+2. This shim does not support `libWrapper.unregister` / `libWrapper.unregister_all` calls.
+
+3. This shim does not support dynamic dispatch. The next method in the wrapper chain is calculated at the time of each `register` call, and never changed/reordered later. This has many implications:
+
+    1. The wrapper type metadata (`WRAPPER`, `MIXED`, `OVERRIDE`) is completely ignored. The wrapper call order will match the order in which they are registered. For instance, if a module registers an `OVERRIDE` after another, the previous one will never be called. Unlike the full library, nothing guarantees `MIXED` wrappers come after all `WRAPPER` wrappers, nor that `OVERRIDE` wrappers come after all `MIXED` wrappers.
+
+    2. Inheritance chains are static and calculate at `register` time. For instance, if there is `class B extends A` and a module overrides `B.prototype.foo` before another overrides `A.prototype.foo`, calling `B.prototype.foo` will skip the `A.prototype.foo` wrapper.
+
+    3. There is no distinction between a libWrapper (Shim) wrapper and a non-libWrapper wrapper. While normally non-libWrapper wrappers will always come after all libWrapper wrappers, when using the shim this is not the case.
+
+4. None of the libWrapper safeties are guaranteed when using the shim:
+
+    1. Nothing checks that modules alway call `wrapped(...args)` when using `WRAPPER`.
+
+    2. Nothing checks that there can only be one `OVERRIDE` wrapper on a given method.
+
+5. The various libWrapper Hooks are not triggered when using the shim.
+
+Using the shim does not give you any advantage when it comes to compatibility versus not using libWrapper at all. The intent of the shim is to remove the disadvantage from using libWrapper, i.e. of tying yourself to a dependency. You can take advantage of the benefits of libWrapper, while still behaving as if libWrapper didn't exist when libWrapper isn't installed.
+
+
+
+## 1.3. Usage
 
 The shim exports a `libWrapper` symbol which will at the `init` hook become a reference to the real libWrapper library if present, or to a fallback/polyfill implementation otherwise.
 
 ⚠ Note that this symbol will be `undefined` until the `init` hook fires.
 
-A fallback implementation is included for the `register` function only (see documentation above). This fallback implementation does not have any of the "fancy" features of the libWrapper library - most importantly, it does not check for module conflicts or enforce call order between the different wrapper types, and it does not do dynamic dispatch. *Due to these differences in behaviour, it is extremely important to test your code both with the shim and with the full library.*
+A fallback implementation is included for the `register` function only (see full library documentation). This fallback implementation does not have any of the "fancy" features of the libWrapper library. See [above](#12-differences-compared-to-the-full-library) for more detail.
 
 To programmatically detect whether the fallback implementation is active, you can check `libWrapper.is_fallback == true`.
 
 To be able to use this shim, your module needs to use `esmodules` in its manifest file. Then, you can import the shim by adding e.g. `import {libWrapper} from './relative/path/to/shim.js';` to your JS code. While the shim is mostly plug-and-play, please feel free to modify it to your liking - in particular, some places you might wish to customize are explicitly marked with `//************** USER CUSTOMIZABLE:`.
 
-#### 1.2.1. Default Shim Configuration
+
+
+### 1.3.1. Default Shim Configuration
 
 By default, the shim displays a warning dialog similar to the image below when libWrapper is not installed and therefore the fallback code path is being used.
 

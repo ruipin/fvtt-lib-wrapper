@@ -1,3 +1,10 @@
+# 1.7.3.0 (2021-06-22)
+
+- Update 'About' pane in the settings with more information about reporting issues.
+- Update documentation
+  - Explain differences between the full library and the shim.
+  - Add information about how to obtain support.
+
 # 1.7.2.0 (2021-06-19)
 
 - Rename `error-listeners.js` to `listeners.js` (see [Issue #42](https://github.com/ruipin/fvtt-lib-wrapper/issues/42)).

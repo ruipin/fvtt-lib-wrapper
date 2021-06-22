@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: FoundryVTT Discord
+    url: https://discord.gg/foundryvtt
+    about: "Community Discord: The #module-troubleshooting and #module-development channels can provide support"
+  - name: FoundryVTT Reddit
+    url: https://www.reddit.com/r/FoundryVTT
+    about: Community Subreddit

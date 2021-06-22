@@ -37,6 +37,10 @@ Library for [Foundry VTT](https://foundryvtt.com/) which provides package develo
       - [1.3.3.9. Examples](#1339-examples)
     - [1.3.4. Using libWrapper inside a System](#134-using-libwrapper-inside-a-system)
     - [1.3.5. Compatibility Shim](#135-compatibility-shim)
+  - [1.4. Support](#14-support)
+    - [1.4.1. Module-specific Support](#141-module-specific-support)
+    - [1.4.2. Community Support](#142-community-support)
+    - [1.4.3. LibWrapper Support](#143-libwrapper-support)
 
 
 ## 1.1. Why?
@@ -604,3 +608,34 @@ However, it is recommended that you read through the warnings and recommendation
 The [shim.js](shim/shim.js) file in this repository can be used to avoid a hard dependency on libWrapper.
 
 See the respective documentation in [shim/SHIM.md](shim/SHIM.md).
+
+
+
+## 1.4. Support
+
+As with any piece of software, you might sometimes encounter issues with libWrapper that are not already answered above. This section covers what you can do to find support.
+
+
+### 1.4.1. Module-specific Support
+
+When libWrapper notifies you of an error, it will usually let you know whether the issue is caused by a specific module or by libWrapper itself.
+
+Many modules have support channels set up by their developers. If libWrapper warns you about a specific module, and you are aware of such a support channel, you should use it.
+
+Most libWrapper errors are not caused by libWrapper itself, but instead by a module that uses it. Reporting these issues to the libWrapper team directly is a waste of time, as we will not be able to help. These issues will simply be closed as "invalid".
+
+### 1.4.2. Community Support
+
+The easiest way to find support when there are no module-specific support channels is to ask the community.
+
+The largest community-provided support channels are:
+- [FoundryVTT Discord](https://discord.gg/foundryvtt)'s #modules-troubleshooting channel
+- [FoundryVTT Reddit](https://www.reddit.com/r/FoundryVTT)
+
+### 1.4.3. LibWrapper Support
+
+⚠ *Do not open a support ticket using the link below unless you are seeing an **internal libWrapper error** or are a **package developer**. We also do not provide support for packages that promote or otherwise endorse piracy. Your issue will be closed as invalid if you do not fulfill these requirements.*
+
+If you encounter an internal libWrapper error, or are a module developer looking for support (i.e. bug reports, feature requests, questions, etc), you may get in touch by opening a new issue on the [libWrapper issue tracker](https://github.com/ruipin/fvtt-lib-wrapper/issues). It is usually a good idea to search the existing issues first in case yours has already been answered before.
+
+If your support request relates to an error, please describe with as much detail as possible the error you are seeing, and what you have already done to troubleshoot it. Providing a step-by-step description of how to reproduce it or a snippet of code that triggers the issue is especially welcome, and will ensure you get an answer as fast as possible.
