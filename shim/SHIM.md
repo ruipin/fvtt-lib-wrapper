@@ -28,9 +28,9 @@ This section contains a list of the most significant differences between the shi
 
 3. This shim does not support dynamic dispatch. The next method in the wrapper chain is calculated at the time of each `register` call, and never changed/reordered later. This has many implications:
 
-    1. The wrapper type metadata (`WRAPPER`, `MIXED`, `OVERRIDE`) is completely ignored. The wrapper call order will match the order in which they are registered. For instance, if a module registers an `OVERRIDE` after another, the previous one will never be called. Unlike the full library, nothing guarantees `MIXED` wrappers come after all `WRAPPER` wrappers, nor that `OVERRIDE` wrappers come after all `MIXED` wrappers.
+    1. The wrapper type metadata (`WRAPPER`, `MIXED`, `OVERRIDE`) is completely ignored. Unlike the full library, nothing guarantees `MIXED` wrappers come after all `WRAPPER` wrappers, nor that `OVERRIDE` wrappers come after all `MIXED` wrappers. The wrapper call order will match the order in which they are registered. For instance, if a module registers an `OVERRIDE`, previously registered wrappers (`OVERRIDE` or not) will never be called.
 
-    2. Inheritance chains are static and calculate at `register` time. For instance, if there is `class B extends A` and a module overrides `B.prototype.foo` before another overrides `A.prototype.foo`, calling `B.prototype.foo` will skip the `A.prototype.foo` wrapper.
+    2. Inheritance chains are static and calculated at `register` time. For instance, if there is `class B extends A` and a module overrides `B.prototype.foo` before another overrides `A.prototype.foo`, calling `B.prototype.foo` will skip the `A.prototype.foo` wrapper.
 
     3. There is no distinction between a libWrapper (Shim) wrapper and a non-libWrapper wrapper. While normally non-libWrapper wrappers will always come after all libWrapper wrappers, when using the shim this is not the case.
 
@@ -42,7 +42,7 @@ This section contains a list of the most significant differences between the shi
 
 5. The various libWrapper Hooks are not triggered when using the shim.
 
-Using the shim does not give you any advantage when it comes to compatibility versus not using libWrapper at all. The intent of the shim is to remove the disadvantage from using libWrapper, i.e. of tying yourself to a dependency. You can take advantage of the benefits of libWrapper, while still behaving as if libWrapper didn't exist when libWrapper isn't installed.
+Using the shim does not give you any advantage (or disadvantage) in terms of compatibility with other modules when compared to not using libWrapper at all. The intent of the shim is to remove the main disadvantage from using libWrapper, i.e. of tying yourself to a dependency. With this shim, you can take advantage of the benefits of libWrapper when it is installed, while still behaving correctly when it isn't.
 
 
 
