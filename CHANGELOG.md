@@ -1,3 +1,8 @@
+# 1.7.4.0 (2021-07-05)
+
+- Handle malformed `game.modules` gracefully. This can happen when Foundry does not initialise properly which by itself can cause issues, but libWrapper was making the situation even worse by aborting the initialisation process.
+- Explicitly announce compatibility with Foundry 0.8.8.
+
 # 1.7.3.0 (2021-06-22)
 
 - Update 'About' pane in the settings with more information about reporting issues.

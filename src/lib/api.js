@@ -171,7 +171,7 @@ function _get_package_info(package_id) {
 			throw new LibWrapperPackageError(`Not allowed to call libWrapper with package_id='${package_id}'.`, package_info);
 	}
 	else {
-		if(!package_info.exists)
+		if(!package_info.exists && game.modules?.size)
 			throw new LibWrapperPackageError(`Package '${package_id}' is not a valid package.`, package_info);
 	}
 
