@@ -1,3 +1,7 @@
+# 1.7.5.0 (2021-07-05)
+
+- Don't fail registering wrappers if `game` is malformed.
+
 # 1.7.4.0 (2021-07-05)
 
 - Handle malformed `game.modules` gracefully. This can happen when Foundry does not initialise properly which by itself can cause issues, but libWrapper was making the situation even worse by aborting the initialisation process.

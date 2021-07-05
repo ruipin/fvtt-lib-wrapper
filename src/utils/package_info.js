@@ -84,15 +84,15 @@ export class PackageInfo {
 			const name = match[2];
 
 			if(type === 'worlds') {
-				if(name == game.data.world.id)
+				if(name == game.data?.world?.id)
 					return this.set(name, PACKAGE_TYPES.WORLD);
 			}
 			else if(type === 'systems') {
-				if(name == game.data.system.id)
+				if(name == game.data?.system?.id)
 					return this.set(name, PACKAGE_TYPES.SYSTEM);
 			}
 			else if(type === 'modules') {
-				if(!name || name == PACKAGE_ID || !game?.modules?.has(name))
+				if(!name || name == PACKAGE_ID || !game.modules?.has(name))
 					continue;
 
 				return this.set(name, PACKAGE_TYPES.MODULE);
@@ -114,11 +114,11 @@ export class PackageInfo {
 			return;
 		}
 
-		if(game.modules.get(this.id)?.active)
+		if(game.modules?.get(this.id)?.active)
 			this.type = PACKAGE_TYPES.MODULE;
-		else if(this.id === game.data.system.id)
+		else if(this.id === game.data?.system?.id)
 			this.type = PACKAGE_TYPES.SYSTEM;
-		else if(this.id === game.data.world.id)
+		else if(this.id === game.data?.world?.id)
 			this.type = PACKAGE_TYPES.WORLD;
 		else
 			this.type = PACKAGE_TYPES.UNKNOWN;
