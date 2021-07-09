@@ -2,6 +2,7 @@
 // Copyright © 2021 fvtt-lib-wrapper Rui Pinheiro
 
 import test from 'tape';
+import fs from 'fs';
 import {PACKAGE_ID} from '../src/consts.js';
 
 
@@ -89,7 +90,9 @@ class Game {
 		const mdl = { id: nm, active: true, data: { title: nm } };
 
 		if(nm === PACKAGE_ID)
-			mdl.data.version = '12.13.14.15ut';
+			mdl.data = JSON.parse(fs.readFileSync('module.json', 'utf8'));
+		else
+			mdl.data = { title: nm };
 
 		game.modules.set(nm, mdl);
 	}

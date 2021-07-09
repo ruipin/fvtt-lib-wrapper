@@ -7,7 +7,7 @@
 import test from 'tape';
 import {CallOrderChecker} from './call_order_checker.js';
 import {test_combinations} from './utilities.js';
-import {libWrapper as libWrapperShim} from '../shim/shim.js';
+import {libWrapper as libWrapperShim, VERSIONS as SHIM_VERSIONS} from '../shim/shim.js';
 import '../src/lib/api.js';
 
 
@@ -296,6 +296,20 @@ test('Shim: Getter/Setter', function (t) {
 	chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','m1:Mix:1#set','Orig5#set',-3], {param_in: ['Orig6']});
 	t.equals(a.x_id, 'Orig6', 'Post-setter #5');
 	chkr.check(a.x, ['m2:Mix:2','m1:Mix:1','Orig6',-3]);
+
+
+	// Done
+	t.end();
+});
+
+
+// Test shim versioning
+test("Shim: Version", function (t) {
+	const [shim_major, shim_minor] = SHIM_VERSIONS;
+	const [lw_major, lw_minor] = libWrapper.versions;
+
+	t.equals(shim_major, lw_major, 'Major Version: Shim vs Library');
+	t.equals(shim_minor, lw_minor, 'Minor Version: Shim vs Library');
 
 
 	// Done

@@ -6,7 +6,8 @@ The [shim.js](shim.js) file can be used to avoid a hard dependency on libWrapper
   - [1.1. License](#11-license)
   - [1.2. Differences compared to the full library](#12-differences-compared-to-the-full-library)
   - [1.3. Usage](#13-usage)
-    - [1.3.1. Default Shim Configuration](#131-default-shim-configuration)
+    - [1.3.1. Shim Version](#131-shim-version)
+    - [1.3.2. Default Shim Configuration](#132-default-shim-configuration)
 
 
 
@@ -59,8 +60,16 @@ To programmatically detect whether the fallback implementation is active, you ca
 To be able to use this shim, your module needs to use `esmodules` in its manifest file. Then, you can import the shim by adding e.g. `import {libWrapper} from './relative/path/to/shim.js';` to your JS code. While the shim is mostly plug-and-play, please feel free to modify it to your liking - in particular, some places you might wish to customize are explicitly marked with `//************** USER CUSTOMIZABLE:`.
 
 
+### 1.3.1. Shim Version
 
-### 1.3.1. Default Shim Configuration
+Since `v1.7.1`, the [shim.js](shim.js) file exports the `VERSIONS` symbol with format `[MAJOR, MINOR, PATCH]` following [Semantic Versioning](https://semver.org/).
+
+This symbol will be modified any time the shim is modified, and can be used to decide whether you need to update the shim or not.
+
+While the `PATCH` version has no direct relation to the main libWrapper library's version and is unique to the Shim, the `MAJOR` and `MINOR` versions will always match between the two. Them being equal signifies that the shim implements the same API.
+
+
+### 1.3.2. Default Shim Configuration
 
 By default, the shim displays a warning dialog similar to the image below when libWrapper is not installed and therefore the fallback code path is being used.
 

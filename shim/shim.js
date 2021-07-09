@@ -5,6 +5,7 @@
 'use strict';
 
 // A shim for the libWrapper library
+export let VERSIONS = [1,7,1];
 export let libWrapper = undefined;
 
 Hooks.once('init', () => {
