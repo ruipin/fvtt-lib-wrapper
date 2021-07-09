@@ -93,7 +93,7 @@ jobs:
         run: |
           mkdir -p "dist"
           cp *.md "LICENSE" dist/
-          cp -r templates dist/templates
+          [[ -d "templates" ]] && cp -r templates dist/templates
 
           npm run build
 
