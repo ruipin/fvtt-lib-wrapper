@@ -132,18 +132,18 @@ You can also specify the type of wrapper you want in the fourth (optional) param
 
 - `WRAPPER`:
 
-    - Use if your wrapper will *always* call the next function in the chain.
+    - Use if your wrapper will *always* continue the chain (i.e. call `wrapped`).
     - This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
     - ⚠ The library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
 
 - `MIXED` (default):
 
-    - Your wrapper will be allowed to decide whether it should call the next function in the chain or not.
+    - Your wrapper will be allowed to decide whether it should continue the chain (i.e. call `wrapped`) or not.
     - These will always come after `WRAPPER`-type wrappers. Order is not guaranteed, but conflicts will be auto-detected.
 
 - `OVERRIDE`:
 
-    - Use if your wrapper will *never* call the next function in the chain. This type has the lowest priority, and will always be called last.
+    - Use if your wrapper will *never* continue the chain (i.e. call `wrapped`). This type has the lowest priority, and will always be called last.
     - If another package already has an `OVERRIDE` wrapper registered to the same method:
         - If the GM has explicitly given your package priority over the existing one, libWrapper will trigger a `libWrapper.OverrideLost` hook, and your wrapper will take over.
         - Otherwise, libWrapper will throw a `libWrapper.AlreadyOverriddenError` exception. This exception can be caught by your package in order to fail gracefully and activate fallback code.
@@ -292,16 +292,16 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *   The possible types are:
  *
  *   'WRAPPER':
- *     Use if your wrapper will *always* call the next function in the chain.
+ *     Use if your wrapper will *always* continue the chain.
  *     This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
  *     Note that the library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
  *
  *   'MIXED':
- *     Default type. Your wrapper will be allowed to decide whether it should call the next function in the chain or not.
+ *     Default type. Your wrapper will be allowed to decide whether it should continue the chain or not.
  *     These will always come after 'WRAPPER'-type wrappers. Order is not guaranteed, but conflicts will be auto-detected.
  *
  *   'OVERRIDE':
- *     Use if your wrapper will *never* call the next function in the chain. This type has the lowest priority, and will always be called last.
+ *     Use if your wrapper will *never* continue the chain. This type has the lowest priority, and will always be called last.
  *     If another package already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <libWrapper.LibWrapperAlreadyOverriddenError> exception.
  *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
  *     Note that if the GM has explicitly given your package priority over the existing one, no exception will be thrown and your wrapper will take over.
@@ -442,7 +442,7 @@ static get versions() { /* ... */ }
  * Get the Git version identifier.
  * @returns {string}  Git version identifier, usually 'HEAD' or the commit hash.
  */
-static get git_version() { return GIT_VERSION };
+static get git_version() { /* ... */ };
 
 
 // Methods

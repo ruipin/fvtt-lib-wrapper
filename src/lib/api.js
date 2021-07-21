@@ -286,16 +286,16 @@ export class libWrapper {
 	 *   The possible types are:
 	 *
 	 *   'WRAPPER':
-	 *     Use if your wrapper will *always* call the next function in the chain.
+	 *     Use if your wrapper will *always* continue the chain.
 	 *     This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
 	 *     Note that the library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
 	 *
 	 *   'MIXED':
-	 *     Default type. Your wrapper will be allowed to decide whether it should call the next function in the chain or not.
+	 *     Default type. Your wrapper will be allowed to decide whether it continue the chain or not.
 	 *     These will always come after 'WRAPPER'-type wrappers. Order is not guaranteed, but conflicts will be auto-detected.
 	 *
 	 *   'OVERRIDE':
-	 *     Use if your wrapper will *never* call the next function in the chain. This type has the lowest priority, and will always be called last.
+	 *     Use if your wrapper will *never* continue the chain. This type has the lowest priority, and will always be called last.
 	 *     If another package already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <libWrapper.LibWrapperAlreadyOverriddenError> exception.
 	 *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
 	 *     Note that if the GM has explicitly given your package priority over the existing one, no exception will be thrown and your wrapper will take over.
