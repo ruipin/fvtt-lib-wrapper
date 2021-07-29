@@ -30,6 +30,50 @@ let libwrapper_ready = false;
 let allow_libwrapper_registrations = true;
 
 
+// Regexes used in _get_target_object
+const TGT_SPLIT_RE = new RegExp([
+	'(',                  // {
+		'[^.[]+',         //   Match anything not containing a . or [
+	'|',                  // |
+		'\\[',            //   Match anything starting with [
+		'(',              //   {
+			"'",          //     Followed by a '
+			'(',          //     {
+				'[^\']',  //       That does not contain '
+			'|',          //     |
+				"\\'",    //       Ignore ' if it is escaped
+			'|',          //     |
+				'\\\\',   //       Ignore \ if it is escaped
+			')+?',        //     } (Non-greedy)
+			"'",          //     Ending in a '
+		'|',              //   |
+			'"',          //     Followed by a "
+			'(',          //     {
+				'[^"]',   //       That does not contain "
+			'|',          //     |
+				'\\"',    //       Ignore " if it is escaped
+			'|',          //     |
+				'\\\\',   //       Ignore \ if it is escaped
+			')+?',        //     } (Non-greedy)
+			'"',          //     Ending in a '
+		')',              //   }
+		'\\]',            //   And ending with ]
+	')'                   // }
+].join(''), 'g');
+
+const TGT_CLEANUP_RE = new RegExp([
+	'(',          // {
+		'^\\[\'', //   Anything starting with ['
+	'|',          // |
+		'\'\\]$', //   Anything ending with ']
+	'|',          // |
+		'^\\["',  //   Anything starting with ["
+	'|',          // |
+		'"\\]$',  //   Anything ending with "]
+	')'           // }
+].join(''), 'g');
+
+
 // Internal Methods
 export function _create_wrapper_from_object(obj, fn_name, name=undefined, package_info=undefined) {
 	const wrapper = new Wrapper(obj, fn_name, name, package_info);
@@ -44,38 +88,43 @@ function _split_target_and_setter(target) {
 	return [_target, is_setter];
 }
 
-function _valid_identifier(ident, allow_dot=false) {
-	const re = allow_dot ? /^[a-zA-Z_$][0-9a-zA-Z_$.]*$/ : /^[a-zA-Z_$][0-9a-zA-Z_$]*$/;
-	return re.test(ident);
+function _valid_root_scope_string(str) {
+	return /^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(str);
+}
+
+function _valid_target_string(str) {
+	return /^[a-zA-Z_$][0-9a-zA-Z_$]*?[.[]/.test(str);
 }
 
 function _get_target_object(_target, package_info=undefined) {
 	// Parse the target
 	const target = _split_target_and_setter(_target)[0];
+	if(!_valid_target_string(target))
+		throw new LibWrapperPackageError(`Invalid target '${target}'.`, package_info);
 
-	const split = target.split('.');
+	// Split the target
+	const split = target.match(TGT_SPLIT_RE).map((x)=>x.replace(/\\(.)/g, '$1').replace(TGT_CLEANUP_RE,''));
+
+	// Get function name
 	const fn_name = split.pop();
 
 	// Get root object
-	const root_nm = split.splice(0,1)[0];
-	if(!_valid_identifier(root_nm))
-		throw new LibWrapperPackageError(`Invalid target '${target}.'`, package_info);
+	const root_nm = split.splice(0,1)[0]; // equivalent to 'split.pop_front()' which JS doesn't have
+	if(!_valid_root_scope_string(root_nm))
+		throw new LibWrapperPackageError(`Invalid target '${target}': Invalid root scope '${root_nm}'.`, package_info);
 	if(root_nm == 'libWrapper')
 		throw new LibWrapperPackageError(`Not allowed to wrap libWrapper internals.`, package_info);
 
 	const root = get_global_variable(root_nm);
 	if(!root)
-		throw new LibWrapperPackageError(`Could not find target '${target}'.`, package_info);
+		throw new LibWrapperPackageError(`Could not find target '${target}': Could not find root scope '${root_nm}'.`, package_info);
 
 	// Get target object
 	let obj = root;
-	for(let scope of split) {
-		if(!_valid_identifier(scope))
-			throw new LibWrapperPackageError(`Invalid target '${target}'.`, package_info);
-
+	for(const scope of split) {
 		obj = obj[scope];
 		if(!obj)
-			throw new LibWrapperPackageError(`Could not find target '${target}'.`, package_info);
+			throw new LibWrapperPackageError(`Could not find target '${target}': Could not find scope '${scope}'.`, package_info);
 	}
 
 	return [obj, fn_name, target];
@@ -277,10 +326,21 @@ export class libWrapper {
 	 * Triggers FVTT hook 'libWrapper.Register' when successful.
 	 *
 	 * @param {string} package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest.
+	 *
 	 * @param {string} target      A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
-	 *                             This works for both normal methods, as well as properties with getters. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
+	 *
+	 *   Since v1.8.0.0, the path can contain string array indexing.
+	 *   For example, 'CONFIG.Actor.sheetClasses.character["dnd5e.ActorSheet5eCharacter"].cls.prototype._onLongRest' is a valid path.
+	 *   It is important to note that indexing in libWrapper does not work exactly like in JavaScript:
+	 *     - The index must be a single string, quoted using the ' or " characters. It does not support e.g. numbers or objects.
+	 *     - Quotes i.e. ' and " can be escaped with a preceding '\'.
+	 *     - The character '\' can be escaped with a preceding '\'.
+	 *
+	 *   By default, libWrapper searches for normal methods or property getters only. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
+	 *
 	 * @param {function} fn        Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.
 	 *                             The remaining arguments will correspond to the parameters passed to the wrapped method.
+	 *
 	 * @param {string} type        [Optional] The type of the wrapper. Default is 'MIXED'.
 	 *
 	 *   The possible types are:
@@ -527,7 +587,7 @@ export class libWrapper {
 
 		if(!targets.every(is_string))
 			throw new LibWrapperPackageError(`Parameter 'targets' must be a string, or an array of strings.`, package_info);
-		if(!targets.every((x) => _valid_identifier(x, true)))
+		if(!targets.every((x) => _valid_target_string(x)))
 			throw new LibWrapperPackageError(`Parameter 'targets' must only contain valid targets.`, package_info);
 
 		const ignore_errors = options.ignore_errors ?? false;
@@ -554,12 +614,14 @@ export class libWrapper {
 decorate_class_function_names(libWrapper);
 if(IS_UNITTEST) {
 	// Some methods should be exposed during unit tests
-	libWrapper._UT_unwrap_all = _unwrap_all;
+	libWrapper._UT_unwrap_all                 = _unwrap_all;
 	libWrapper._UT_create_wrapper_from_object = _create_wrapper_from_object
-	libWrapper._UT_clear = _clear;
-	libWrapper._UT_force_fast_mode = _force_fast_mode;
-	libWrapper._UT_get_force_fast_mode = (() => FORCE_FAST_MODE);
-	libWrapper._UT_clear_ignores = (() => LibWrapperConflicts.clear_ignores());
+	libWrapper._UT_clear                      = _clear;
+	libWrapper._UT_force_fast_mode            = _force_fast_mode;
+	libWrapper._UT_get_force_fast_mode        = (() => FORCE_FAST_MODE);
+	libWrapper._UT_clear_ignores              = (() => LibWrapperConflicts.clear_ignores());
+	libWrapper._UT_TGT_SPLIT_REGEX            = TGT_SPLIT_RE;
+	libWrapper._UT_TGT_CLEANUP_REGEX          = TGT_CLEANUP_RE;
 }
 Object.freeze(libWrapper);
 

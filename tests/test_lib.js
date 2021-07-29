@@ -467,3 +467,60 @@ test_combinations('Library: References to methods', async function (t) {
 	// Done
 	t.end();
 });
+
+
+
+// Test the behaviour of libWrapper when using array indexed targets
+test_combinations('Library: Array indexed targets', async function (t) {
+	setup();
+	const chkr = new CallOrderChecker(t);
+
+	// Define class
+	class X {};
+	X.prototype.x = chkr.gen_rt('Orig');
+
+	const A = {
+		B: {
+			C: {
+				['D"E']: {
+					["F'G"]: {
+						H: {
+							["I.J"]: {
+								K: {
+									["L\\M"]: {
+										X: X
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	};
+	globalThis.A = A;
+
+
+	// Instantiate
+	let x = new X();
+	await chkr.call(x, 'x', ['Orig',-1]);
+
+	// First wrapper
+	game.add_module('m1');
+	libWrapper.register('m1', 'A.B.C[\'D"E\']["F\'G"].H["I.J"].K["L\\\\M"].X.prototype.x', chkr.gen_wr('1'));
+	await chkr.call(x, 'x', ['1','Orig',-2]);
+
+	// Second wrapper
+	game.add_module('m2');
+	libWrapper.register('m2', 'A.B.C["D\\"E"][\'F\\\'G\'].H[\'I.J\'].K[\'L\\\\M\'].X.prototype.x', chkr.gen_wr('2'));
+	await chkr.call(x, 'x', ['2','1','Orig',-3]);
+
+	// Third wrapper
+	game.add_module('m3');
+	libWrapper.register('m3', 'A["B"].C["D\\"E"][\'F\\\'G\'].H[\'I.J\'].K[\'L\\\\M\'].X.prototype.x', chkr.gen_wr('3'));
+	await chkr.call(x, 'x', ['3','2','1','Orig',-4]);
+
+
+	// Done
+	t.end();
+});

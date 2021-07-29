@@ -283,10 +283,21 @@ To register a wrapper function, you should call the method `libWrapper.register(
  * Triggers FVTT hook 'libWrapper.Register' when successful.
  *
  * @param {string} package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest.
+ *
  * @param {string} target      A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
- *                             This works for both normal methods, as well as properties with getters. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
+ *
+ *   Since v1.8.0.0, the path can contain string array indexing.
+ *   For example, 'CONFIG.Actor.sheetClasses.character["dnd5e.ActorSheet5eCharacter"].cls.prototype._onLongRest' is a valid path.
+ *   It is important to note that indexing in libWrapper does not work exactly like in JavaScript:
+ *     - The index must be a single string, quoted using the ' or " characters. It does not support e.g. numbers or objects.
+ *     - Quotes i.e. ' and " can be escaped with a preceding '\'.
+ *     - The character '\' can be escaped with a preceding '\'.
+ *
+ *   By default, libWrapper searches for normal methods or property getters only. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
+ *
  * @param {function} fn        Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.
  *                             The remaining arguments will correspond to the parameters passed to the wrapped method.
+ *
  * @param {string} type        [Optional] The type of the wrapper. Default is 'MIXED'.
  *
  *   The possible types are:

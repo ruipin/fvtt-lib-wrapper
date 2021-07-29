@@ -7,7 +7,12 @@
 import test from 'tape';
 import {CallOrderChecker} from './call_order_checker.js';
 import {test_combinations} from './utilities.js';
-import {libWrapper as libWrapperShim, VERSIONS as SHIM_VERSIONS} from '../shim/shim.js';
+import {
+	libWrapper     as libWrapperShim,
+	VERSIONS       as SHIM_VERSIONS,
+	TGT_SPLIT_RE   as SHIM_TGT_SPLIT_RE,
+	TGT_CLEANUP_RE as SHIM_TGT_CLEANUP_RE
+} from '../shim/shim.js';
 import '../src/lib/api.js';
 
 
@@ -310,6 +315,17 @@ test("Shim: Version", function (t) {
 
 	t.equals(shim_major, lw_major, 'Major Version: Shim vs Library');
 	t.equals(shim_minor, lw_minor, 'Minor Version: Shim vs Library');
+
+
+	// Done
+	t.end();
+});
+
+
+// Test shim regexes
+test("Shim: Regexes", function (t) {
+	t.equals(libWrapper._UT_TGT_SPLIT_REGEX  .toString(), SHIM_TGT_SPLIT_RE  .toString(), "Target split   regex: Shim vs Library");
+	t.equals(libWrapper._UT_TGT_CLEANUP_REGEX.toString(), SHIM_TGT_CLEANUP_RE.toString(), "Target cleanup regex: Shim vs Library");
 
 
 	// Done

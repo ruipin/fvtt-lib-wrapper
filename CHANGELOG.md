@@ -1,3 +1,8 @@
+# 1.8.0.0 (2021-07-29)
+
+- Allow `libWrapper.register` targets to contain string Array indexes. (Fixes [Issue #46](https://github.com/ruipin/fvtt-lib-wrapper/issues/46))
+  For example, `CONFIG.Actor.sheetClasses.character["dnd5e.ActorSheet5eCharacter"].cls.prototype._onLongRest` is now a valid wrapper target.
+
 # 1.7.5.0 (2021-07-05)
 
 - Don't fail registering wrappers if `game` is malformed.
