@@ -164,7 +164,7 @@ export class Wrapper {
 			},
 
 			['toString']: function () {
-				return _this.get_wrapped(this).toString();
+				return "/* WARNING: libWrapper wrappers present! */\n" + _this.get_wrapped(this).toString();
 			}
 		};
 		const handler = obj[handler_nm];

@@ -1,3 +1,11 @@
+# 1.8.1.0 (2021-08-22)
+
+- Attempt to prevent other modules from breaking the libWrapper initialisation process.
+  - **[BREAKING]** Prevent use of `Game.toString()` before libWrapper initialises.
+  - Detect when the libWrapper initialisation process did not run because of another module.
+- Prepend `/* WARNING: libWrapper wrappers present! */` to `toString()` calls on methods wrapped by libWrapper.
+- Explicitly announce compatibility with Foundry 0.8.9.
+
 # 1.8.0.0 (2021-07-29)
 
 - Allow `libWrapper.register` targets to contain string Array indexes. (Fixes [Issue #46](https://github.com/ruipin/fvtt-lib-wrapper/issues/46))

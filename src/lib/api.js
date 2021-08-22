@@ -12,7 +12,7 @@ import {
 
 import {Wrapper} from './wrapper.js';
 import {get_global_variable, WRAPPERS, decorate_name, decorate_class_function_names} from '../utils/misc.js';
-import {PackageInfo} from '../utils/package_info.js';
+import {PackageInfo, PACKAGE_TYPES} from '../utils/package_info.js';
 
 import {init_error_listeners, onUnhandledError} from '../utils/errors/listeners.js';
 import {LibWrapperError, LibWrapperPackageError, LibWrapperInternalError} from '../utils/errors/base_errors.js';
@@ -173,7 +173,6 @@ function _get_default_priority(package_info, target) {
 	return 0;
 }
 
-
 function _unwrap_if_possible(wrapper) {
 	if(wrapper.is_empty() && PROPERTIES_CONFIGURABLE) {
 		wrapper.unwrap();
@@ -192,6 +191,22 @@ export function _clear(target) {
 	}
 }
 
+function _unregister(package_info, target, fail) {
+	// Find wrapper
+	const data = _find_package_data_with_target(package_info, target);
+	if(!data) {
+		if(fail)
+			throw new LibWrapperPackageError(`Cannot unregister '${target}' by ${package_info.logString} as no such wrapper has been registered`, package_info);
+		return;
+	}
+
+	const wrapper = data.wrapper;
+
+	// Remove from fn_data
+	wrapper.remove(data);
+	_unwrap_if_possible(wrapper);
+}
+
 export function _unwrap_all() {
 	for(let wrapper of WRAPPERS) {
 		wrapper.clear();
@@ -200,6 +215,7 @@ export function _unwrap_all() {
 
 	WRAPPERS.clear();
 }
+
 
 function _get_package_info(package_id) {
 	let package_info = new PackageInfo();
@@ -499,19 +515,8 @@ export class libWrapper {
 		// Get package information
 		const package_info = _get_package_info(package_id);
 
-		// Find wrapper
-		const data = _find_package_data_with_target(package_info, target);
-		if(!data) {
-			if(fail)
-				throw new LibWrapperPackageError(`Cannot unregister '${target}' by ${package_info.logString} as no such wrapper has been registered`, package_info);
-			return;
-		}
-
-		const wrapper = data.wrapper;
-
-		// Remove from fn_data
-		wrapper.remove(data);
-		_unwrap_if_possible(wrapper);
+		// Unregister wrapper
+		_unregister(package_info, target, fail);
 
 		// Done
 		if(DEBUG || package_info.id != PACKAGE_ID) {
@@ -645,6 +650,13 @@ init_error_listeners();
 	const libWrapperInit = decorate_name('libWrapperInit');
 	const obj = {
 		[libWrapperInit]: function(wrapped, ...args) {
+			// Unregister our pre-initialisation patches as they are no longer necessary
+			if(!IS_UNITTEST) {
+				const lw_info = new PackageInfo('lib-wrapper', PACKAGE_TYPES.MODULE);
+				_unregister(lw_info, 'Game.toString', /*fail=*/ true);
+				_unregister(lw_info, 'Game.prototype.initialize', /*fail=*/ true);
+			}
+
 			// Initialization steps
 			libwrapper_ready = true;
 
@@ -662,8 +674,21 @@ init_error_listeners();
 		}
 	};
 
-	if(!IS_UNITTEST)
+	if(!IS_UNITTEST) {
 		libWrapper.register('lib-wrapper', 'Game.prototype.initialize', obj[libWrapperInit], 'WRAPPER', {perf_mode: 'FAST'});
+
+		// We need to prevent people patching 'Game' and breaking libWrapper.
+		// Unfortunately we cannot re-define 'Game' as a non-settable property, but we can prevent people from using 'Game.toString'.
+		libWrapper.register('lib-wrapper', 'Game.toString', function() {
+			throw new LibWrapperPackageError("Using 'Game.toString()' before libWrapper initialises is not allowed for compatibility reasons.");
+		}, 'WRAPPER', {perf_mode: 'FAST'});
+
+		// Add a sanity check hook, just in case someone breaks our initialisation procedure
+		Hooks.once('init', ()=>{
+			if(!libwrapper_ready)
+				throw new LibWrapperInternalError("Could not successfuly initialise libWrapper, likely due to a compatibility issue with another module.");
+		});
+	}
 	else
 		obj[libWrapperInit](()=>{});
 }
