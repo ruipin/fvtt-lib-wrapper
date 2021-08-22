@@ -4,19 +4,22 @@
 'use strict';
 
 import {
-	PACKAGE_ID, MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, META_VERSION, VERSION, GIT_VERSION, VERSION_WITH_GIT, parse_manifest_version,
-	IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug,
-	TYPES, TYPES_REVERSE, TYPES_LIST,
-	PERF_MODES, PERF_MODES_REVERSE, PERF_MODES_LIST
+	MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, META_VERSION,
+	VERSION, GIT_VERSION, VERSION_WITH_GIT, parse_manifest_version, version_at_least
+} from '../shared/version.js';
+
+import {
+	PACKAGE_ID, HOOKS_SCOPE, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug,
 } from '../consts.js';
 
+import {WRAPPER_TYPES, PERF_MODES} from './enums.js';
 import {Wrapper} from './wrapper.js';
 import {get_global_variable, WRAPPERS, decorate_name, decorate_class_function_names} from '../utils/misc.js';
-import {PackageInfo, PACKAGE_TYPES} from '../utils/package_info.js';
+import {PackageInfo, PACKAGE_TYPES} from '../shared/package_info.js';
 
-import {init_error_listeners, onUnhandledError} from '../utils/errors/listeners.js';
-import {LibWrapperError, LibWrapperPackageError, LibWrapperInternalError} from '../utils/errors/base_errors.js';
-import {LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError} from '../utils/errors/api_errors.js';
+import {init_error_listeners, onUnhandledError} from '../errors/listeners.js';
+import {LibWrapperError, LibWrapperPackageError, LibWrapperInternalError} from '../errors/base_errors.js';
+import {LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError} from '../errors/api_errors.js';
 
 import {LibWrapperNotifications} from '../ui/notifications.js'
 import {LibWrapperStats} from '../ui/stats.js';
@@ -93,7 +96,7 @@ function _valid_root_scope_string(str) {
 }
 
 function _valid_target_string(str) {
-	return /^[a-zA-Z_$][0-9a-zA-Z_$]*?[.[]/.test(str);
+	return /^[a-zA-Z_$][0-9a-zA-Z_$]*?([.[]|$)/.test(str);
 }
 
 function _get_target_object(_target, package_info=undefined) {
@@ -105,9 +108,6 @@ function _get_target_object(_target, package_info=undefined) {
 	// Split the target
 	const split = target.match(TGT_SPLIT_RE).map((x)=>x.replace(/\\(.)/g, '$1').replace(TGT_CLEANUP_RE,''));
 
-	// Get function name
-	const fn_name = split.pop();
-
 	// Get root object
 	const root_nm = split.splice(0,1)[0]; // equivalent to 'split.pop_front()' which JS doesn't have
 	if(!_valid_root_scope_string(root_nm))
@@ -115,18 +115,35 @@ function _get_target_object(_target, package_info=undefined) {
 	if(root_nm == 'libWrapper')
 		throw new LibWrapperPackageError(`Not allowed to wrap libWrapper internals.`, package_info);
 
-	const root = get_global_variable(root_nm);
-	if(!root)
-		throw new LibWrapperPackageError(`Could not find target '${target}': Could not find root scope '${root_nm}'.`, package_info);
+	// Figure out the object and function name we want to wrap
+	let obj, fn_name;
+	if(split.length == 0) {
+		// In order to wrap something in global scope, it must be accessible from 'globalThis'
+		if(!(root_nm in globalThis))
+			throw new LibWrapperPackageError(`Could not find target '${target}': Could not find scope 'globalThis.${root_nm}'.`, package_info);
 
-	// Get target object
-	let obj = root;
-	for(const scope of split) {
-		obj = obj[scope];
-		if(!obj)
-			throw new LibWrapperPackageError(`Could not find target '${target}': Could not find scope '${scope}'.`, package_info);
+		fn_name = root_nm;
+		obj = globalThis;
+	}
+	else {
+		// Get function name
+		fn_name = split.pop();
+
+		// Get root variable
+		const root = get_global_variable(root_nm);
+		if(!root)
+			throw new LibWrapperPackageError(`Could not find target '${target}': Could not find root scope '${root_nm}'.`, package_info);
+
+		// Get target object
+		obj = root;
+		for(const scope of split) {
+			obj = obj[scope];
+			if(!obj)
+				throw new LibWrapperPackageError(`Could not find target '${target}': Could not find scope '${scope}'.`, package_info);
+		}
 	}
 
+	// Done
 	return [obj, fn_name, target];
 }
 
@@ -286,6 +303,7 @@ export class libWrapper {
 	 */
 	static set debug(value) { setDebug(value) }
 
+
 	// Errors
 	static get LibWrapperError() { return LibWrapperError; };
 	static get Error() { return LibWrapperError; }
@@ -306,6 +324,16 @@ export class libWrapper {
 	static get onUnhandledError() { return onUnhandledError; };
 
 
+	// Enums - First introduced in v1.9.0.0
+	static get WRAPPER()  { return WRAPPER_TYPES.WRAPPER  };
+	static get MIXED()    { return WRAPPER_TYPES.MIXED    };
+	static get OVERRIDE() { return WRAPPER_TYPES.OVERRIDE };
+
+	static get PERF_NORMAL() { return PERF_MODES.NORMAL };
+	static get PERF_AUTO()   { return PERF_MODES.AUTO   };
+	static get PERF_FAST()   { return PERF_MODES.FAST   };
+
+
 	// Methods
 	/**
 	 * Test for a minimum libWrapper version.
@@ -317,20 +345,7 @@ export class libWrapper {
 	 * @param {number} suffix  [Optional] Minimum suffix version. Default is 0.
 	 * @returns {boolean}      Returns true if the libWrapper version is at least the queried version, otherwise false.
 	 */
-	static version_at_least(major, minor=0, patch=0, suffix=0) {
-		if(MAJOR_VERSION == major) {
-			if(MINOR_VERSION == minor) {
-				if(PATCH_VERSION == patch) {
-					return SUFFIX_VERSION == suffix;
-				}
-
-				return PATCH_VERSION >= patch;
-			}
-
-			return MINOR_VERSION > minor;
-		}
-		return MAJOR_VERSION > major;
-	}
+	static get version_at_least() { return version_at_least };
 
 	/**
 	 * Register a new wrapper.
@@ -361,16 +376,16 @@ export class libWrapper {
 	 *
 	 *   The possible types are:
 	 *
-	 *   'WRAPPER':
+	 *   'WRAPPER' / libWrapper.WRAPPER:
 	 *     Use if your wrapper will *always* continue the chain.
 	 *     This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
 	 *     Note that the library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
 	 *
-	 *   'MIXED':
+	 *   'MIXED' / libWrapper.MIXED:
 	 *     Default type. Your wrapper will be allowed to decide whether it continue the chain or not.
 	 *     These will always come after 'WRAPPER'-type wrappers. Order is not guaranteed, but conflicts will be auto-detected.
 	 *
-	 *   'OVERRIDE':
+	 *   'OVERRIDE' / libWrapper.OVERRIDE:
 	 *     Use if your wrapper will *never* continue the chain. This type has the lowest priority, and will always be called last.
 	 *     If another package already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <libWrapper.LibWrapperAlreadyOverriddenError> exception.
 	 *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
@@ -389,19 +404,19 @@ export class libWrapper {
 	 *
 	 *   The possible modes are:
 	 *
-	 *   'NORMAL':
+	 *   'NORMAL' / libWrapper.PERF_NORMAL:
 	 *     Enables all conflict detection capabilities provided by libWrapper. Slower than 'FAST'.
 	 *     Useful if wrapping a method commonly modified by other packages, to ensure most issues are detected.
 	 *     In most other cases, this mode is not recommended and 'AUTO' should be used instead.
 	 *
-	 *   'FAST':
+	 *   'FAST' / libWrapper.PERF_FAST:
 	 *     Disables some conflict detection capabilities provided by libWrapper, in exchange for performance. Faster than 'NORMAL'.
 	 *     Will guarantee wrapper call order and per-package prioritization, but fewer conflicts will be detectable.
 	 *     This performance mode will result in comparable performance to traditional non-libWrapper wrapping methods.
 	 *     Useful if wrapping a method called repeatedly in a tight loop, for example 'WallsLayer.testWall'.
 	 *     In most other cases, this mode is not recommended and 'AUTO' should be used instead.
 	 *
-	 *   'AUTO':
+	 *   'AUTO' / libWrapper.PERF_AUTO:
 	 *     Default performance mode. If unsure, choose this mode.
 	 *     Will allow the GM to choose which performance mode to use.
 	 *     Equivalent to 'FAST' when the libWrapper 'High-Performance Mode' setting is enabled by the GM, otherwise 'NORMAL'.
@@ -421,19 +436,19 @@ export class libWrapper {
 		if(!fn || !(fn instanceof Function))
 			throw new LibWrapperPackageError('Parameter \'fn\' must be a function.', package_info);
 
-		type = TYPES[type.toUpperCase()];
-		if(typeof type === 'undefined' || !(type in TYPES_REVERSE))
-			throw new LibWrapperPackageError(`Parameter 'type' must be one of [${TYPES_LIST.join(', ')}].`, package_info);
+		type = WRAPPER_TYPES.get(type, null);
+		if(type === null)
+			throw new LibWrapperPackageError(`Parameter 'type' must be one of [${WRAPPER_TYPES.list.join(', ')}].`, package_info);
 
-		const chain = options?.chain ?? (type < TYPES.OVERRIDE);
+		const chain = options?.chain ?? (type.value < WRAPPER_TYPES.OVERRIDE.value);
 		if(typeof chain !== 'boolean')
 			throw new LibWrapperPackageError(`Parameter 'chain' must be a boolean.`, package_info);
 
 		if(IS_UNITTEST && FORCE_FAST_MODE)
 			options.perf_mode = 'FAST';
-		const perf_mode = PERF_MODES[options?.perf_mode?.toUpperCase() ?? 'AUTO'];
-		if(typeof perf_mode === 'undefined' || !(perf_mode in PERF_MODES_REVERSE))
-			throw new LibWrapperPackageError(`Parameter 'perf_mode' must be one of [${PERF_MODES_LIST.join(', ')}].`, package_info);
+		const perf_mode = PERF_MODES.get(options?.perf_mode ?? 'AUTO', null);
+		if(perf_mode === null)
+			throw new LibWrapperPackageError(`Parameter 'perf_mode' must be one of [${PERF_MODE.list.join(', ')}].`, package_info);
 
 
 		// Split '#set' from the target
@@ -461,8 +476,8 @@ export class libWrapper {
 			LibWrapperStats.register_package(package_info);
 
 		// Only allow one 'OVERRIDE' type
-		if(type >= TYPES.OVERRIDE) {
-			const existing = wrapper.get_fn_data(is_setter).find((x) => { return x.type == TYPES.OVERRIDE });
+		if(type.value >= WRAPPER_TYPES.OVERRIDE.value) {
+			const existing = wrapper.get_fn_data(is_setter).find((x) => { return x.type === WRAPPER_TYPES.OVERRIDE });
 
 			if(existing) {
 				if(priority <= existing.priority) {
@@ -470,7 +485,7 @@ export class libWrapper {
 				}
 				else {
 					// We trigger a hook first
-					if(Hooks.call('libWrapper.OverrideLost', existing.package_info.id, package_info.id, wrapper.name, wrapper.frozen_names) !== false) {
+					if(Hooks.call(`${HOOKS_SCOPE}.OverrideLost`, existing.package_info.id, package_info.id, wrapper.name, wrapper.frozen_names) !== false) {
 						LibWrapperConflicts.register_conflict(package_info, existing.package_info, wrapper, null, false);
 						LibWrapperNotifications.conflict(existing.package_info, package_info, false,
 							`${package_info.logStringCapitalized} has higher priority, and is replacing the 'OVERRIDE' registered by ${package_info.logString} for '${wrapper.name}'.`
@@ -497,8 +512,8 @@ export class libWrapper {
 
 		// Done
 		if(DEBUG || (!IS_UNITTEST && package_info.id != PACKAGE_ID)) {
-			Hooks.callAll('libWrapper.Register', package_info.id, target, type, options);
-			console.info(`libWrapper: Registered a wrapper for '${target}' by ${package_info.logString} with type ${TYPES_REVERSE[type]}.`);
+			Hooks.callAll(`${HOOKS_SCOPE}.Register`, package_info.id, target, type, options);
+			console.info(`libWrapper: Registered a wrapper for '${target}' by ${package_info.logString} with type ${type}.`);
 		}
 	}
 
@@ -520,7 +535,7 @@ export class libWrapper {
 
 		// Done
 		if(DEBUG || package_info.id != PACKAGE_ID) {
-			Hooks.callAll('libWrapper.Unregister', package_info.id, target);
+			Hooks.callAll(`${HOOKS_SCOPE}.Unregister`, package_info.id, target);
 			console.info(`libWrapper: Unregistered the wrapper for '${target}' by ${package_info.logString}.`);
 		}
 	}
@@ -545,7 +560,7 @@ export class libWrapper {
 		}
 
 		if(DEBUG || package_info.id != PACKAGE_ID) {
-			Hooks.callAll('libWrapper.UnregisterAll', package_info.id);
+			Hooks.callAll(`${HOOKS_SCOPE}.UnregisterAll`, package_info.id);
 			console.info(`libWrapper: Unregistered all wrapper functions by ${package_info.logString}.`);
 		}
 	}
@@ -668,20 +683,20 @@ init_error_listeners();
 
 			// Notify everyone the library has loaded and is ready to start registering wrappers
 			console.info(`libWrapper ${VERSION_WITH_GIT}: Ready.`);
-			Hooks.callAll('libWrapper.Ready', libWrapper);
+			Hooks.callAll(`${HOOKS_SCOPE}.Ready`, libWrapper);
 
 			return wrapped(...args);
 		}
 	};
 
 	if(!IS_UNITTEST) {
-		libWrapper.register('lib-wrapper', 'Game.prototype.initialize', obj[libWrapperInit], 'WRAPPER', {perf_mode: 'FAST'});
+		libWrapper.register('lib-wrapper', 'Game.prototype.initialize', obj[libWrapperInit], libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
 		// We need to prevent people patching 'Game' and breaking libWrapper.
 		// Unfortunately we cannot re-define 'Game' as a non-settable property, but we can prevent people from using 'Game.toString'.
 		libWrapper.register('lib-wrapper', 'Game.toString', function() {
 			throw new LibWrapperPackageError("Using 'Game.toString()' before libWrapper initialises is not allowed for compatibility reasons.");
-		}, 'WRAPPER', {perf_mode: 'FAST'});
+		}, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
 		// Add a sanity check hook, just in case someone breaks our initialisation procedure
 		Hooks.once('init', ()=>{

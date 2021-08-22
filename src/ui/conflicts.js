@@ -3,10 +3,10 @@
 
 'use strict';
 
-import {DEBUG} from '../consts.js';
-import {LibWrapperInternalError} from '../utils/errors/base_errors.js';
+import {DEBUG, HOOKS_SCOPE} from '../consts.js';
+import {LibWrapperInternalError} from '../errors/base_errors.js';
 import {LibWrapperStats} from './stats.js';
-import {PackageInfo} from '../utils/package_info.js';
+import {PackageInfo} from '../shared/package_info.js';
 
 
 class IgnoredConflictEntry {
@@ -132,7 +132,7 @@ export class LibWrapperConflicts {
 		}
 
 		// We then notify everyone that a conflict was just detected. This hook being handled will prevent us from registering the package conflict
-		if(!ignored && Hooks.call('libWrapper.ConflictDetected', package_info.id, other_info.id, target, wrapper.frozen_names) === false) {
+		if(!ignored && Hooks.call(`${HOOKS_SCOPE}.ConflictDetected`, package_info.id, other_info.id, target, wrapper.frozen_names) === false) {
 			ignored = true;
 			if(DEBUG)
 				console.debug(`Conflict between ${package_info.logString} and ${other_info.logString} over '${wrapper.name}' ignored, as 'libWrapper.ConflictDetected' hook returned false.`);

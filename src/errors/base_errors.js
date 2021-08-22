@@ -3,7 +3,7 @@
 
 'use strict';
 
-import {PackageInfo} from '../package_info.js';
+import {PackageInfo} from '../shared/package_info.js';
 
 
 // Custom libWrapper Error
@@ -62,6 +62,8 @@ export class LibWrapperInternalError extends LibWrapperError {
 	get module() { return this.package_id; }
 }
 Object.freeze(LibWrapperInternalError);
+
+export const InternalError = LibWrapperInternalError;
 
 
 

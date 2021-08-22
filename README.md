@@ -34,7 +34,8 @@ Library for [Foundry VTT](https://foundryvtt.com/) which provides package develo
       - [1.3.3.6. Fallback / Polyfill detection](#1336-fallback--polyfill-detection)
       - [1.3.3.7. Exceptions](#1337-exceptions)
       - [1.3.3.8. Hooks](#1338-hooks)
-      - [1.3.3.9. Examples](#1339-examples)
+      - [1.3.3.9. Enumerations](#1339-enumerations)
+      - [1.3.3.10. Examples](#13310-examples)
     - [1.3.4. Using libWrapper inside a System](#134-using-libwrapper-inside-a-system)
     - [1.3.5. Compatibility Shim](#135-compatibility-shim)
   - [1.4. Support](#14-support)
@@ -255,7 +256,7 @@ class TileDocument extends CanvasDocumentMixin(foundry.documents.BaseTile) {
 If we wanted to patch the method `_onCreate` which `TileDocument` inherits from `CanvasDocumentMixin(foundry.documents.BaseTile)`, we could do the following:
 
 ```javascript
-libWrapper.register('navbar-tweaks', 'TileDocument.prototype._onCreate', function(wrapped, ...args) {
+libWrapper.register('my-fvtt-package', 'TileDocument.prototype._onCreate', function(wrapped, ...args) {
   console.log("TileDocument.prototype._onCreate called");
   return wrapped(...args);
 }, 'WRAPPER');
@@ -302,16 +303,16 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *
  *   The possible types are:
  *
- *   'WRAPPER':
+ *   'WRAPPER' / libWrapper.WRAPPER:
  *     Use if your wrapper will *always* continue the chain.
  *     This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
  *     Note that the library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
  *
- *   'MIXED':
- *     Default type. Your wrapper will be allowed to decide whether it should continue the chain or not.
+ *   'MIXED' / libWrapper.MIXED:
+ *     Default type. Your wrapper will be allowed to decide whether it continue the chain or not.
  *     These will always come after 'WRAPPER'-type wrappers. Order is not guaranteed, but conflicts will be auto-detected.
  *
- *   'OVERRIDE':
+ *   'OVERRIDE' / libWrapper.OVERRIDE:
  *     Use if your wrapper will *never* continue the chain. This type has the lowest priority, and will always be called last.
  *     If another package already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <libWrapper.LibWrapperAlreadyOverriddenError> exception.
  *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
@@ -330,19 +331,19 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *
  *   The possible modes are:
  *
- *   'NORMAL':
+ *   'NORMAL' / libWrapper.PERF_NORMAL:
  *     Enables all conflict detection capabilities provided by libWrapper. Slower than 'FAST'.
  *     Useful if wrapping a method commonly modified by other packages, to ensure most issues are detected.
  *     In most other cases, this mode is not recommended and 'AUTO' should be used instead.
  *
- *   'FAST':
+ *   'FAST' / libWrapper.PERF_FAST:
  *     Disables some conflict detection capabilities provided by libWrapper, in exchange for performance. Faster than 'NORMAL'.
  *     Will guarantee wrapper call order and per-package prioritization, but fewer conflicts will be detectable.
  *     This performance mode will result in comparable performance to traditional non-libWrapper wrapping methods.
  *     Useful if wrapping a method called repeatedly in a tight loop, for example 'WallsLayer.testWall'.
  *     In most other cases, this mode is not recommended and 'AUTO' should be used instead.
  *
- *   'AUTO':
+ *   'AUTO' / libWrapper.PERF_AUTO:
  *     Default performance mode. If unsure, choose this mode.
  *     Will allow the GM to choose which performance mode to use.
  *     Equivalent to 'FAST' when the libWrapper 'High-Performance Mode' setting is enabled by the GM, otherwise 'NORMAL'.
@@ -599,7 +600,40 @@ Since v1.4.0.0, the libWrapper library triggers Hooks for various events, listed
     - If this hook returns `false`, this event will not be treated as a conflict.
 
 
-#### 1.3.3.9. Examples
+#### 1.3.3.9. Enumerations
+
+Since v1.9.0.0, libWrapper defines a couple of enumeration objects that can be passed to the libWrapper API methods, instead of using strings.
+
+For example, instead of using `'OVERRIDE'` in the `libWrapper.register` call:
+
+```javascript
+libWrapper.register('my-fvtt-package', 'Foo.prototype.bar', function (...args) {
+    /* ... */
+}, 'OVERRIDE');
+```
+
+One could instead use `libWrapper.OVERRIDE`:
+```javascript
+libWrapper.register('my-fvtt-package', 'Foo.prototype.bar', function (...args) { // There is no 'wrapped' parameter in the wrapper signature
+    /* ... */
+}, libWrapper.OVERRIDE);
+```
+
+A full list of the enumeration values provided by libWrapper follows:
+
+```javascript
+static get WRAPPER()  { /* ... */ };
+static get MIXED()    { /* ... */ };
+static get OVERRIDE() { /* ... */ };
+
+static get PERF_NORMAL() { /* ... */ };
+static get PERF_AUTO()   { /* ... */ };
+static get PERF_FAST()   { /* ... */ };
+```
+
+
+
+#### 1.3.3.10. Examples
 
 A list of packages using libWrapper, which can be used as further examples, can be found in the wiki page [Modules using libWrapper](https://github.com/ruipin/fvtt-lib-wrapper/wiki/Modules-using-libWrapper).
 

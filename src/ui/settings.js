@@ -3,10 +3,12 @@
 
 'use strict';
 
-import {PACKAGE_ID, PACKAGE_TITLE, VERSION_WITH_GIT, TYPES_REVERSE, PERF_MODES_REVERSE} from '../consts.js';
-import {LibWrapperStats} from './stats.js';
-import {WRAPPERS} from '../utils/misc.js';
-import {PackageInfo, PACKAGE_TYPES} from '../utils/package_info.js';
+import { VERSION_WITH_GIT } from '../shared/version.js';
+import { PACKAGE_ID, PACKAGE_TITLE } from '../consts.js';
+import { WRAPPER_TYPES, PERF_MODES } from '../lib/enums.js';
+import { LibWrapperStats } from './stats.js';
+import { WRAPPERS } from '../utils/misc.js';
+import { PackageInfo, PACKAGE_TYPES } from '../shared/package_info.js';
 
 // Map of currently loaded priorities
 export const PRIORITIES = new Map();
@@ -171,8 +173,8 @@ export class LibWrapperSettings extends FormApplication {
 
 					const d = {
 						name     : fn_data.package_info.settingsName,
-						type     : TYPES_REVERSE[fn_data.type],
-						perf_mode: PERF_MODES_REVERSE[fn_data.perf_mode]
+						type     : fn_data.type.name,
+						perf_mode: fn_data.perf_mode.name
 					};
 
 					if(d.perf_mode == 'AUTO')

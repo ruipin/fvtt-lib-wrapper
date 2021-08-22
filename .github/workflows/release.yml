@@ -75,6 +75,16 @@ jobs:
         shell: bash
 
 
+      - name: Fetch submodules
+        id: fetch_submodules
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git submodule sync --recursive
+          git submodule update --init --recursive --force
+
+        shell: bash
+
+
       - name: Prepare node
         uses: actions/setup-node@v2-beta
         with:

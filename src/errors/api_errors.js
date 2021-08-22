@@ -4,8 +4,8 @@
 'use strict';
 
 import {LibWrapperError} from './base_errors.js';
-import {PackageInfo} from '../package_info.js';
-import {LibWrapperConflicts} from '../../ui/conflicts.js';
+import {PackageInfo} from '../shared/package_info.js';
+import {LibWrapperConflicts} from '../ui/conflicts.js';
 
 
 // Already Overridden Error

@@ -7,7 +7,7 @@ import test from 'tape';
 import {} from './utilities.js';
 import '../src/lib/api.js';
 import {LibWrapperConflicts} from '../src/ui/conflicts.js';
-import {PackageInfo} from '../src/utils/package_info.js';
+import {PackageInfo} from '../src/shared/package_info.js';
 
 
 function setup() {

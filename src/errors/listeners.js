@@ -3,10 +3,10 @@
 
 'use strict';
 
-import {IS_UNITTEST, DEBUG} from '../../consts.js';
-import {global_eval} from '../misc.js';
+import {IS_UNITTEST, DEBUG} from '../consts.js';
+import {global_eval} from '../utils/misc.js';
 import {LibWrapperError} from './base_errors.js';
-import {LibWrapperNotifications} from '../../ui/notifications.js';
+import {LibWrapperNotifications} from '../ui/notifications.js';
 
 
 // Error listeners for unhandled exceptions

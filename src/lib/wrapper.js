@@ -3,12 +3,13 @@
 
 'use strict';
 
-import {PACKAGE_ID, PROPERTIES_CONFIGURABLE, TYPES, DEBUG, PERF_MODES} from '../consts.js';
+import {PACKAGE_ID, PROPERTIES_CONFIGURABLE, DEBUG} from '../consts.js';
+import {WRAPPER_TYPES, PERF_MODES} from './enums.js';
 import {decorate_name, set_function_name, decorate_class_function_names} from '../utils/misc.js';
-import {PackageInfo} from '../utils/package_info.js';
+import {PackageInfo} from '../shared/package_info.js';
 
-import {LibWrapperInternalError, LibWrapperPackageError} from '../utils/errors/base_errors.js';
-import {LibWrapperInvalidWrapperChainError} from '../utils/errors/api_errors.js';
+import {LibWrapperInternalError, LibWrapperPackageError} from '../errors/base_errors.js';
+import {LibWrapperInvalidWrapperChainError} from '../errors/api_errors.js';
 
 import {LibWrapperNotifications} from '../ui/notifications.js';
 import {LibWrapperStats} from '../ui/stats.js';
@@ -163,7 +164,7 @@ export class Wrapper {
 				}
 			},
 
-			['toString']: function () {
+			toString: function () {
 				return "/* WARNING: libWrapper wrappers present! */\n" + _this.get_wrapped(this).toString();
 			}
 		};
@@ -652,7 +653,7 @@ export class Wrapper {
 
 				// WRAPPER-type functions that do this are breaking an API requirement, as such we need to be loud about this.
 				// As a "punishment" of sorts, we forcefully unregister them and ignore whatever they did.
-				if(data.type == TYPES.WRAPPER) {
+				if(data.type === WRAPPER_TYPES.WRAPPER) {
 					LibWrapperNotifications.console_ui(
 						`Error detected in ${data.package_info.logString}.`,
 						`The wrapper for '${data.target}' registered by ${data.package_info.logString} with type WRAPPER did not chain the call to the next wrapper, which breaks a libWrapper API requirement. This wrapper will be unregistered.`,
@@ -666,7 +667,7 @@ export class Wrapper {
 						result = next_fn.apply(obj, args);
 				}
 
-				// Other TYPES get a generic 'conflict' message
+				// Other WRAPPER_TYPES get a generic 'conflict' message
 				else if(!data.warned_conflict && !is_last_wrapper) {
 					LibWrapperNotifications.conflict(data.package_info, affectedPackages, true, `${data.package_info.logStringCapitalized} did not chain the wrapper for '${data.target}'.`);
 					data.warned_conflict = true;
@@ -784,7 +785,7 @@ export class Wrapper {
 				continue;
 
 			let fn_data = this.get_fn_data(setter);
-			fn_data.sort((a,b) => { return a.type - b.type || b.priority - a.priority });
+			fn_data.sort((a,b) => { return a.type.value - b.type.value || b.priority - a.priority });
 		}
 	}
 

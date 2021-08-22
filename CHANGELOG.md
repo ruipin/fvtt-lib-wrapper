@@ -1,3 +1,12 @@
+# 1.9.0.0 (2021-08-23)
+
+- Support wrapping global methods when they are available in `globalThis` and the associated descriptor has `configurable: true`.
+- Include shared library [fvtt-shared-library](https://github.com/ruipin/fvtt-shared-library) statically for `PackageInfo`, polyfills, and Enums.
+  - Now correctly able to detect package IDs (e.g. in case of compatibility issues) before the `init` hook.
+  - Can now use enum objects for the `type` and `options.perf_mode` parameters to `libWrapper.register`, e.g. `libWrapper.WRAPPER` or `libWrapper.PERF_FAST`.
+- Fix `libWrapper.register` API: The value `NORMAL` for `options.perf_mode` was incorrectly not permitted.
+- Miscellaneous code cleanup.
+
 # 1.8.1.0 (2021-08-22)
 
 - Attempt to prevent other modules from breaking the libWrapper initialisation process.
