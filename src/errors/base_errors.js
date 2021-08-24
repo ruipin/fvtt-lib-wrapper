@@ -3,7 +3,9 @@
 
 'use strict';
 
-import {PackageInfo} from '../shared/package_info.js';
+import { PACKAGE_ID } from '../consts.js';
+import { PackageInfo } from '../shared/package_info.js';
+import { inject_packages_into_error } from './error-utils.js';
 
 
 // Custom libWrapper Error
@@ -20,6 +22,10 @@ export class LibWrapperError extends Error {
 		this.ui_msg = ui_msg;
 		this.console_msg = console_msg;
 		this.notification_fn = notification_fn ?? 'error';
+
+		// Detect packages, inject them into error message
+		// Note: We hide 'lib-wrapper' from the list of detected packages, except when this was a libWrapper-internal error
+		inject_packages_into_error(this, this instanceof LibWrapperInternalError ? null : PACKAGE_ID);
 	}
 
 	/**

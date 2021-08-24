@@ -681,6 +681,6 @@ The largest community-provided support channels are:
 
 ⚠ *Do not open a support ticket using the link below unless you are seeing an **internal libWrapper error** or are a **package developer**. We also do not provide support for packages that promote or otherwise endorse piracy. Your issue will be closed as invalid if you do not fulfill these requirements.*
 
-If you encounter an internal libWrapper error, or are a module developer looking for support (i.e. bug reports, feature requests, questions, etc), you may get in touch by opening a new issue on the [libWrapper issue tracker](https://github.com/ruipin/fvtt-lib-wrapper/issues). It is usually a good idea to search the existing issues first in case yours has already been answered before.
+If you encounter an internal libWrapper error, or are a package developer looking for support (i.e. bug reports, feature requests, questions, etc), you may get in touch by opening a new issue on the [libWrapper issue tracker](https://github.com/ruipin/fvtt-lib-wrapper/issues). It is usually a good idea to search the existing issues first in case yours has already been answered before.
 
 If your support request relates to an error, please describe with as much detail as possible the error you are seeing, and what you have already done to troubleshoot it. Providing a step-by-step description of how to reproduce it or a snippet of code that triggers the issue is especially welcome, and will ensure you get an answer as fast as possible.

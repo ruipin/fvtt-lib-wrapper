@@ -1,3 +1,7 @@
+# 1.9.1.0 (2021-08-25)
+
+- When an unhandled exception is seen by libWrapper, it will detect involved packages (if any) and append this list to the exception message.
+
 # 1.9.0.0 (2021-08-23)
 
 - Support wrapping global methods when they are available in `globalThis` and the associated descriptor has `configurable: true`.

@@ -3,42 +3,84 @@
 
 'use strict';
 
-import {IS_UNITTEST, DEBUG} from '../consts.js';
-import {global_eval} from '../utils/misc.js';
-import {LibWrapperError} from './base_errors.js';
-import {LibWrapperNotifications} from '../ui/notifications.js';
+import { IS_UNITTEST, DEBUG } from '../consts.js';
+import { global_eval } from '../utils/misc.js';
+import { LibWrapperError } from './base_errors.js';
+import { is_error_object, inject_packages_into_error } from './error-utils.js';
+import { LibWrapperNotifications } from '../ui/notifications.js';
 
 
-// Error listeners for unhandled exceptions
-export const onUnhandledError = function(event) {
-	// This is a LibWrapperError exception, and we need to handle it
+/*
+ * Make sure browser is allowed to collect full stack traces, for easier debugging of issues
+ */
+Error.stackTraceLimit = Infinity;
+
+
+/*
+ * Utility Methods
+ */
+function on_libwrapper_error(error) {
+	// Notify user of the issue
+	if(error.ui_msg && error.notification_fn)
+		LibWrapperNotifications.ui(`${error.ui_msg} (See JS console)`, error.notification_fn);
+
+	// Trigger 'onUnhandled'
+	if(error.onUnhandled)
+		error.onUnhandled.apply(error);
+}
+
+function on_any_error(error) {
+	// Detect packages and inject a list into the error object
+	inject_packages_into_error(error);
+}
+
+
+/*
+ * Error Listeners
+ */
+export const onUnhandledError = function(error) {
 	try {
-		// We first check whether the cause of the event is an instance of LibWrapperError. Otherwise, we do nothing.
-		const exc = event.reason ?? event.error ?? event;
-		if(!exc || !(exc instanceof LibWrapperError))
+		// Sanity check
+		if(!is_error_object(error))
 			return;
 
-		// Notify user of the issue
-		if(exc.ui_msg && exc.notification_fn)
-			LibWrapperNotifications.ui(`${exc.ui_msg} (See JS console)`, exc.notification_fn);
+		// If we have an instance of LibWrapperError, we trigger the libWrapper-specific behaviour
+		if(error instanceof LibWrapperError)
+			on_libwrapper_error(error);
 
-		// Trigger 'onUnhandled'
-		if(exc.onUnhandled)
-			exc.onUnhandled.apply(exc);
+		// Trigger the error handling code for all errors
+		on_any_error(error);
 	}
 	catch (e) {
-		console.warn('libWrapper: Exception thrown while processing an unhandled exception.', e);
+		console.warn('libWrapper: Exception thrown while processing an unhandled error.', e);
 	}
 }
 
+const onUnhandledErrorEvent = function(event) {
+	try {
+		// The cause of the event is what we're interested in
+		const cause = event.reason ?? event.error ?? event;
+
+		// We've got our error object, call onUnhandledError
+		return onUnhandledError(cause);
+	}
+	catch (e) {
+		console.warn('libWrapper: Exception thrown while processing an unhandled error event.', e);
+	}
+}
+
+
+/*
+ * Set up error listeners
+ */
 export const init_error_listeners = function() {
 	// Do nothing inside unit tests
 	if(IS_UNITTEST)
 		return;
 
 	// Javascript native unhandled exception listeners
-	globalThis.addEventListener('error', onUnhandledError);
-	globalThis.addEventListener('unhandledrejection', onUnhandledError);
+	globalThis.addEventListener('error', onUnhandledErrorEvent);
+	globalThis.addEventListener('unhandledrejection', onUnhandledErrorEvent);
 
 	// Wrap Hooks._call to intercept unhandled exceptions during hooks
 	// We don't use libWrapper itself here as we can guarantee we come first (well, before any libWrapper wrapper) and we want to avoid polluting the callstack of every single hook.
