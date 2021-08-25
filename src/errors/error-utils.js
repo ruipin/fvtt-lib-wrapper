@@ -5,6 +5,7 @@
 
 import { PACKAGE_ID } from '../consts.js';
 import { PackageInfo, PACKAGE_TYPES } from '../shared/package_info.js';
+import { decorate_name } from '../utils/misc.js';
 
 
 /*
@@ -24,10 +25,25 @@ export function is_error_object(obj) {
 }
 
 
+const LIBWRAPPER_IGNORE_MATCHES = [
+	'/listeners.js', // ignore anything in the listeners.js file
+	decorate_name('call_wrapped'), // shows up every time libWrapper is in the callstack
+	decorate_name('Application.prototype._render'), // has a libWrapper patch for unhandled error detection
+];
 function get_involved_packages(stack, ignore_ids=undefined) {
 	return PackageInfo.collect_all(stack, /* include_fn= */ (id, type, match) => {
-		// We don't include libWrapper's listeners.js file since that file shows up in almost every single stack trace
-		return id !== PACKAGE_ID || type !== PACKAGE_TYPES.MODULE || !match.includes('/listeners.js')
+		// Include any module that isn't libWrapper
+		if(id !== PACKAGE_ID || type !== PACKAGE_TYPES.MODULE)
+			return true;
+
+		// We don't include some libWrapper matches - specifically those that are in every single exception, or caused by a different module
+		for(const needle of LIBWRAPPER_IGNORE_MATCHES) {
+			if(match.includes(needle))
+				return false;
+		}
+
+		// Otherwise it is included
+		return true;
 	}, ignore_ids);
 }
 
