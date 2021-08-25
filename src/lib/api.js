@@ -486,10 +486,13 @@ export class libWrapper {
 				else {
 					// We trigger a hook first
 					if(Hooks.call(`${HOOKS_SCOPE}.OverrideLost`, existing.package_info.id, package_info.id, wrapper.name, wrapper.frozen_names) !== false) {
-						LibWrapperConflicts.register_conflict(package_info, existing.package_info, wrapper, null, false);
-						LibWrapperNotifications.conflict(existing.package_info, package_info, false,
-							`${package_info.logStringCapitalized} has higher priority, and is replacing the 'OVERRIDE' registered by ${package_info.logString} for '${wrapper.name}'.`
-						);
+						const notify_user = LibWrapperConflicts.register_conflict(package_info, existing.package_info, wrapper, null, false);
+
+						if(notify_user) {
+							LibWrapperNotifications.conflict(existing.package_info, package_info, false,
+								`${package_info.logStringCapitalized} has higher priority, and is replacing the 'OVERRIDE' registered by ${package_info.logString} for '${wrapper.name}'.`
+							);
+						}
 					}
 				}
 			}

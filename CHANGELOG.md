@@ -1,3 +1,7 @@
+# 1.9.2.0 (2021-08-25)
+
+- Resolve `ignore_conflicts` API not ignoring all types of conflicts. (Fixes [Issue #49](https://github.com/ruipin/fvtt-lib-wrapper/issues/49))
+
 # 1.9.1.0 (2021-08-25)
 
 - When an unhandled exception is seen by libWrapper, it will detect involved packages (if any) and append this list to the exception message.

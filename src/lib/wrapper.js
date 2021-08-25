@@ -637,6 +637,7 @@ export class Wrapper {
 				let collect_affected = (!data.warned_conflict || LibWrapperStats.collect_stats);
 				let affectedPackages = null;
 				let is_last_wrapper = false;
+				let notify_user = false;
 
 				if(collect_affected) {
 					affectedPackages = fn_data.slice(next_state.index).filter((x) => {
@@ -647,8 +648,8 @@ export class Wrapper {
 
 					is_last_wrapper = (affectedPackages.length == 0);
 
-					if(affectedPackages.length > 0)
-						LibWrapperConflicts.register_conflict(data.package_info, affectedPackages, this, null, true);
+					if(!is_last_wrapper)
+						notify_user = LibWrapperConflicts.register_conflict(data.package_info, affectedPackages, this, null, true);
 				}
 
 				// WRAPPER-type functions that do this are breaking an API requirement, as such we need to be loud about this.
@@ -668,7 +669,7 @@ export class Wrapper {
 				}
 
 				// Other WRAPPER_TYPES get a generic 'conflict' message
-				else if(!data.warned_conflict && !is_last_wrapper) {
+				else if(notify_user && !data.warned_conflict) {
 					LibWrapperNotifications.conflict(data.package_info, affectedPackages, true, `${data.package_info.logStringCapitalized} did not chain the wrapper for '${data.target}'.`);
 					data.warned_conflict = true;
 				}
@@ -728,9 +729,9 @@ export class Wrapper {
 		const affectedPackages = this.get_affected_packages();
 
 		if(affectedPackages.length > 0) {
-			const notify = LibWrapperConflicts.register_conflict(package_info, affectedPackages, this, null, true);
+			const notify_user = LibWrapperConflicts.register_conflict(package_info, affectedPackages, this, null, true);
 
-			if(notify) {
+			if(notify_user) {
 				LibWrapperNotifications.conflict(package_info, affectedPackages, true, `Detected non-libWrapper wrapping of '${this.name}' by ${package_info.logString}. This will potentially lead to conflicts.`);
 
 				if(DEBUG && console.trace)
