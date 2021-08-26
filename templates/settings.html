@@ -1,21 +1,21 @@
 <form class="{{classes}} lib-wrapper" autocomplete="off">
 	<nav class="sheet-tabs tabs">
-		<a class='item' data-tab='Priorities'>Priorities</a>
-		<a class='item' data-tab='Conflicts'>Conflicts</a>
-		<a class='item' data-tab='Wrappers'>Active Wrappers</a>
-		<a class='item' data-tab='About'>About</a>
+		<a class='item' data-tab='Priorities'>{{localize 'lib-wrapper.settings.menu.priorities.name'}}</a>
+		<a class='item' data-tab='Conflicts'>{{localize 'lib-wrapper.settings.menu.conflicts.name'}}</a>
+		<a class='item' data-tab='Wrappers'>{{localize 'lib-wrapper.settings.menu.active-wrappers.name'}}</a>
+		<a class='item' data-tab='About'>{{localize 'lib-wrapper.settings.menu.about.name'}}</a>
 	</nav>
 
 	<section class='tab' data-tab='Priorities'>
-		<h1>Priorities</h1>
+		<h1>{{localize 'lib-wrapper.settings.menu.priorities.name'}}</h1>
 		{{#if about.collect_stats}}
 		{{^}}
-			<p style="margin:auto; width:100%; text-align: center; padding-bottom: 5px"><b>Note: Statistics collection is disabled, not able to show unprioritized packages.</b></p>
+			<p style="margin:auto; width:100%; text-align: center; padding-bottom: 5px"><b>{{localize 'lib-wrapper.settings.menu.priorities.statistics-disabled'}}</b></p>
 		{{/if}}
 		<div class="package-priority-group">
 			<div class="form-group" style="width: 90%; float:left">
-				<label for="packages-prioritized">Prioritized Packages
-					<p class="notes">These packages will be prioritized compared to any package not in this list.<br>Higher positions in the list result in a higher priority.</p>
+				<label for="packages-prioritized">{{localize 'lib-wrapper.settings.menu.priorities.prioritized.title'}}
+					<p class="notes">{{localize 'lib-wrapper.settings.menu.priorities.prioritized.hint'}}</p>
 				</label>
 				<select name="packages-prioritized" class="packages-prioritized" size="8">
 					{{#if packages.prioritized}}
@@ -36,8 +36,8 @@
 		</div>
 		<div class="package-priority-group">
 			<div class="form-group" style="width: 90%">
-				<label for="packages-normal">Unprioritized Packages
-					<p class="notes">These packages will be neither prioritized nor deprioritized.<br>Priorities among these packages are decided on a first-come-first-served basis.<br>New packages will default to this list.</p>
+				<label for="packages-normal">{{localize 'lib-wrapper.settings.menu.priorities.unprioritized.title'}}
+					<p class="notes">{{localize 'lib-wrapper.settings.menu.priorities.unprioritized.hint'}}</p>
 				</label>
 				<select name="packages-normal" class="packages-normal" size="8">
 					{{#if packages.normal}}
@@ -54,8 +54,8 @@
 		</div>
 		<div class="package-priority-group">
 			<div class="form-group" style="width: 90%; float:left">
-				<label for="packages-deprioritized">Deprioritized Packages
-					<p class="notes">These packages will be deprioritized compared to any package not in this list.<br>Higher positions in the list result in a higher priority.<br><b>Note that packages that do not use libWrapper are deprioritized even compared to these.</b></p>
+				<label for="packages-deprioritized">{{localize 'lib-wrapper.settings.menu.priorities.deprioritized.title'}}
+					<p class="notes">{{localize 'lib-wrapper.settings.menu.priorities.deprioritized.hint'}}<br><b>{{localize 'lib-wrapper.settings.menu.priorities.deprioritized.note'}}</b></p>
 				</label>
 				<select name="packages-deprioritized" class="packages-deprioritized" size="8">
 					{{#if packages.deprioritized}}
@@ -71,14 +71,14 @@
 			</div>
 		</div>
 		<div style="margin: auto; width: 50%; padding-top: 60px">
-			<button type="button" class='submit' style="width:30%">Save</button>
-			<button type="button" class="reload" style="width:30%">Reload</button>
-			<button type="button" class="reset" style="width:30%">Reset</button>
+			<button type="button" class='submit' style="width:30%">{{localize 'lib-wrapper.settings.save'}}</button>
+			<button type="button" class="reload" style="width:30%">{{localize 'lib-wrapper.settings.reload'}}</button>
+			<button type="button" class="reset" style="width:30%">{{localize 'lib-wrapper.settings.reset'}}</button>
 		</div>
 	</section>
 
 	<section class='tab' data-tab='Conflicts'>
-		<h1>Conflicts</h1>
+		<h1>{{localize 'lib-wrapper.settings.menu.conflicts.name'}}</h1>
 		{{#if about.collect_stats}}
 			{{#if conflicts}}
 				{{#each conflicts}}
@@ -98,23 +98,23 @@
 				</ul>
 				{{/each}}
 			{{^}}
-				<p>No conflicts have been detected.</p>
+				<p>{{localize 'lib-wrapper.settings.menu.conflicts.none-detected'}}</p>
 			{{/if}}
 		{{^}}
-			<p>Statistics collection is disabled.</p>
+			<p>{{localize 'lib-wrapper.settings.menu.conflicts.statistics-disabled'}}</p>
 		{{/if}}
 
 		<div style="margin: auto; width: 60%; padding-top: 60px; text-align: center">
-			<button type="button" class="reload" style="width: 40%">Reload</button>
+			<button type="button" class="reload" style="width: 40%">{{localize 'lib-wrapper.settings.reload'}}</button>
 			<span style="position: relative; top: 5px; padding-left: 20px" class="lw-show-ignored-conflicts">
 				<input type="checkbox" id="lw-ignored-conflicts-checkbox" name="lw-show-ignored-conflicts-checkbox" {{#if show_ignored_conflicts}}checked{{/if}}>
-				<label for="lw-ignored-conflicts-checkbox" style="position: relative; top: -5px"> Show ignored conflicts</label>
+				<label for="lw-ignored-conflicts-checkbox" style="position: relative; top: -5px"> {{localize 'lib-wrapper.settings.menu.conflicts.show-ignored'}}</label>
 			</span>
 		</div>
 	</section>
 
 	<section class='tab' data-tab='Wrappers'>
-		<h1>Active Wrappers</h1>
+		<h1>{{localize 'lib-wrapper.settings.menu.active-wrappers.name'}}</h1>
 		{{#if wrappers}}
 			{{#each wrappers}}
 			<ul id="{{this.name}}" class="has-nested">
@@ -128,26 +128,30 @@
 			</ul>
 			{{/each}}
 		{{^}}
-			<p>No wrappers are active right now.</p>
+			<p>{{localize 'lib-wrapper.settings.menu.active-wrappers.none-active'}}</p>
 		{{/if}}
 
 		<div style="margin: auto; width: 15%; padding-top: 60px">
-			<button type="button" class="reload" style="width:100%">Reload</button>
+			<button type="button" class="reload" style="width:100%">{{localize 'lib-wrapper.settings.reload'}}</button>
 		</div>
 	</section>
 
 	<section class='tab' data-tab='About'>
-		<h1>About libWrapper</h1>
-		<p style="text-align: center"><b>{{about.name}} {{about.version}} by Rui Pinheiro.</b></p>
+		<h1>{{localize 'lib-wrapper.settings.menu.about.full-name'}}</h1>
+		<p style="text-align: center"><b>{{localize 'lib-wrapper.settings.menu.about.credits' name=about.name version=about.version author='Rui Pinheiro'}}</b>
+		{{#if about.translation_credits}}
+			<br>{{about.translation_credits}}
+		{{/if}}
+		</p>
 
-		<p>'libWrapper' is a library which provides package developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other packages.</p>
-		<p>You can find more information about this module in the <a href="https://foundryvtt.com/packages/lib-wrapper">Foundry VTT package repository</a>, as well as the project's <a href="https://github.com/ruipin/fvtt-lib-wrapper/">Github page</a>.</p>
+		<p>{{localize 'lib-wrapper.settings.menu.about.description'}}</p>
+		<p>{{{localize 'lib-wrapper.settings.menu.about.info' repo_url='https://foundryvtt.com/packages/lib-wrapper' github_url='https://github.com/ruipin/fvtt-lib-wrapper/'}}}</p>
 
-		<p><b>If you encounter any issues</b>, the easiest way to find support is to ask the community. The largest community-provided support channels are:</p>
+		<p>{{{localize 'lib-wrapper.settings.menu.about.support'}}}</p>
 		<ul>
-			<li><a href="https://discord.gg/foundryvtt">FoundryVTT Discord</a>'s #modules-troubleshooting channel.</li>
-			<li><a href="https://www.reddit.com/r/FoundryVTT">FoundryVTT Reddit</a></li>
+			<li><a href="https://discord.gg/foundryvtt">{{localize 'lib-wrapper.settings.menu.about.fvtt-discord'}}</a></li>
+			<li><a href="https://www.reddit.com/r/FoundryVTT">{{localize 'lib-wrapper.settings.menu.about.fvtt-reddit'}}</a></li>
 		</ul>
-		<p>If you encounter an <b>internal libWrapper error</b>, or are a <b>package developer</b>, you may also submit a support request in the <a href="https://github.com/ruipin/fvtt-lib-wrapper/issues">libWrapper Github Issue Tracker</a>.</p>
+		<p>{{{localize 'lib-wrapper.settings.menu.about.issue-tracker' issues_url='https://github.com/ruipin/fvtt-lib-wrapper/issues'}}}</p>
 	</section>
 </form>

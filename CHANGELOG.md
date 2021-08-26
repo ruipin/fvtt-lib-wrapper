@@ -1,3 +1,12 @@
+# 1.10.0.0 (2021-??-??)
+
+- **[BREAKING]** Remove LibWrapperError methods deprecated since v1.6.0.0:
+  - `LibWrapperInternalError.module`, replaced by `LibWrapperInternalError.package_id`
+  - `LibWrapperPackageError.module`, replaced by `LibWrapperPackageError.package_id`
+- Improve error messages (Implements [#42](https://github.com/ruipin/fvtt-lib-wrapper/issues/42))
+- Add support for localization (Implements [#44](https://github.com/ruipin/fvtt-lib-wrapper/issues/44))
+  - As of now, only includes the english language, but community contributions are welcome.
+
 # 1.9.2.0 (2021-08-25)
 
 - Resolve `ignore_conflicts` API not ignoring all types of conflicts. (Fixes [Issue #49](https://github.com/ruipin/fvtt-lib-wrapper/issues/49))

@@ -1,0 +1,122 @@
+{
+	"lib-wrapper": {
+		"settings": {
+			"yes": "Yes",
+			"no": "No",
+			"save": "Save",
+			"reload": "Reload",
+			"reset": "Reset",
+
+			"notify-issues-gm": {
+				"name": "Notify GM of Issues",
+				"hint": "Whether to notify GMs when an issue is detected, for example a conflict."
+			},
+			"notify-issues-player": {
+				"name": "Notify Players of Issues",
+				"hint": "Whether to notify Players when an issue is detected, for example a conflict."
+			},
+			"high-performance-mode": {
+				"name": "High-Performance Mode",
+				"hint": "This disables most dynamic conflict detection capabilities in exchange for performance, especially relevant on low-end systems. Note that this will significantly decrease the chance conflicts are detected. As such, it is recommended to turn this off when installing or updating packages."
+			},
+
+			"menu": {
+				"title": "libWrapper Settings Menu",
+
+				"priorities": {
+					"name": "Priorities",
+					"package-inactive": "Inactive",
+					"statistics-disabled": "Note: Statistics collection is disabled, not able to show unprioritized packages.",
+
+					"prioritized": {
+						"title": "Prioritized Packages",
+						"hint": "These packages will be prioritized compared to any package not in this list.\nHigher positions in the list result in a higher priority."
+					},
+
+					"unprioritized": {
+						"title": "Unprioritized Packages",
+						"hint": "These packages will be neither prioritized nor deprioritized.\nPriorities among these packages are decided on a first-come-first-served basis.\nNew packages will default to this list."
+					},
+
+					"deprioritized": {
+						"title": "Deprioritized Packages",
+						"hint": "These packages will be deprioritized compared to any package not in this list.\nHigher positions in the list result in a higher priority.",
+						"note": "Note that packages that do not use libWrapper are deprioritized even compared to these."
+					}
+				},
+
+				"conflicts": {
+					"name": "Conflicts",
+					"none-detected": "No conflicts have been detected.",
+					"statistics-disabled": "Statistics collection is disabled.",
+					"show-ignored": "Show ignored conflicts"
+				},
+
+				"active-wrappers": {
+					"name": "Active Wrappers",
+					"none-active": "No wrappers are active right now."
+				},
+
+				"about": {
+					"name": "About",
+					"full-name": "About libWrapper",
+					"credits": "{name} {version} by {author}.",
+					"credits-translation": "",
+
+					"description": "'libWrapper' is a library which provides package developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other packages.",
+					"info": "You can find more information about this module in the <a href=\"{repo_url}\">Foundry VTT package repository</a>, as well as the project's <a href=\"{github_url}\">Github page</a>.",
+					"support": "<b>If you encounter any issues</b>, the easiest way to find support is to ask the community. The largest community-provided support channels are:",
+					"fvtt-discord": "FoundryVTT Discord's #modules-troubleshooting channel.",
+					"fvtt-reddit": "FoundryVTT Reddit",
+					"issue-tracker": "If you encounter an <b>internal libWrapper error</b>, or are a <b>package developer</b>, you may also submit a support request in the <a href=\"{issues_url}\">libWrapper Github Issue Tracker</a>."
+				},
+
+				"warning-reset-priorities": "Resetting the package priorities will move all packages back to 'Unprioritized'. This action cannot be undone. Are you sure you want to continue?",
+				"warning-save": "It is recommended you reload this page to apply the new package priorities. Do you wish to reload?"
+			}
+		},
+
+		"packages": {
+			"unknown-title": "Unknown",
+
+			"type-plus-id": "{type} {id}",
+			"type-plus-title": "{type} {title}",
+
+			"types": {
+				"module" : "module",
+				"system" : "system",
+				"world"  : "world script",
+				"unknown": "package"
+			}
+		},
+
+		"error": {
+			"see-js-console": "(See JS Console)",
+			"tech-details": "== Technical Details:",
+			"community-support": "Ask the community for support:\n- Discord #modules-troubleshooting channel (https://discord.gg/foundryvtt)\n- Reddit (https://www.reddit.com/r/FoundryVTT)",
+			"not-lw": "This is *not* a libWrapper bug.",
+
+			"external": {
+				"notification": "{title}: Error detected in {type}.",
+				"message": "Error detected in {type} {title}.",
+				"info": "Find information about this module here: {url}",
+				"report": "Report this issue here: {url}",
+				"likely-not-updated": "It is likely this module has not been updated for FVTT {version}."
+			},
+
+			"internal": {
+				"message": "Internal error detected.",
+				"message-with-package": "Internal error detected, involving {type} {title}.",
+				"info": "Find information about libWrapper here: {url}",
+				"report": "Report this issue here: {url}"
+			},
+
+			"conflict": {
+				"potential": "Potential conflict detected between {main} and {other}.",
+				"confirmed": "Conflict detected between {main} and {other}.",
+				"info": "Find information about these modules here:",
+				"report": "Report this conflict here:"
+			}
+		}
+	}
+}

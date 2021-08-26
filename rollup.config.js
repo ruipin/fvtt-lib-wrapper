@@ -3,6 +3,8 @@ import path from 'path';
 import cleanup from 'rollup-plugin-cleanup';
 //import { getBabelOutputPlugin } from '@rollup/plugin-babel';
 import { terser } from "rollup-plugin-terser";
+import json from 'rollup-plugin-json';
+import jscc from 'rollup-plugin-jscc';
 
 export default {
 	input: 'src/index.js',
@@ -25,6 +27,12 @@ export default {
 		}
 	},
 	plugins: [
+		jscc({
+			values: { _ROLLUP: 1 }
+		}),
+		json({
+			compact: true
+		}),
 		cleanup({
 			comments: 'jsdoc'
 		}),

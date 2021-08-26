@@ -9,6 +9,7 @@ import { WRAPPER_TYPES, PERF_MODES } from '../lib/enums.js';
 import { LibWrapperStats } from './stats.js';
 import { WRAPPERS } from '../utils/misc.js';
 import { PackageInfo, PACKAGE_TYPES } from '../shared/package_info.js';
+import { i18n } from '../shared/i18n.js';
 
 // Map of currently loaded priorities
 export const PRIORITIES = new Map();
@@ -54,35 +55,35 @@ export const load_priorities = function(value=null) {
 export class LibWrapperSettings extends FormApplication {
 	static init() {
 		game.settings.register(PACKAGE_ID, 'notify-issues-gm', {
-			name: 'Notify GM of Issues',
+			name: `${PACKAGE_ID}.settings.notify-issues-gm.name`,
+			hint: `${PACKAGE_ID}.settings.notify-issues-gm.hint`,
 			default: true,
 			type: Boolean,
 			scope: 'world',
 			config: true,
-			hint: 'Whether to notify GMs when an issue is detected, for example a conflict.'
 		});
 
 		game.settings.register(PACKAGE_ID, 'notify-issues-player', {
-			name: 'Notify Players of Issues',
+			name: `${PACKAGE_ID}.settings.notify-issues-player.name`,
+			hint: `${PACKAGE_ID}.settings.notify-issues-player.hint`,
 			default: false,
 			type: Boolean,
 			scope: 'world',
 			config: true,
-			hint: 'Whether to notify Players when an issue is detected, for example a conflict.'
 		});
 
 		game.settings.register(PACKAGE_ID, 'high-performance-mode', {
-			name: 'High-Performance Mode',
+			name: `${PACKAGE_ID}.settings.high-performance-mode.name`,
+			hint: `${PACKAGE_ID}.settings.high-performance-mode.hint`,
 			default: false,
 			type: Boolean,
 			scope: 'world',
 			config: true,
-			hint: 'This disables most dynamic conflict detection capabilities in exchange for performance, especially relevant on low-end systems. Note that this will significantly decrease the chance conflicts are detected. As such, it is recommended to turn this off when installing or updating packages.'
 		});
 
 		game.settings.registerMenu(PACKAGE_ID, 'menu', {
 			name: '',
-			label: `${PACKAGE_TITLE} Settings Menu`,
+			label: `${PACKAGE_ID}.settings.menu.title`,
 			icon: "fas fa-cog",
 			type: LibWrapperSettings,
 			restricted: true
@@ -114,7 +115,7 @@ export class LibWrapperSettings extends FormApplication {
 			...super.defaultOptions,
 			template: `modules/${PACKAGE_ID}/templates/settings.html`,
 			height: 700,
-			title: `${PACKAGE_TITLE} Settings Menu`,
+			title: i18n.localize(`${PACKAGE_ID}.settings.menu.title`),
 			width: 600,
 			classes: [PACKAGE_ID, "settings"],
 			tabs: [
@@ -139,12 +140,12 @@ export class LibWrapperSettings extends FormApplication {
 			buttons: {
 				yes: {
 					icon: '<i class="fas fa-check"></i>',
-					label: 'Yes',
+					label: i18n.localize(`${PACKAGE_ID}.settings.yes`),
 					callback: yes_callback
 				},
 				no: {
 					icon: '<i class="fas fa-times"></i>',
-					label: 'No'
+					label: i18n.localize(`${PACKAGE_ID}.settings.no`)
 				}
 			}
 		}).render(true);
@@ -263,6 +264,8 @@ export class LibWrapperSettings extends FormApplication {
 		const cfg_prioritized   = priorities.prioritized   ?? {};
 		const cfg_deprioritized = priorities.deprioritized ?? {};
 
+		const inactive = i18n.localize(`${PACKAGE_ID}.settings.menu.priorities.package-inactive`);
+
 		// Normal packages
 		if(LibWrapperStats.collect_stats) {
 			LibWrapperStats.packages.forEach((key) => {
@@ -290,7 +293,7 @@ export class LibWrapperSettings extends FormApplication {
 			ret.prioritized.push({
 				key  : key,
 				id   : data.id,
-				title: data.title ?? `${data.title} <Inactive>`,
+				title: data.title ?? `${data.title} <${inactive}>`,
 				index: data.index
 			});
 		});
@@ -314,7 +317,7 @@ export class LibWrapperSettings extends FormApplication {
 			ret.deprioritized.push({
 				key  : key,
 				id   : data.id,
-				title: data.title ?? `${data.title} <Inactive>`,
+				title: data.title ?? `${data.title} <${inactive}>`,
 				index: data.index
 			});
 		});
@@ -329,7 +332,8 @@ export class LibWrapperSettings extends FormApplication {
 			about: {
 				name: PACKAGE_TITLE,
 				version: VERSION_WITH_GIT,
-				collect_stats: LibWrapperStats.collect_stats
+				collect_stats: LibWrapperStats.collect_stats,
+				translation_credits: i18n.localize(`${PACKAGE_ID}.settings.menu.about.credits-translation`)
 			},
 
 			wrappers: this.getActiveWrappers(),
@@ -458,7 +462,7 @@ export class LibWrapperSettings extends FormApplication {
 		html.find('.reset').on('click', function(event) {
 			$('input[type=hidden]').remove();
 
-			LibWrapperSettings.showYesNoDialog("<p>Resetting the package priorities will move all packages back to 'Unprioritized'. This action cannot be undone. Are you sure you want to continue?</p>", () => {
+			LibWrapperSettings.showYesNoDialog(`<p>${i18n.localize(`${PACKAGE_ID}.settings.menu.warning-reset-priorities`)}</p>`, () => {
 				for(let type of ['packages-prioritized', 'packages-deprioritized']) {
 					$('<input>').attr('type', 'hidden').attr('name', `${type}-hidden`).attr('value', '').appendTo(html);
 				}
@@ -515,6 +519,6 @@ export class LibWrapperSettings extends FormApplication {
 		this.render(true);
 
 		// Ask user to refresh page
-		LibWrapperSettings.showYesNoDialog("<p>It is recommended you reload this page to apply the new package priorities. Do you wish to reload?</p>", () => location.reload());
+		LibWrapperSettings.showYesNoDialog(`<p>${i18n.localize(`${PACKAGE_ID}.settings.menu.warning-save`)}</p>`, () => location.reload());
 	}
 }

@@ -86,9 +86,9 @@ jobs:
 
 
       - name: Prepare node
-        uses: actions/setup-node@v2-beta
+        uses: actions/setup-node@v2
         with:
-          node-version: '14.6'
+          node-version: '16.8'
 
 
       - name: Prepare npm
