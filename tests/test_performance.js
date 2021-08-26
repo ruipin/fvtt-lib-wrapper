@@ -87,7 +87,7 @@ test('Performance', function (t) {
 	measure_perf(t, `........... Unwrapped, ${call_reps} Calls`, () => {
 		for(let i = 0; i < call_reps; i++)
 			a.y()
-	}, 0.1);
+	}, 0.2);
 
 	// Test many calls with no wrappers
 	game.add_module('m0');

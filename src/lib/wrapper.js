@@ -14,6 +14,7 @@ import {LibWrapperInvalidWrapperChainError} from '../errors/api_errors.js';
 import {LibWrapperNotifications} from '../ui/notifications.js';
 import {LibWrapperStats} from '../ui/stats.js';
 import {LibWrapperConflicts} from '../ui/conflicts.js';
+import {onUnhandledError} from '../errors/listeners.js';
 
 
 
@@ -655,12 +656,15 @@ export class Wrapper {
 				// WRAPPER-type functions that do this are breaking an API requirement, as such we need to be loud about this.
 				// As a "punishment" of sorts, we forcefully unregister them and ignore whatever they did.
 				if(data.type === WRAPPER_TYPES.WRAPPER) {
-					LibWrapperNotifications.console_ui(
-						`Error detected in ${data.package_info.logString}.`,
-						`The wrapper for '${data.target}' registered by ${data.package_info.logString} with type WRAPPER did not chain the call to the next wrapper, which breaks a libWrapper API requirement. This wrapper will be unregistered.`,
-						'error'
+					// We automatically trigger an unhandled error since we don't want to throw
+					const error = new LibWrapperPackageError(
+						`The wrapper for '${data.target}' registered by ${data.package_info.type_plus_id} with type WRAPPER did not chain the call to the next wrapper, which breaks a libWrapper API requirement. This wrapper will be unregistered.`,
+						data.package_info
 					);
+					onUnhandledError(error);
+					console.error(error);
 
+					// Unregister this module
 					globalThis.libWrapper.unregister(data.package_info.id, data.target);
 
 					// Manually chain to the next wrapper if there are more in the chain
@@ -670,7 +674,7 @@ export class Wrapper {
 
 				// Other WRAPPER_TYPES get a generic 'conflict' message
 				else if(notify_user && !data.warned_conflict) {
-					LibWrapperNotifications.conflict(data.package_info, affectedPackages, true, `${data.package_info.logStringCapitalized} did not chain the wrapper for '${data.target}'.`);
+					LibWrapperNotifications.conflict(data.package_info, affectedPackages, true, `${data.package_info.type_plus_id_capitalized} did not chain the wrapper for '${data.target}'.`);
 					data.warned_conflict = true;
 				}
 			}
@@ -732,7 +736,7 @@ export class Wrapper {
 			const notify_user = LibWrapperConflicts.register_conflict(package_info, affectedPackages, this, null, true);
 
 			if(notify_user) {
-				LibWrapperNotifications.conflict(package_info, affectedPackages, true, `Detected non-libWrapper wrapping of '${this.name}' by ${package_info.logString}. This will potentially lead to conflicts.`);
+				LibWrapperNotifications.conflict(package_info, affectedPackages, true, `Detected non-libWrapper wrapping of '${this.name}' by ${package_info.type_plus_id}. This will potentially lead to conflicts.`);
 
 				if(DEBUG && console.trace)
 					console.trace();

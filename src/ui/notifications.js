@@ -6,6 +6,7 @@
 import {PACKAGE_ID} from '../consts.js';
 import {decorate_class_function_names} from '../utils/misc.js';
 import {game_user_isGM} from '../shared/polyfill.js'
+import { i18n } from '../shared/i18n.js';
 
 
 // Notify user
@@ -38,7 +39,7 @@ export class LibWrapperNotifications {
 		return true;
 	}
 
-	static _ui(msg, fn) {
+	static _ui(msg, fn, add_title) {
 		if(!this.ui_notifications_enabled)
 			return;
 
@@ -51,34 +52,45 @@ export class LibWrapperNotifications {
 		// Notify - ensure that ui.notifications exists as if an error occurs too early it might not be defined yet
 		let notify = globalThis?.ui?.notifications;
 		if(notify)
-			notify[fn].call(notify, `libWrapper: ${msg}`, {permanent: fn == 'error'});
+			notify[fn].call(notify, add_title ? `libWrapper: ${msg}` : msg, {permanent: fn == 'error'});
 	}
 
-	static ui(msg, fn='error') {
+	static ui(msg, fn='error', add_title=true) {
 		// Wait until 'ready' if the error occurs early during load
 		if(!globalThis.game?.ready)
 			Hooks.once('ready', this._ui.bind(this, msg, fn));
 		else
-			this._ui(msg, fn);
+			this._ui(msg, fn, add_title);
 	}
 
 
 	static console_ui(ui_msg, console_msg, fn='error', ...vargs) {
 		console[fn].call(console, `libWrapper: ${ui_msg}\n${console_msg}`, ...vargs);
 
-		this.ui(`${ui_msg} (See JS console)`, fn);
+		this.ui(`${ui_msg} ${i18n.localize('lib-wrapper.error.see-js-console')}`, fn);
 	}
 
 
 	static conflict(package_info, other_info, potential, console_msg) {
 		let other;
-		if(Array.isArray(other_info))
-			other = (other_info.length > 1) ? `[${other_info.map((x) => x.id).join(', ')}]` : other_info[0].logString
-		else
-			other = other_info.logString;
+		if(Array.isArray(other_info)) {
+			other = (other_info.length > 1) ?
+				`[${other_info.map((x) => x.type_plus_id_i18n).join(', ')}]` :
+				other_info[0].type_plus_id_i18n
+			;
+		}
+		else {
+			other = other_info.type_plus_id_i18n;
+		}
+
+		const format_obj = {
+			main: package_info.type_plus_id_i18n,
+			other: other
+		};
 
 		this.console_ui(
-			potential ? `Potential conflict detected between ${package_info.logString} and ${other}.` : `Conflict detected between ${package_info.logString} and ${other}.`,
+			potential ? i18n.format('lib-wrapper.error.conflict.potential', format_obj) :
+			            i18n.format('lib-wrapper.error.conflict.confirmed', format_obj) ,
 			console_msg,
 			potential ? 'warn' : 'error'
 		);

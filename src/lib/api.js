@@ -25,6 +25,7 @@ import {LibWrapperNotifications} from '../ui/notifications.js'
 import {LibWrapperStats} from '../ui/stats.js';
 import {LibWrapperConflicts} from '../ui/conflicts.js';
 import {LibWrapperSettings, PRIORITIES} from '../ui/settings.js';
+import { i18n } from '../shared/i18n.js';
 
 
 
@@ -213,7 +214,7 @@ function _unregister(package_info, target, fail) {
 	const data = _find_package_data_with_target(package_info, target);
 	if(!data) {
 		if(fail)
-			throw new LibWrapperPackageError(`Cannot unregister '${target}' by ${package_info.logString} as no such wrapper has been registered`, package_info);
+			throw new LibWrapperPackageError(`Cannot unregister '${target}' by ${package_info.type_plus_id} as no such wrapper has been registered`, package_info);
 		return;
 	}
 
@@ -242,7 +243,7 @@ function _get_package_info(package_id) {
 
 	if(package_info.exists) {
 		if(package_id != package_info.id)
-			throw new LibWrapperPackageError(`${package_info.logStringCapitalized} is not allowed to call libWrapper with package_id='${package_id}'.`, package_info);
+			throw new LibWrapperPackageError(`${package_info.type_plus_id_capitalized} is not allowed to call libWrapper with package_id='${package_id}'.`, package_info);
 	}
 	else {
 		package_info = new PackageInfo(package_id);
@@ -461,11 +462,11 @@ export class libWrapper {
 
 		// Only allow '#set' when the wrapper is wrapping a property
 		if(is_setter && !wrapper.is_property)
-			throw new LibWrapperPackageError(`Cannot register a wrapper for '${target}' by ${package_info.logString}' because '${target_without_set}' is not a property, and therefore has no setter.`, package_info);
+			throw new LibWrapperPackageError(`Cannot register a wrapper for '${target}' by ${package_info.type_plus_id}' because '${target_without_set}' is not a property, and therefore has no setter.`, package_info);
 
 		// Check if this wrapper is already registered
 		if(_find_package_data_in_wrapper(package_info, wrapper, is_setter))
-			throw new LibWrapperPackageError(`A wrapper for '${target}' has already been registered by ${package_info.logString}.`, package_info);
+			throw new LibWrapperPackageError(`A wrapper for '${target}' has already been registered by ${package_info.type_plus_id}.`, package_info);
 
 		// Get priority
 		const priority = _get_default_priority(package_info, target);
@@ -490,7 +491,7 @@ export class libWrapper {
 
 						if(notify_user) {
 							LibWrapperNotifications.conflict(existing.package_info, package_info, false,
-								`${package_info.logStringCapitalized} has higher priority, and is replacing the 'OVERRIDE' registered by ${package_info.logString} for '${wrapper.name}'.`
+								`${package_info.type_plus_id_capitalized} has higher priority, and is replacing the 'OVERRIDE' registered by ${package_info.type_plus_id} for '${wrapper.name}'.`
 							);
 						}
 					}
@@ -516,7 +517,7 @@ export class libWrapper {
 		// Done
 		if(DEBUG || (!IS_UNITTEST && package_info.id != PACKAGE_ID)) {
 			Hooks.callAll(`${HOOKS_SCOPE}.Register`, package_info.id, target, type, options);
-			console.info(`libWrapper: Registered a wrapper for '${target}' by ${package_info.logString} with type ${type}.`);
+			console.info(`libWrapper: Registered a wrapper for '${target}' by ${package_info.type_plus_id} with type ${type}.`);
 		}
 	}
 
@@ -539,7 +540,7 @@ export class libWrapper {
 		// Done
 		if(DEBUG || package_info.id != PACKAGE_ID) {
 			Hooks.callAll(`${HOOKS_SCOPE}.Unregister`, package_info.id, target);
-			console.info(`libWrapper: Unregistered the wrapper for '${target}' by ${package_info.logString}.`);
+			console.info(`libWrapper: Unregistered the wrapper for '${target}' by ${package_info.type_plus_id}.`);
 		}
 	}
 
@@ -564,7 +565,7 @@ export class libWrapper {
 
 		if(DEBUG || package_info.id != PACKAGE_ID) {
 			Hooks.callAll(`${HOOKS_SCOPE}.UnregisterAll`, package_info.id);
-			console.info(`libWrapper: Unregistered all wrapper functions by ${package_info.logString}.`);
+			console.info(`libWrapper: Unregistered all wrapper functions by ${package_info.type_plus_id}.`);
 		}
 	}
 
@@ -623,7 +624,7 @@ export class libWrapper {
 
 		// Ignore API call if no packages to be ignored
 		if(ignore_infos.length == 0) {
-			console.debug(`libWrapper: Ignoring 'ignore_conflict' call for ${package_info.logString} since none of the package IDs provided exist or are active.`)
+			console.debug(`libWrapper: Ignoring 'ignore_conflict' call for ${package_info.type_plus_id} since none of the package IDs provided exist or are active.`)
 			return;
 		}
 
@@ -631,7 +632,7 @@ export class libWrapper {
 		LibWrapperConflicts.register_ignore(package_info, ignore_infos, targets, ignore_errors);
 
 		if(DEBUG || package_info.id != PACKAGE_ID)
-			console.debug(`libWrapper: Ignoring conflicts involving ${package_info.logString} and [${ignore_infos.map((x) => x.logString).join(', ')}] for targets [${targets.join(', ')}].`);
+			console.debug(`libWrapper: Ignoring conflicts involving ${package_info.type_plus_id} and [${ignore_infos.map((x) => x.type_plus_id).join(', ')}] for targets [${targets.join(', ')}].`);
 	}
 };
 decorate_class_function_names(libWrapper);
@@ -667,7 +668,7 @@ init_error_listeners();
 {
 	const libWrapperInit = decorate_name('libWrapperInit');
 	const obj = {
-		[libWrapperInit]: function(wrapped, ...args) {
+		[libWrapperInit]: async function(wrapped, ...args) {
 			// Unregister our pre-initialisation patches as they are no longer necessary
 			if(!IS_UNITTEST) {
 				const lw_info = new PackageInfo('lib-wrapper', PACKAGE_TYPES.MODULE);
@@ -679,6 +680,7 @@ init_error_listeners();
 			libwrapper_ready = true;
 
 			parse_manifest_version();
+			await i18n.init();
 			LibWrapperSettings.init();
 			LibWrapperStats.init();
 			LibWrapperConflicts.init();

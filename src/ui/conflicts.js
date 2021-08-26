@@ -128,14 +128,14 @@ export class LibWrapperConflicts {
 		if(!ignored && this._is_ignored(package_info, other_info, wrapper, is_warning)) {
 			ignored = true;
 			if(DEBUG)
-				console.debug(`Conflict between ${package_info.logString} and ${other_info.logString} over '${wrapper.name}' ignored through 'ignore_conflicts' API.`);
+				console.debug(`Conflict between ${package_info.type_plus_id} and ${other_info.type_plus_id} over '${wrapper.name}' ignored through 'ignore_conflicts' API.`);
 		}
 
 		// We then notify everyone that a conflict was just detected. This hook being handled will prevent us from registering the package conflict
 		if(!ignored && Hooks.call(`${HOOKS_SCOPE}.ConflictDetected`, package_info.id, other_info.id, target, wrapper.frozen_names) === false) {
 			ignored = true;
 			if(DEBUG)
-				console.debug(`Conflict between ${package_info.logString} and ${other_info.logString} over '${wrapper.name}' ignored, as 'libWrapper.ConflictDetected' hook returned false.`);
+				console.debug(`Conflict between ${package_info.type_plus_id} and ${other_info.type_plus_id} over '${wrapper.name}' ignored, as 'libWrapper.ConflictDetected' hook returned false.`);
 		}
 
 		// We now register the conflict with LibWrapperStats

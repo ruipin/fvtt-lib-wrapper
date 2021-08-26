@@ -8,6 +8,7 @@ import { global_eval } from '../utils/misc.js';
 import { LibWrapperError } from './base_errors.js';
 import { is_error_object, inject_packages_into_error } from './error-utils.js';
 import { LibWrapperNotifications } from '../ui/notifications.js';
+import { i18n } from '../shared/i18n.js';
 
 
 /*
@@ -22,7 +23,7 @@ Error.stackTraceLimit = Infinity;
 function on_libwrapper_error(error) {
 	// Notify user of the issue
 	if(error.ui_msg && error.notification_fn)
-		LibWrapperNotifications.ui(`${error.ui_msg} (See JS console)`, error.notification_fn);
+		LibWrapperNotifications.ui(`${error.ui_msg} ${i18n.localize('lib-wrapper.error.see-js-console')}`, error.notification_fn, false);
 
 	// Trigger 'onUnhandled'
 	if(error.onUnhandled)
