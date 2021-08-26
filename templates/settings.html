@@ -147,11 +147,16 @@
 		<p>{{localize 'lib-wrapper.settings.menu.about.description'}}</p>
 		<p>{{{localize 'lib-wrapper.settings.menu.about.info' repo_url='https://foundryvtt.com/packages/lib-wrapper' github_url='https://github.com/ruipin/fvtt-lib-wrapper/'}}}</p>
 
-		<p>{{{localize 'lib-wrapper.settings.menu.about.support'}}}</p>
-		<ul>
-			<li><a href="https://discord.gg/foundryvtt">{{localize 'lib-wrapper.settings.menu.about.fvtt-discord'}}</a></li>
-			<li><a href="https://www.reddit.com/r/FoundryVTT">{{localize 'lib-wrapper.settings.menu.about.fvtt-reddit'}}</a></li>
-		</ul>
+		{{#if about.support}}
+			<p>{{{localize 'lib-wrapper.settings.menu.about.support'}}}</p>
+			<ul>
+				{{#each about.support}}
+					<li>
+						{{{this}}}
+					</li>
+				{{/each}}
+			</ul>
+		{{/if}}
 		<p>{{{localize 'lib-wrapper.settings.menu.about.issue-tracker' issues_url='https://github.com/ruipin/fvtt-lib-wrapper/issues'}}}</p>
 	</section>
 </form>

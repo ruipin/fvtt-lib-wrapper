@@ -328,12 +328,27 @@ export class LibWrapperSettings extends FormApplication {
 	}
 
 	getData() {
+		// Prepare the list of help links
+		const support_list = [];
+		let i = 1;
+		while(true) {
+			const key = `${PACKAGE_ID}.settings.menu.about.support${i}`;
+			const entry = i18n.localize(key);
+			if(entry === key)
+				break;
+
+			support_list.push(entry);
+			i++;
+		}
+
+		// Create data object
 		let data = {
 			about: {
 				name: PACKAGE_TITLE,
 				version: VERSION_WITH_GIT,
 				collect_stats: LibWrapperStats.collect_stats,
-				translation_credits: i18n.localize(`${PACKAGE_ID}.settings.menu.about.credits-translation`)
+				translation_credits: i18n.localize(`${PACKAGE_ID}.settings.menu.about.credits-translation`),
+				support: support_list
 			},
 
 			wrappers: this.getActiveWrappers(),

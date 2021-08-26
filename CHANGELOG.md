@@ -1,3 +1,7 @@
+# 1.10.1.0 (2021-08-27)
+
+- Hotfix: Foundry did not load with libWrapper enabled if set to a language for which no libWrapper translation was available.
+
 # 1.10.0.0 (2021-08-26)
 
 - **[BREAKING]** Remove LibWrapperError methods deprecated since v1.6.0.0:
