@@ -104,6 +104,7 @@ jobs:
           mkdir -p "dist"
           cp *.md "LICENSE" dist/
           [[ -d "templates" ]] && cp -r templates dist/templates
+          [[ -d "lang" ]] && cp -r lang dist/lang
 
           npm run build
 

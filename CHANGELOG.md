@@ -1,3 +1,8 @@
+# 1.10.1.1 (2021-08-27)
+
+- Fix build workflow to properly include translation JSON files in the artifact.
+- No code changes.
+
 # 1.10.1.0 (2021-08-27)
 
 - Hotfix: Foundry did not load with libWrapper enabled if set to a language for which no libWrapper translation was available.
