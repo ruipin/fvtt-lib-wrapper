@@ -46,10 +46,10 @@
 				},
 
 				"conflicts": {
-					"name": "Conflicts",
-					"none-detected": "No conflicts have been detected.",
-					"statistics-disabled": "Statistics collection is disabled.",
-					"show-ignored": "Show ignored conflicts"
+					"name": "Conflitos",
+					"none-detected": "Nenhum conflito foi detectado.",
+					"statistics-disabled": "Coleta de estatísticas está desativada.",
+					"show-ignored": "Mostrar conflitos ignorados"
 				},
 
 				"active-wrappers": {
