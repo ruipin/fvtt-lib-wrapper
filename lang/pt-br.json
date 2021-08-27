@@ -61,7 +61,7 @@
 					"name": "Sobre",
 					"full-name": "Sobre libWrapper",
 					"credits": "{name} {version} por {author}.",
-					"credits-translation": "Matheus Clemente (mclemente#5524)",
+					"credits-translation": "Tradução pt-BR por Matheus Clemente (mclemente#5524)",
 
 					"description": "'libWrapper' é uma biblioteca que fornece aos desenvolvedores de pacotes uma maneira simples de modificar o código central do Foundry VTT enquanto reduz a probabilidade de conflito com outros pacotes. ",
 					"info": "Você pode encontrar mais informações sobre este módulo no  <a href=\"{repo_url}\">repositório de pacotes do Foundry VTT</a> e também na <a href=\"{github_url}\">página do Github</a> do projeto.",
@@ -94,7 +94,7 @@
 		"error": {
 			"see-js-console": "(Veja o Console JS)",
 			"tech-details": "== Detalhes Técnicos:",
-			"community-support": "Pergunte à comunidade por ajuda:\n- canal do Discord #modules-troubleshooting (https://discord.gg/foundryvtt) (em Inglês)\n- Reddit (https://www.reddit.com/r/FoundryVTT) (em Inglês)\n- canal do Discord Brasileiro #modulos (https://discord.gg/XNC86FBnQ2\)",
+			"community-support": "Pergunte à comunidade por ajuda:\n- canal do Discord #modules-troubleshooting (https://discord.gg/foundryvtt) (em Inglês)\n- Reddit (https://www.reddit.com/r/FoundryVTT) (em Inglês)\n- canal do Discord Brasileiro #modulos (https://discord.gg/XNC86FBnQ2)",
 			"not-lw": "Isto *não* é um bug do libWrapper.",
 
 			"external": {
