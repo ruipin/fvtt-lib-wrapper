@@ -75,16 +75,16 @@ export class LibWrapperNotifications {
 		let other;
 		if(Array.isArray(other_info)) {
 			other = (other_info.length > 1) ?
-				`[${other_info.map((x) => x.type_plus_id_i18n).join(', ')}]` :
-				other_info[0].type_plus_id_i18n
+				`[${other_info.map((x) => x.type_plus_title_i18n).join(', ')}]` :
+				other_info[0].type_plus_title_i18n
 			;
 		}
 		else {
-			other = other_info.type_plus_id_i18n;
+			other = other_info.type_plus_title_i18n;
 		}
 
 		const format_obj = {
-			main: package_info.type_plus_id_i18n,
+			main: package_info.type_plus_title_i18n,
 			other: other
 		};
 

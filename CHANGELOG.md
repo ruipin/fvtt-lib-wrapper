@@ -1,3 +1,10 @@
+# 1.10.2.0 (2021-08-27)
+
+- Tweak localisation polyfill. Messages should now be localised correctly before `game.i18n` initialises.
+- Fix Settings UI: `Show ignored conflicts` checkbox clicks sometimes would not register.
+- Add pt-BR localisation, contributed by Matheus Clemente (mclemente#5524). Thank you!
+- Add pt-PT localisation.
+
 # 1.10.1.1 (2021-08-27)
 
 - Fix build workflow to properly include translation JSON files in the artifact.

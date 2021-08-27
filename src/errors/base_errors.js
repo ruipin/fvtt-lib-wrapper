@@ -106,7 +106,7 @@ export class LibWrapperPackageError extends LibWrapperError {
 		let console_ui_msg = i18n.format(`${type_prefix}.message`, {title: pkg_title, type: pkg_type_i18n});
 
 		if(!package_info.compatible_with_core) {
-			const notupd_msg = ` ${i18n.format(`${type_prefix}.likely-not-updated`, {version: game.data.version})}`;
+			const notupd_msg = ` ${i18n.format(`${type_prefix}.likely-not-updated`, {type: pkg_type_i18n, version: game.data.version})}`;
 
 			ui_msg += notupd_msg;
 			console_ui_msg += notupd_msg;
@@ -117,7 +117,7 @@ export class LibWrapperPackageError extends LibWrapperError {
 
 		const info_url = package_info.url;
 		if(typeof info_url === 'string') {
-			console_msg += i18n.format(`${type_prefix}.info`, {url: info_url});
+			console_msg += i18n.format(`${type_prefix}.info`, {type: pkg_type_i18n, url: info_url});
 			console_msg += "\n";
 		}
 

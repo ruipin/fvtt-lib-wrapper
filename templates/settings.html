@@ -104,11 +104,11 @@
 			<p>{{localize 'lib-wrapper.settings.menu.conflicts.statistics-disabled'}}</p>
 		{{/if}}
 
-		<div style="margin: auto; width: 60%; padding-top: 60px; text-align: center">
+		<div style="margin: auto; width: 100%; padding-top: 60px; text-align: center">
 			<button type="button" class="reload" style="width: 40%">{{localize 'lib-wrapper.settings.reload'}}</button>
 			<span style="position: relative; top: 5px; padding-left: 20px" class="lw-show-ignored-conflicts">
-				<input type="checkbox" id="lw-ignored-conflicts-checkbox" name="lw-show-ignored-conflicts-checkbox" {{#if show_ignored_conflicts}}checked{{/if}}>
-				<label for="lw-ignored-conflicts-checkbox" style="position: relative; top: -5px"> {{localize 'lib-wrapper.settings.menu.conflicts.show-ignored'}}</label>
+				<input type="checkbox" id="lw-show-ignored-conflicts-checkbox" name="lw-show-ignored-conflicts-checkbox" {{#if show_ignored_conflicts}}checked{{/if}}>
+				<label for="lw-show-ignored-conflicts-checkbox" style="position: relative; top: -5px">{{localize 'lib-wrapper.settings.menu.conflicts.show-ignored'}}</label>
 			</span>
 		</div>
 	</section>

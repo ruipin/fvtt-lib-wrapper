@@ -379,12 +379,12 @@ export class LibWrapperSettings extends FormApplication {
 		});
 
 		// Show ignored conflicts checkbox
-		html.find('.lw-show-ignored-conflicts').on('click', function(event) {
+		html.find('.lw-show-ignored-conflicts').on('change', function(event) {
 			const $this = $(this);
-
 			const checkbox = $this.find('input[type=checkbox]');
+			const checked = checkbox.prop('checked');
 
-			_this.show_ignored_conflicts = !checkbox.prop('checked');
+			_this.show_ignored_conflicts = checked;
 			_this.render(true);
 		});
 

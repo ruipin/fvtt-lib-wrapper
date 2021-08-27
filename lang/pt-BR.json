@@ -35,13 +35,13 @@
 
 					"unprioritized": {
 						"title": "Pacotes Não-priorizados",
-						"hint": "Esses pacotes não serão priorizados ou despriorizados.\nAs prioridades entre esses pacotes são decididas por ordem de chegada.\nNovos pacotes serão padronizados para esta lista. "
+						"hint": "Esses pacotes não serão priorizados ou despriorizados.\nAs prioridades entre esses pacotes são decididas por ordem de chegada.\nNovos pacotes serão padronizados para esta lista."
 					},
 
 					"deprioritized": {
 						"title": "Pacotes Despriorizados",
 						"hint": "Esses pacotes serão despriorizados em comparação com qualquer pacote que não esteja nesta lista.\nPosições mais altas na lista resultam em uma prioridade mais alta.",
-						"note": "Note que os pacotes que não usam libWrapper são despriorizados mesmo em comparação com estes. "
+						"note": "Note que os pacotes que não usam libWrapper são despriorizados mesmo em comparação com estes."
 					}
 				},
 
@@ -63,17 +63,17 @@
 					"credits": "{name} {version} por {author}.",
 					"credits-translation": "Tradução pt-BR por Matheus Clemente (mclemente#5524)",
 
-					"description": "'libWrapper' é uma biblioteca que fornece aos desenvolvedores de pacotes uma maneira simples de modificar o código central do Foundry VTT enquanto reduz a probabilidade de conflito com outros pacotes. ",
-					"info": "Você pode encontrar mais informações sobre este módulo no  <a href=\"{repo_url}\">repositório de pacotes do Foundry VTT</a> e também na <a href=\"{github_url}\">página do Github</a> do projeto.",
+					"description": "'libWrapper' é uma biblioteca que fornece aos desenvolvedores de pacotes uma maneira simples de modificar o código central do Foundry VTT enquanto reduz a probabilidade de conflito com outros pacotes.",
+					"info": "Você pode encontrar mais informações sobre este módulo no <a href=\"{repo_url}\">repositório de pacotes do Foundry VTT</a> e também na <a href=\"{github_url}\">página do Github</a> do projeto.",
 					"support": "<b>Se você encontrar qualquer problema</b>, a maneira mais fácil de encontrar ajuda é perguntando à comunidade. Os maiores canais de suporte fornecidos pela comunidade são:",
 					"support1": "<a href=\"https://discord.gg/foundryvtt\">canal do Discord do FoundryVTT #modules-troubleshooting (em Inglês)</a>",
 					"support2": "<a href=\"https://www.reddit.com/r/FoundryVTT\">Reddit do FoundryVTT (em Inglês)</a>",
 					"support3": "<a href=\"https://discord.gg/XNC86FBnQ2\">canal do Discord FoundryVTT Brasil #modulos</a>",
-					"issue-tracker": "Se você encontrar um  <b>erro interno do libWrapper</b>, ou é um <b>desenvolvedor de pacotes</b>, você também pode pedir ajuda no  <a href=\"{issues_url}\">Issue Tracker do Github do libWrapper</a>."
+					"issue-tracker": "Se você encontrar um <b>erro interno do libWrapper</b>, ou é um <b>desenvolvedor de pacotes</b>, você também pode pedir ajuda no <a href=\"{issues_url}\">Issue Tracker do Github do libWrapper</a> (em Inglês)."
 				},
 
 				"warning-reset-priorities": "Redefinir as prioridades dos pacotes moverá todos os pacotes de volta para 'Não-priorizados'. Essa ação não pode ser desfeita. Você tem certeza que quer continuar?",
-				"warning-save": "É recomendado que você recarregue esta página para aplicar as novas prioridades de pacote. Você deseja recarregar? "
+				"warning-save": "É recomendado que você recarregue esta página para aplicar as novas prioridades de pacote. Você deseja recarregar?"
 			}
 		},
 
@@ -100,9 +100,9 @@
 			"external": {
 				"notification": "{title}: Erro detectado em {type}.",
 				"message": "Erro detectado em {type} {title}.",
-				"info": "Encontre informação sobre este módulo aqui: {url}",
+				"info": "Encontre informação sobre este {type} aqui: {url}",
 				"report": "Reporte este problema aqui: {url}",
-				"likely-not-updated": "É provável que este módulo não tenha sido atualizado para FVTT {version}."
+				"likely-not-updated": "É provável que este {type} não tenha sido atualizado para FVTT {version}."
 			},
 
 			"internal": {
@@ -115,7 +115,7 @@
 			"conflict": {
 				"potential": "Conflito potencial detectado entre {main} e {other}.",
 				"confirmed": "Conflito detectado entre {main} e {other}.",
-				"info": "Encontre informação sobre estes módulos aqui:",
+				"info": "Encontre informação sobre estes pacotes aqui:",
 				"report": "Reporte este problema aqui:"
 			}
 		}

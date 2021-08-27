@@ -99,9 +99,9 @@
 			"external": {
 				"notification": "{title}: Error detected in {type}.",
 				"message": "Error detected in {type} {title}.",
-				"info": "Find information about this module here: {url}",
+				"info": "Find information about this {type} here: {url}",
 				"report": "Report this issue here: {url}",
-				"likely-not-updated": "It is likely this module has not been updated for FVTT {version}."
+				"likely-not-updated": "It is likely this {type} has not been updated for FVTT {version}."
 			},
 
 			"internal": {
@@ -114,7 +114,7 @@
 			"conflict": {
 				"potential": "Potential conflict detected between {main} and {other}.",
 				"confirmed": "Conflict detected between {main} and {other}.",
-				"info": "Find information about these modules here:",
+				"info": "Find information about these packages here:",
 				"report": "Report this conflict here:"
 			}
 		}
