@@ -66,9 +66,6 @@
 					"description": "'libWrapper' es una librería que proporciona a los desarrolladores de paquetes una forma sencilla de modificar el código base de Foundry VTT, al tiempo que reduce la probabilidad de conflictos con otros paquetes.",
 					"info": "Puedes encontrar más información sobre este módulo en el <a href=\"{repo_url}\">repositorio de paquetes de Foundry VTT</a>, así como en la <a href=\"{github_url}\">página de Github</a> del proyecto.",
 					"support": "<b>Si encuentras algún problema</b>, la forma más fácil de encontrar apoyo es preguntar a la comunidad. Los principales canales de soporte proporcionados por la comunidad son:",
-					"support1": "<a href=\"https://discord.gg/foundryvtt\">El canal #modules-troubleshooting del servidor de Discord oficial FoundryVTT (en inglés).</a>",
-					"support2": "<a href=\"https://www.reddit.com/r/FoundryVTT\">Reddit de FoundryVTT (en inglés)</a>",
-					"support3": "<a href=\"https://discord.gg/MHCerwd\">El canal #módulos-foundry del servidor de Discord FoundryVTT Español</a>",
 					"issue-tracker": "Si encuentras un <b>error interno de libWrapper</b>, o eres un <b>desarrolador de paquetes</b>, también puedes enviar una solicitud de soporte en el <a href=\"{issues_url}\">Issue Tracker de libWrapper en Github</a>."
 				},
 
@@ -94,7 +91,7 @@
 		"error": {
 			"see-js-console": "(Ver la consola de JS)",
 			"tech-details": "== Detalles Técnicos:",
-			"community-support": "Pide apoyo a la comunidad:\n- canal #modules-troubleshooting en Discord inglés (https://discord.gg/foundryvtt)\n- canal #módulos-foundry en Discord FoundryVTT Español (https://discord.gg/MHCerwd)\n- Reddit (https://www.reddit.com/r/FoundryVTT)",
+			"community-support": "Pide apoyo a la comunidad:",
 			"not-lw": "Esto *no* es un error de libWrapper.",
 
 			"external": {
@@ -118,6 +115,21 @@
 				"info": "Encuentra informacion sobre estos paquetes aquí:",
 				"report": "Informa de este conflicto aquí:"
 			}
-		}
+		},
+
+		"support-channels": [
+			{
+				"title": "Canal #modules-troubleshooting en Discord oficial FoundryVTT (en inglés)",
+				"url": "https://discord.gg/foundryvtt"
+			},
+			{
+				"title": "Canal #modules-troubleshooting en Discord FoundryVTT Español",
+				"url": "https://discord.gg/MHCerwd"
+			},
+			{
+				"title": "Reddit de FoundryVTT (en inglés)",
+				"url": "https://www.reddit.com/r/FoundryVTT"
+			}
+		]
 	}
 }

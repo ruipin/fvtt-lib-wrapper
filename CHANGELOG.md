@@ -1,3 +1,8 @@
+# 1.10.3.0 (2021-09-02)
+
+- Add Spanish localisation, contributed by GoR (GoR#9388). Thank you!
+- Tweak how support channels are specified in the localisation JSON files, to avoid having to specify them twice.
+
 # 1.10.2.0 (2021-08-27)
 
 - Tweak localisation polyfill. Messages should now be localised correctly before `game.i18n` initialises.

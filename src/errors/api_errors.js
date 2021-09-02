@@ -58,9 +58,13 @@ export class LibWrapperAlreadyOverriddenError extends LibWrapperError {
 			console_msg += `${i18n.localize(`${type_prefix}.report`)}${bugs_msg}\n\n`;
 
 		// Support links
-		console_msg += i18n.localize(`${key_prefix}.community-support`);
-
-		console_msg += "\n\n";
+		const community_support_msg = LibWrapperPackageError.get_community_support_message();
+		if(community_support_msg) {
+			console_msg += i18n.localize(`${key_prefix}.community-support`);
+			console_msg += '\n';
+			console_msg += community_support_msg;
+			console_msg += "\n\n";
+		}
 
 		// Tech details
 		console_msg += i18n.localize(`${key_prefix}.tech-details`);

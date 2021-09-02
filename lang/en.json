@@ -66,8 +66,6 @@
 					"description": "'libWrapper' is a library which provides package developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other packages.",
 					"info": "You can find more information about this module in the <a href=\"{repo_url}\">Foundry VTT package repository</a>, as well as the project's <a href=\"{github_url}\">Github page</a>.",
 					"support": "<b>If you encounter any issues</b>, the easiest way to find support is to ask the community. The largest community-provided support channels are:",
-					"support1": "<a href=\"https://discord.gg/foundryvtt\">FoundryVTT Discord's #modules-troubleshooting channel.</a>",
-					"support2": "<a href=\"https://www.reddit.com/r/FoundryVTT\">FoundryVTT Reddit</a>",
 					"issue-tracker": "If you encounter an <b>internal libWrapper error</b>, or are a <b>package developer</b>, you may also submit a support request in the <a href=\"{issues_url}\">libWrapper Github Issue Tracker</a>."
 				},
 
@@ -93,7 +91,7 @@
 		"error": {
 			"see-js-console": "(See JS Console)",
 			"tech-details": "== Technical Details:",
-			"community-support": "Ask the community for support:\n- Discord #modules-troubleshooting channel (https://discord.gg/foundryvtt)\n- Reddit (https://www.reddit.com/r/FoundryVTT)",
+			"community-support": "Ask the community for support:",
 			"not-lw": "This is *not* a libWrapper bug.",
 
 			"external": {
@@ -117,6 +115,17 @@
 				"info": "Find information about these packages here:",
 				"report": "Report this conflict here:"
 			}
-		}
+		},
+
+		"support-channels": [
+			{
+				"title": "FoundryVTT Discord's #modules-troubleshooting channel",
+				"url": "https://discord.gg/foundryvtt"
+			},
+			{
+				"title": "FoundryVTT Reddit",
+				"url": "https://www.reddit.com/r/FoundryVTT"
+			}
+		]
 	}
 }

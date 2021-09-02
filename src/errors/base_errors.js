@@ -94,6 +94,23 @@ export const InternalError = LibWrapperInternalError;
 
 // Error caused by a package
 export class LibWrapperPackageError extends LibWrapperError {
+	static get_community_support_message() {
+		const support_list = [];
+
+		const key = `${PACKAGE_ID}.support-channels`;
+		const list = i18n.localize(key);
+		if(Array.isArray(list)) {
+			for(const entry of list) {
+				if(!('title' in entry) || !('url' in entry))
+					continue;
+
+				support_list.push(`- ${entry.title}: ${entry.url}`);
+			}
+		}
+
+		return support_list.length > 0 ? support_list.join('\n') : null;
+	}
+
 	static construct_message(technical_msg, package_info) {
 		const key_prefix = 'lib-wrapper.error';
 		const type_prefix = `${key_prefix}.external`;
@@ -118,14 +135,22 @@ export class LibWrapperPackageError extends LibWrapperError {
 		const info_url = package_info.url;
 		if(typeof info_url === 'string') {
 			console_msg += i18n.format(`${type_prefix}.info`, {type: pkg_type_i18n, url: info_url});
-			console_msg += "\n";
 		}
 
 		const report_url = package_info.bugs;
-		if(typeof report_url === 'string')
+		if(typeof report_url === 'string') {
+			console_msg += '\n';
 			console_msg += i18n.format(`${type_prefix}.report`, {url: report_url});
-		else
-			console_msg += i18n.localize(`${key_prefix}.community-support`);
+		}
+		else {
+			const community_support_msg = this.get_community_support_message();
+			if(community_support_msg) {
+				console_msg += '\n\n';
+				console_msg += i18n.localize(`${key_prefix}.community-support`);
+				console_msg += '\n';
+				console_msg += community_support_msg;
+			}
+		}
 		console_msg += "\n\n";
 
 		console_msg += i18n.localize(`${key_prefix}.tech-details`);

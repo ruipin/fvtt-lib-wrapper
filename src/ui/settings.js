@@ -330,15 +330,17 @@ export class LibWrapperSettings extends FormApplication {
 	getData() {
 		// Prepare the list of help links
 		const support_list = [];
-		let i = 1;
-		while(true) {
-			const key = `${PACKAGE_ID}.settings.menu.about.support${i}`;
-			const entry = i18n.localize(key);
-			if(entry === key)
-				break;
+		{
+			const key = `${PACKAGE_ID}.support-channels`;
+			const list = i18n.localize(key);
+			if(Array.isArray(list)) {
+				for(const entry of list) {
+					if(!('title' in entry) || !('url' in entry))
+						continue;
 
-			support_list.push(entry);
-			i++;
+					support_list.push(entry);
+				}
+			}
 		}
 
 		// Create data object

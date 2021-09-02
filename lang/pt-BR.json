@@ -66,9 +66,6 @@
 					"description": "'libWrapper' é uma biblioteca que fornece aos desenvolvedores de pacotes uma maneira simples de modificar o código central do Foundry VTT enquanto reduz a probabilidade de conflito com outros pacotes.",
 					"info": "Você pode encontrar mais informações sobre este módulo no <a href=\"{repo_url}\">repositório de pacotes do Foundry VTT</a> e também na <a href=\"{github_url}\">página do Github</a> do projeto.",
 					"support": "<b>Se você encontrar qualquer problema</b>, a maneira mais fácil de encontrar ajuda é perguntando à comunidade. Os maiores canais de suporte fornecidos pela comunidade são:",
-					"support1": "<a href=\"https://discord.gg/foundryvtt\">canal do Discord do FoundryVTT #modules-troubleshooting (em Inglês)</a>",
-					"support2": "<a href=\"https://www.reddit.com/r/FoundryVTT\">Reddit do FoundryVTT (em Inglês)</a>",
-					"support3": "<a href=\"https://discord.gg/XNC86FBnQ2\">canal do Discord FoundryVTT Brasil #modulos</a>",
 					"issue-tracker": "Se você encontrar um <b>erro interno do libWrapper</b>, ou é um <b>desenvolvedor de pacotes</b>, você também pode pedir ajuda no <a href=\"{issues_url}\">Issue Tracker do Github do libWrapper</a> (em Inglês)."
 				},
 
@@ -94,7 +91,7 @@
 		"error": {
 			"see-js-console": "(Veja o Console JS)",
 			"tech-details": "== Detalhes Técnicos:",
-			"community-support": "Pergunte à comunidade por ajuda:\n- canal do Discord #modules-troubleshooting (https://discord.gg/foundryvtt) (em Inglês)\n- Reddit (https://www.reddit.com/r/FoundryVTT) (em Inglês)\n- canal do Discord Brasileiro #modulos (https://discord.gg/XNC86FBnQ2)",
+			"community-support": "Pergunte à comunidade por ajuda:",
 			"not-lw": "Isto *não* é um bug do libWrapper.",
 
 			"external": {
@@ -118,6 +115,21 @@
 				"info": "Encontre informação sobre estes pacotes aqui:",
 				"report": "Reporte este problema aqui:"
 			}
-		}
+		},
+
+		"support-channels": [
+			{
+				"title": "Canal #modules-troubleshooting do Discord do FoundryVTT (em Inglês)",
+				"url": "https://discord.gg/foundryvtt"
+			},
+			{
+				"title": "Canal #modulos do Discord FoundryVTT Brasil",
+				"url": "https://discord.gg/XNC86FBnQ2"
+			},
+			{
+				"title": "Reddit do FoundryVTT (em Inglês)",
+				"url": "https://www.reddit.com/r/FoundryVTT"
+			}
+		]
 	}
 }
