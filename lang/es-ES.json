@@ -68,7 +68,7 @@
 					"support": "<b>Si encuentras algún problema</b>, la forma más fácil de encontrar apoyo es preguntar a la comunidad. Los principales canales de soporte proporcionados por la comunidad son:",
 					"support1": "<a href=\"https://discord.gg/foundryvtt\">El canal #modules-troubleshooting del servidor de Discord oficial FoundryVTT (en inglés).</a>",
 					"support2": "<a href=\"https://www.reddit.com/r/FoundryVTT\">Reddit de FoundryVTT (en inglés)</a>",
-                    "support3": "<a href=\"https://discord.gg/MHCerwd\">El canal #módulos-foundry del servidor de Discord FoundryVTT Español</a>",
+					"support3": "<a href=\"https://discord.gg/MHCerwd\">El canal #módulos-foundry del servidor de Discord FoundryVTT Español</a>",
 					"issue-tracker": "Si encuentras un <b>error interno de libWrapper</b>, o eres un <b>desarrolador de paquetes</b>, también puedes enviar una solicitud de soporte en el <a href=\"{issues_url}\">Issue Tracker de libWrapper en Github</a>."
 				},
 
