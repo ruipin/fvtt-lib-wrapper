@@ -1,3 +1,11 @@
+# 1.10.4.0 (2021-09-05)
+
+- Fix issue where sometimes the relative file paths to a localisation JSON file would be incorrect.
+- Use JSCC pre-processor to improve initialisation
+  - Strip all unnecessary unit-test code from artifact.
+  - Bundle version information into artifact, to avoid having to look at the module.json during runtime
+  - Bundle list of available translations into artifact, to skip requesting a localisation JSON file if it does not exist.
+
 # 1.10.3.0 (2021-09-02)
 
 - Add Spanish localisation, contributed by GoR (GoR#9388). Thank you!

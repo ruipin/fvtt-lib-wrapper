@@ -4,27 +4,29 @@
 'use strict';
 
 import {
-	MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, META_VERSION,
-	VERSION, GIT_VERSION, VERSION_WITH_GIT, parse_manifest_version, version_at_least
+//#if !_ROLLUP
+	parse_manifest_version,
+//#endif
+	VERSION, version_at_least
 } from '../shared/version.js';
 
 import {
 	PACKAGE_ID, HOOKS_SCOPE, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug,
 } from '../consts.js';
 
-import {WRAPPER_TYPES, PERF_MODES} from './enums.js';
-import {Wrapper} from './wrapper.js';
-import {get_global_variable, WRAPPERS, decorate_name, decorate_class_function_names} from '../utils/misc.js';
-import {PackageInfo, PACKAGE_TYPES} from '../shared/package_info.js';
+import { WRAPPER_TYPES, PERF_MODES } from './enums.js';
+import { Wrapper } from './wrapper.js';
+import { get_global_variable, WRAPPERS, decorate_name, decorate_class_function_names } from '../utils/misc.js';
+import { PackageInfo, PACKAGE_TYPES } from '../shared/package_info.js';
 
-import {init_error_listeners, onUnhandledError} from '../errors/listeners.js';
-import {LibWrapperError, LibWrapperPackageError, LibWrapperInternalError} from '../errors/base_errors.js';
-import {LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError} from '../errors/api_errors.js';
+import { init_error_listeners, onUnhandledError } from '../errors/listeners.js';
+import { LibWrapperError, LibWrapperPackageError, LibWrapperInternalError } from '../errors/base_errors.js';
+import { LibWrapperAlreadyOverriddenError, LibWrapperInvalidWrapperChainError } from '../errors/api_errors.js';
 
-import {LibWrapperNotifications} from '../ui/notifications.js'
-import {LibWrapperStats} from '../ui/stats.js';
-import {LibWrapperConflicts} from '../ui/conflicts.js';
-import {LibWrapperSettings, PRIORITIES} from '../ui/settings.js';
+import { LibWrapperNotifications } from '../ui/notifications.js'
+import { LibWrapperStats } from '../ui/stats.js';
+import { LibWrapperConflicts } from '../ui/conflicts.js';
+import { LibWrapperSettings, PRIORITIES } from '../ui/settings.js';
 import { i18n } from '../shared/i18n.js';
 
 
@@ -275,19 +277,19 @@ export class libWrapper {
 	 * Get libWrapper version
 	 * @returns {string}  libWrapper version in string form, i.e. "<MAJOR>.<MINOR>.<PATCH>.<SUFFIX><META>"
 	 */
-	static get version() { return VERSION; }
+	static get version() { return VERSION.full; }
 
 	/**
 	 * Get libWrapper version
 	 * @returns {[number,number,number,number,string]}  libWrapper version in array form, i.e. [<MAJOR>, <MINOR>, <PATCH>, <SUFFIX>, <META>]
 	 */
-	static get versions() { return [MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, SUFFIX_VERSION, META_VERSION]; }
+	static get versions() { return [VERSION.major, VERSION.minor, VERSION.patch, VERSION.suffix, VERSION.meta]; }
 
 	/**
 	 * Get the Git version identifier.
 	 * @returns {string}  Git version identifier, usually 'HEAD' or the commit hash.
 	 */
-	static get git_version() { return GIT_VERSION };
+	static get git_version() { return VERSION.git };
 
 
 	/**
@@ -679,7 +681,10 @@ init_error_listeners();
 			// Initialization steps
 			libwrapper_ready = true;
 
+			//#if !_ROLLUP
 			parse_manifest_version();
+			//#endif
+
 			await i18n.init();
 			LibWrapperSettings.init();
 			LibWrapperStats.init();
@@ -687,7 +692,7 @@ init_error_listeners();
 			LibWrapperNotifications.init();
 
 			// Notify everyone the library has loaded and is ready to start registering wrappers
-			console.info(`libWrapper ${VERSION_WITH_GIT}: Ready.`);
+			console.info(`libWrapper ${VERSION.full_git}: Ready.`);
 			Hooks.callAll(`${HOOKS_SCOPE}.Ready`, libWrapper);
 
 			return wrapped(...args);

@@ -3,7 +3,7 @@
 
 'use strict';
 
-import { VERSION_WITH_GIT } from '../shared/version.js';
+import { VERSION } from '../shared/version.js';
 import { PACKAGE_ID, PACKAGE_TITLE } from '../consts.js';
 import { WRAPPER_TYPES, PERF_MODES } from '../lib/enums.js';
 import { LibWrapperStats } from './stats.js';
@@ -347,7 +347,7 @@ export class LibWrapperSettings extends FormApplication {
 		let data = {
 			about: {
 				name: PACKAGE_TITLE,
-				version: VERSION_WITH_GIT,
+				version: VERSION.full_git,
 				collect_stats: LibWrapperStats.collect_stats,
 				translation_credits: i18n.localize(`${PACKAGE_ID}.settings.menu.about.credits-translation`),
 				support: support_list

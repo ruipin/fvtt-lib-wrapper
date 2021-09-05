@@ -3,7 +3,7 @@
 
 'use strict';
 
-import {IS_UNITTEST, PACKAGE_ID} from '../consts.js';
+import {IS_UNITTEST} from '../consts.js';
 
 
 // HACK: The browser doesn't expose all global variables (e.g. 'Game') inside globalThis, but it does to an eval

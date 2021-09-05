@@ -13,7 +13,14 @@ export const HOOKS_SCOPE   = 'libWrapper';
 
 //*********************
 // Miscellaneous definitions
+
+// This allows rollup to strip out all unit-test code from the release artifact
+/*#if _ROLLUP
+export const IS_UNITTEST = false;
+//#else */
 export const IS_UNITTEST = (typeof Game === 'undefined');
+//#endif
+
 export const PROPERTIES_CONFIGURABLE = IS_UNITTEST ? true : false;
 
 

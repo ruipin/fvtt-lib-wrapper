@@ -101,13 +101,15 @@ jobs:
 
       - name: Build
         run: |
+          # Prepare 'dist' directory
           mkdir -p "dist"
+
+          # Copy static files
           cp *.md "LICENSE" dist/
           [[ -d "templates" ]] && cp -r templates dist/templates
           [[ -d "lang" ]] && cp -r lang dist/lang
 
-          npm run build
-
+          # Edit module.json manifest
           MANIFEST_EDITS=()
           function add_manifest_edit {
             MANIFEST_EDITS+=('-e' 's~(["'"'"']'"$1"'["'"'"'][[:space:]]*:).*[^,[:space:]](,?)[[:space:]]*$~\1 '"$2"'\2~')
@@ -123,6 +125,13 @@ jobs:
             "${MANIFEST_EDITS[@]}" \
             module.json > dist/module.json
 
+          # Make sure to use modified version of module.json when building the artifact
+          cp dist/module.json module.json
+
+          # Build artifact
+          npm run build
+
+          # Create 7zip file
           cd dist
           7z a -tzip "../${{ steps.prepare_env.outputs.PROJECT_NO_FVTT }}-v${{ steps.prepare_env.outputs.VERSION }}.zip" "." -mx0
           cd ..
