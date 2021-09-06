@@ -1,3 +1,7 @@
+# 1.10.5.0 (2021-09-06)
+
+- Relax `Hooks._call` patch regex to work even when `foundry.js` has been modified.
+
 # 1.10.4.0 (2021-09-05)
 
 - Fix issue where sometimes the relative file paths to a localisation JSON file would be incorrect.

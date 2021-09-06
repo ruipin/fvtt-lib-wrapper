@@ -90,7 +90,7 @@ export const init_error_listeners = function() {
 	try {
 		// Patch original method
 		const orig = '() => function ' + Hooks._call.toString();
-		const patched = orig.replace(/^( *).*catch\((.*)\)\s*{/img, '$&\n$1  globalThis.libWrapper.onUnhandledError($2);');
+		const patched = orig.replace(/catch[\s\n]*\((.*)\)[\s\n]*{/img, '$& globalThis.libWrapper.onUnhandledError($1);');
 		if(orig === patched)
 			throw `Could not patch 'Hooks._call' method:\n${orig}`;
 		if(DEBUG)
