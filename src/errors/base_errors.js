@@ -7,6 +7,7 @@ import { PACKAGE_ID } from '../consts.js';
 import { PackageInfo } from '../shared/package_info.js';
 import { inject_packages_into_error } from './error-utils.js';
 import { i18n } from '../shared/i18n.js';
+import { game_release_display } from '../shared/polyfill.js';
 
 
 // Custom libWrapper Error
@@ -123,10 +124,13 @@ export class LibWrapperPackageError extends LibWrapperError {
 		let console_ui_msg = i18n.format(`${type_prefix}.message`, {title: pkg_title, type: pkg_type_i18n});
 
 		if(!package_info.compatible_with_core) {
-			const notupd_msg = ` ${i18n.format(`${type_prefix}.likely-not-updated`, {type: pkg_type_i18n, version: game.data.version})}`;
+			const display_version = game_release_display(/*return_null=*/true);
+			if(display_version) {
+				const notupd_msg = ` ${i18n.format(`${type_prefix}.likely-not-updated`, {type: pkg_type_i18n, version: display_version})}`;
 
-			ui_msg += notupd_msg;
-			console_ui_msg += notupd_msg;
+				ui_msg += notupd_msg;
+				console_ui_msg += notupd_msg;
+			}
 		}
 
 		// Console Message

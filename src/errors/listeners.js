@@ -9,6 +9,7 @@ import { LibWrapperError } from './base_errors.js';
 import { is_error_object, inject_packages_into_error } from './error-utils.js';
 import { LibWrapperNotifications } from '../ui/notifications.js';
 import { i18n } from '../shared/i18n.js';
+import { game_version } from '../shared/polyfill.js';
 
 
 /*
@@ -74,15 +75,7 @@ const onUnhandledErrorEvent = function(event) {
 /*
  * Set up error listeners
  */
-export const init_error_listeners = function() {
-	// Do nothing inside unit tests
-	if(IS_UNITTEST)
-		return;
-
-	// Javascript native unhandled exception listeners
-	globalThis.addEventListener('error', onUnhandledErrorEvent);
-	globalThis.addEventListener('unhandledrejection', onUnhandledErrorEvent);
-
+function init_pre_v9p2_listeners() {
 	// Wrap Hooks._call to intercept unhandled exceptions during hooks
 	// We don't use libWrapper itself here as we can guarantee we come first (well, before any libWrapper wrapper) and we want to avoid polluting the callstack of every single hook.
 	// Otherwise users might think libWrapper is causing failures, when they're actually the fault of another package.
@@ -129,5 +122,49 @@ export const init_error_listeners = function() {
 			'warn',
 			e
 		);
+	}
+}
+
+function init_hooksOnError_listener() {
+	// Wrap Hooks._onError to intercept unhandled exceptions
+	// We could use the 'error' hook instead, but then we wouldn't be able to see an exception before it gets logged to the console
+	try {
+		libWrapper.register('lib-wrapper', 'Hooks.onError', function(wrapped, ...args) {
+			// Handle error ourselves first
+			const err = args[1];
+			onUnhandledError(err);
+
+			// Let Foundry do its thing after
+			return wrapped(...args);
+		}, 'WRAPPER', {perf_mode: 'FAST'});
+	}
+	catch(e) {
+		// Handle a possible error gracefully
+		LibWrapperNotifications.console_ui(
+			"A non-critical error occurred while initializing libWrapper.",
+			"Could not setup 'Hooks.onError' wrapper.\n",
+			'warn',
+			e
+		);
+	}
+}
+
+// Called during libWrapper initialisation
+export const init_error_listeners = function() {
+	// Do nothing inside unit tests
+	if(IS_UNITTEST)
+		return;
+
+	// Javascript native unhandled exception listeners
+	globalThis.addEventListener('error', onUnhandledErrorEvent);
+	globalThis.addEventListener('unhandledrejection', onUnhandledErrorEvent);
+
+	// v9p2 or newer triggers 'Hooks.onError' any time there is an unhandled error
+	if(Hooks.onError) {
+		init_hooksOnError_listener();
+	}
+	// v9p1 or older needs individual patching
+	else {
+		init_pre_v9p2_listeners();
 	}
 }

@@ -1,3 +1,7 @@
+# 1.10.6.0 (2021-09-18)
+
+- Add official support for v9p2 (9.244). Previous versions are still supported.
+
 # 1.10.5.0 (2021-09-06)
 
 - Relax `Hooks._call` patch regex to work even when `foundry.js` has been modified.
