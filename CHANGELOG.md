@@ -1,3 +1,9 @@
+# 1.10.7.0 (2021-10-07)
+
+- Fix incorrect error message when a package that conflicts does not correctly define a `minimumCoreVersion` or `compatibleCoreVersion`.
+- Optimise the indexing regex, to remove potential exponential backtracking.
+- Tweak README to make it clearer that `libWrapper.Ready` is not implemented by the compatibility shim.
+
 # 1.10.6.0 (2021-09-18)
 
 - Add official support for v9p2 (9.244). Previous versions are still supported.

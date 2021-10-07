@@ -7,8 +7,8 @@
 // A shim for the libWrapper library
 export let libWrapper = undefined;
 
-export const VERSIONS       = [1,10,0];
-export const TGT_SPLIT_RE   = new RegExp("([^.[]+|\\[('([^']|\\'|\\\\)+?'|\"([^\"]|\\\"|\\\\)+?\")\\])", 'g');
+export const VERSIONS       = [1,10,1];
+export const TGT_SPLIT_RE   = new RegExp("([^.[]+|\\[('([^'\\\\]|\\\\.)+?'|\"([^\"\\\\]|\\\\.)+?\")\\])", 'g');
 export const TGT_CLEANUP_RE = new RegExp("(^\\['|'\\]$|^\\[\"|\"\\]$)", 'g');
 
 // Main shim code

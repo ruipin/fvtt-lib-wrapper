@@ -166,9 +166,11 @@ libWrapper.register('my-fvtt-package', 'Foo.prototype.bar', function (wrapped, .
 
 #### 1.3.2.1. Not allowed to register wrappers before the `init` hook.
 
-Due to Foundry limitations, information related to installed packages is not available until the `init` hook. As such, libWrapper will wait until then to initialize itself.
+Due to Foundry limitations, information related to installed packages is not available until the FVTT `init` hook. As such, libWrapper will wait until then to initialize itself.
 
 Any attempts to register wrappers before then will throw an exception. If using the [shim](#135-compatibility-shim), its `libWrapper` symbol will be undefined until then.
+
+⚠ Note that while the full library provides the `libWrapper.Ready` hook, which fires as soon as libWrapper is ready to register wrappers, this hook is not provided by the [shim](#135-compatibility-shim).
 
 
 #### 1.3.2.2. OVERRIDE wrappers have a different call signature
@@ -291,8 +293,7 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *   For example, 'CONFIG.Actor.sheetClasses.character["dnd5e.ActorSheet5eCharacter"].cls.prototype._onLongRest' is a valid path.
  *   It is important to note that indexing in libWrapper does not work exactly like in JavaScript:
  *     - The index must be a single string, quoted using the ' or " characters. It does not support e.g. numbers or objects.
- *     - Quotes i.e. ' and " can be escaped with a preceding '\'.
- *     - The character '\' can be escaped with a preceding '\'.
+ *     - A backslash \ can be used to escape another character so that it loses its special meaning, e.g. quotes i.e. ' and " as well as the character \ itself.
  *
  *   By default, libWrapper searches for normal methods or property getters only. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
  *
@@ -604,19 +605,11 @@ Since v1.4.0.0, the libWrapper library triggers Hooks for various events, listed
 
 Since v1.9.0.0, libWrapper defines a couple of enumeration objects that can be passed to the libWrapper API methods, instead of using strings.
 
-For example, instead of using `'OVERRIDE'` in the `libWrapper.register` call:
-
+For example, instead of using `'OVERRIDE'` in the `libWrapper.register` call, one could instead use `libWrapper.OVERRIDE`:
 ```javascript
 libWrapper.register('my-fvtt-package', 'Foo.prototype.bar', function (...args) {
     /* ... */
-}, 'OVERRIDE');
-```
-
-One could instead use `libWrapper.OVERRIDE`:
-```javascript
-libWrapper.register('my-fvtt-package', 'Foo.prototype.bar', function (...args) { // There is no 'wrapped' parameter in the wrapper signature
-    /* ... */
-}, libWrapper.OVERRIDE);
+}, libWrapper.OVERRIDE /* instead of 'OVERRIDE' */>);
 ```
 
 A full list of the enumeration values provided by libWrapper follows:

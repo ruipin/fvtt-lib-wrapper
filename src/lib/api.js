@@ -38,33 +38,29 @@ let allow_libwrapper_registrations = true;
 
 // Regexes used in _get_target_object
 const TGT_SPLIT_RE = new RegExp([
-	'(',                  // {
-		'[^.[]+',         //   Match anything not containing a . or [
-	'|',                  // |
-		'\\[',            //   Match anything starting with [
-		'(',              //   {
-			"'",          //     Followed by a '
-			'(',          //     {
-				'[^\']',  //       That does not contain '
-			'|',          //     |
-				"\\'",    //       Ignore ' if it is escaped
-			'|',          //     |
-				'\\\\',   //       Ignore \ if it is escaped
-			')+?',        //     } (Non-greedy)
-			"'",          //     Ending in a '
-		'|',              //   |
-			'"',          //     Followed by a "
-			'(',          //     {
-				'[^"]',   //       That does not contain "
-			'|',          //     |
-				'\\"',    //       Ignore " if it is escaped
-			'|',          //     |
-				'\\\\',   //       Ignore \ if it is escaped
-			')+?',        //     } (Non-greedy)
-			'"',          //     Ending in a '
-		')',              //   }
-		'\\]',            //   And ending with ]
-	')'                   // }
+	'(',                     // {
+		'[^.[]+',            //   Match anything not containing a . or [
+	'|',                     // |
+		'\\[',               //   Match anything starting with [
+		'(',                 //   {
+			"'",             //     Followed by a '
+			'(',             //     {
+				'[^\'\\\\]', //       That does not contain ' or \
+			'|',             //     |
+				'\\\\.',     //       Ignore any character that is escaped by \
+			')+?',           //     } (Non-greedy)
+			"'",             //     Ending in a '
+		'|',                 //   |
+			'"',             //     Followed by a "
+			'(',             //     {
+				'[^"\\\\]',  //       That does not contain " or \
+			'|',             //     |
+				'\\\\.',     //       Ignore any character that is escaped by \
+			')+?',           //     } (Non-greedy)
+			'"',             //     Ending in a "
+		')',                 //   }
+		'\\]',               //   And ending with ]
+	')'                      // }
 ].join(''), 'g');
 
 const TGT_CLEANUP_RE = new RegExp([
@@ -367,8 +363,7 @@ export class libWrapper {
 	 *   For example, 'CONFIG.Actor.sheetClasses.character["dnd5e.ActorSheet5eCharacter"].cls.prototype._onLongRest' is a valid path.
 	 *   It is important to note that indexing in libWrapper does not work exactly like in JavaScript:
 	 *     - The index must be a single string, quoted using the ' or " characters. It does not support e.g. numbers or objects.
-	 *     - Quotes i.e. ' and " can be escaped with a preceding '\'.
-	 *     - The character '\' can be escaped with a preceding '\'.
+	 *     - A backslash \ can be used to escape another character so that it loses its special meaning, e.g. quotes i.e. ' and " as well as the character \ itself.
 	 *
 	 *   By default, libWrapper searches for normal methods or property getters only. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
 	 *
