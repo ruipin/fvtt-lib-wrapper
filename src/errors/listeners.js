@@ -9,7 +9,6 @@ import { LibWrapperError } from './base_errors.js';
 import { is_error_object, inject_packages_into_error } from './error-utils.js';
 import { LibWrapperNotifications } from '../ui/notifications.js';
 import { i18n } from '../shared/i18n.js';
-import { game_version } from '../shared/polyfill.js';
 
 
 /*
@@ -85,13 +84,13 @@ function init_pre_v9p2_listeners() {
 		const orig = '() => function ' + Hooks._call.toString();
 		const patched = orig.replace(/catch[\s\n]*\((.*)\)[\s\n]*{/img, '$& globalThis.libWrapper.onUnhandledError($1);');
 		if(orig === patched)
-			throw `Could not patch 'Hooks._call' method:\n${orig}`;
+			throw new Error(`Could not patch 'Hooks._call' method:\n${orig}`);
 		if(DEBUG)
 			console.log(`Patched Hooks._call: ${patched}`);
 
 		const patched_fn = global_eval(patched)?.();
 		if(typeof patched_fn !== 'function')
-			throw `Evaluation of patched 'Hooks._call' method did not return a function:\nPatched Method: ${patched}\nReturned: ${patched_fn}`;
+			throw new Error(`Evaluation of patched 'Hooks._call' method did not return a function:\nPatched Method: ${patched}\nReturned: ${patched_fn}`);
 
 		Hooks._call = patched_fn;
 	}

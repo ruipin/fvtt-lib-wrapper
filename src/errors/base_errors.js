@@ -4,6 +4,7 @@
 'use strict';
 
 import { PACKAGE_ID } from '../consts.js';
+import { ERRORS } from './errors.js';
 import { PackageInfo } from '../shared/package_info.js';
 import { inject_packages_into_error } from './error-utils.js';
 import { i18n } from '../shared/i18n.js';
@@ -39,6 +40,7 @@ export class LibWrapperError extends Error {
 	}
 }
 Object.freeze(LibWrapperError);
+ERRORS.base = LibWrapperError;
 
 
 
@@ -88,8 +90,7 @@ export class LibWrapperInternalError extends LibWrapperError {
 	get package_id() { return this.package_info?.id; }
 }
 Object.freeze(LibWrapperInternalError);
-
-export const InternalError = LibWrapperInternalError;
+ERRORS.internal = LibWrapperInternalError;
 
 
 
@@ -192,3 +193,4 @@ export class LibWrapperPackageError extends LibWrapperError {
 	get package_id() { return this.package_info?.id; }
 }
 Object.freeze(LibWrapperPackageError);
+ERRORS.package = LibWrapperPackageError;

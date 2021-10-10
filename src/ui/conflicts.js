@@ -4,7 +4,7 @@
 'use strict';
 
 import {DEBUG, HOOKS_SCOPE} from '../consts.js';
-import {LibWrapperInternalError} from '../errors/base_errors.js';
+import {ERRORS} from '../errors/errors.js';
 import {LibWrapperStats} from './stats.js';
 import {PackageInfo} from '../shared/package_info.js';
 
@@ -106,20 +106,20 @@ export class LibWrapperConflicts {
 
 		// Sanity checks #2
 		if(package_info.constructor !== PackageInfo)
-			throw new LibWrapperInternalError(`LibWrapperConflicts.register_conflict: 'package_info' must be a PackageInfo object, but got '${package_info}'.`);
+			throw new ERRORS.internal(`LibWrapperConflicts.register_conflict: 'package_info' must be a PackageInfo object, but got '${package_info}'.`);
 
 		if(other_info.constructor !== PackageInfo)
-			throw new LibWrapperInternalError(`LibWrapperConflicts.register_conflict: 'other_info' must be a PackageInfo object, but got '${other_info}'.`);
+			throw new ERRORS.internal(`LibWrapperConflicts.register_conflict: 'other_info' must be a PackageInfo object, but got '${other_info}'.`);
 
 		// Note: Not checked because of cyclic dependency
 		//if(wrapper.constructor != Wrapper)
-		//	throw new LibWrapperInternalError(`LibWrapperConflicts.register_conflict: 'wrapper' must be a Wrapper object, but got '${wrapper}'.`);
+		//	throw new ERRORS.internal(`LibWrapperConflicts.register_conflict: 'wrapper' must be a Wrapper object, but got '${wrapper}'.`);
 
 		if(target != null && typeof target !== 'string')
-			throw new LibWrapperInternalError(`LibWrapperConflicts.register_conflict: 'target' must be a string, or null, but got '${target}'.`);
+			throw new ERRORS.internal(`LibWrapperConflicts.register_conflict: 'target' must be a string, or null, but got '${target}'.`);
 
 		if(typeof is_warning !== 'boolean')
-			throw new LibWrapperInternalError(`LibWrapperConflicts.register_conflict: 'is_warning' must be a boolean, but got '${is_warning}'.`);
+			throw new ERRORS.internal(`LibWrapperConflicts.register_conflict: 'is_warning' must be a boolean, but got '${is_warning}'.`);
 
 
 		// We first check if this conflict is ignored

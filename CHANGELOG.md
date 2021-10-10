@@ -1,3 +1,11 @@
+# 1.10.8.0 (2021-10-10)
+
+- Fix [Issue #56](https://github.com/ruipin/fvtt-lib-wrapper/issues/56).
+  - Fix handling of unknown packages.
+  - Correctly use package ID passed to `libWrapper.register` in specific error messages, when auto-detection does not succeed.
+  - Ensure all exceptions thrown are an object, in order to fix compatibility issue with Foundry 0.8.x when thrown inside `Application._render`.
+- Code cleanup: Refactor error classes usage to avoid a cyclic dependency.
+
 # 1.10.7.0 (2021-10-07)
 
 - Fix incorrect error message when a package that conflicts does not correctly define a `minimumCoreVersion` or `compatibleCoreVersion`.

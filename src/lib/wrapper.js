@@ -8,8 +8,7 @@ import {WRAPPER_TYPES, PERF_MODES} from './enums.js';
 import {decorate_name, set_function_name, decorate_class_function_names} from '../utils/misc.js';
 import {PackageInfo} from '../shared/package_info.js';
 
-import {LibWrapperInternalError, LibWrapperPackageError} from '../errors/base_errors.js';
-import {LibWrapperInvalidWrapperChainError} from '../errors/api_errors.js';
+import {ERRORS} from '../errors/errors.js';
 
 import {LibWrapperNotifications} from '../ui/notifications.js';
 import {LibWrapperStats} from '../ui/stats.js';
@@ -61,7 +60,7 @@ export class Wrapper {
 				const wrapper = descriptor.get?._lib_wrapper;
 
 				if(!(wrapper instanceof this.constructor))
-					throw new LibWrapperInternalError(`libWrapper: '${name}' cannot be wrapped, the descriptor already has a wrapper, but of an unexpected class ('${wrapper.constructor.name}' vs '${this.constructor.name}').`);
+					throw new ERRORS.internal(`libWrapper: '${name}' cannot be wrapped, the descriptor already has a wrapper, but of an unexpected class ('${wrapper.constructor.name}' vs '${this.constructor.name}').`);
 
 				wrapper._add_name(name);
 
@@ -69,7 +68,7 @@ export class Wrapper {
 			}
 
 			if(descriptor.configurable === false) {
-				throw new LibWrapperPackageError(`libWrapper: '${name}' cannot be wrapped, the corresponding descriptor has 'configurable=false'.`, package_info);
+				throw new ERRORS.package(`libWrapper: '${name}' cannot be wrapped, the corresponding descriptor has 'configurable=false'.`, package_info);
 			}
 			else {
 				if(descriptor.get) {
@@ -87,7 +86,7 @@ export class Wrapper {
 			descriptor = this._get_inherited_descriptor();
 
 			if(!descriptor)
-				throw new LibWrapperPackageError(`libWrapper: Can't wrap '${name}', target does not exist or could not be found.`, package_info);
+				throw new ERRORS.package(`libWrapper: Can't wrap '${name}', target does not exist or could not be found.`, package_info);
 
 			const wrapper = descriptor.get?._lib_wrapper;
 
@@ -232,7 +231,7 @@ export class Wrapper {
 
 		// Sanity check
 		if(handler_id > this._current_handler_id)
-			throw new LibWrapperInternalError(`Unreachable: handler_id=${handler_id} > this._current_handler_id=${this._current_handler_id}`);
+			throw new ERRORS.internal(`Unreachable: handler_id=${handler_id} > this._current_handler_id=${this._current_handler_id}`);
 
 		// Find pending calls that match this object - if any is found, skip wrappers
 		if(!this.is_property) {
@@ -353,7 +352,7 @@ export class Wrapper {
 			return;
 
 		if(!PROPERTIES_CONFIGURABLE)
-			throw new LibWrapperInternalError('libWrapper: Cannot unwrap when PROPERTIES_CONFIGURABLE==false');
+			throw new ERRORS.internal('libWrapper: Cannot unwrap when PROPERTIES_CONFIGURABLE==false');
 
 
 		// Remove the property
@@ -417,7 +416,7 @@ export class Wrapper {
 			if(descriptor) {
 				if(this.is_property) {
 					if(!descriptor.get && !descriptor.set)
-						throw new LibWrapperInternalError(`This wrapper is set up to wrap a property, but the inherited descriptor is a method.`);
+						throw new ERRORS.internal(`This wrapper is set up to wrap a property, but the inherited descriptor is a method.`);
 
 					if(setter)
 						result = descriptor.set;
@@ -505,13 +504,13 @@ export class Wrapper {
 
 	_cleanup_call_wrapped(pend, is_dynamic_dispatch) {
 		if(!this._pending_wrapped_calls_cnt)
-			throw new LibWrapperInternalError(`this._pending_wrapped_calls_cnt=${this._pending_wrapped_calls_cnt} should be unreachable at this point.`);
+			throw new ERRORS.internal(`this._pending_wrapped_calls_cnt=${this._pending_wrapped_calls_cnt} should be unreachable at this point.`);
 		this._pending_wrapped_calls_cnt--;
 
 		if(is_dynamic_dispatch) {
 			const pend_i = this._pending_wrapped_calls.indexOf(pend);
 			if(pend_i < 0)
-				throw new LibWrapperInternalError(`Could not find 'pend' inside 'this._pending_wrapped_calls'.`);
+				throw new ERRORS.internal(`Could not find 'pend' inside 'this._pending_wrapped_calls'.`);
 
 			this._pending_wrapped_calls.splice(pend_i, 1);
 		}
@@ -536,7 +535,7 @@ export class Wrapper {
 		// If no methods exist, then finish the chain
 		if(!data) {
 			if(fn_data.length > 0)
-				throw new LibWrapperInternalError(`Must not have 'data===${data}' when 'fn_data.length==${fn_data.length}'.`);
+				throw new ERRORS.internal(`Must not have 'data===${data}' when 'fn_data.length==${fn_data.length}'.`);
 
 			// There are no wrappers, return the wrapped value.
 			return this.call_wrapped(null, obj, ...args);
@@ -602,7 +601,7 @@ export class Wrapper {
 	_call_wrapper_update_state(state) {
 		// Keep track of call state
 		if('valid' in state && !state.valid) {
-			throw new LibWrapperInvalidWrapperChainError(
+			throw new ERRORS.invalid_chain(
 				this,
 				state.prev_data?.package_info,
 				`This wrapper function for '${this.name}' is no longer valid, and must not be called.`
@@ -618,7 +617,7 @@ export class Wrapper {
 
 		this._outstanding_wrappers--;
 		if(this._outstanding_wrappers < 0)
-			throw new LibWrapperInternalError(`Outstanding wrappers = ${this._outstanding_wrappers}, should never fall below 0.`);
+			throw new ERRORS.internal(`Outstanding wrappers = ${this._outstanding_wrappers}, should never fall below 0.`);
 	}
 
 	_cleanup_call_wrapper_thrown(next_state, e) {
@@ -657,7 +656,7 @@ export class Wrapper {
 				// As a "punishment" of sorts, we forcefully unregister them and ignore whatever they did.
 				if(data.type === WRAPPER_TYPES.WRAPPER) {
 					// We automatically trigger an unhandled error since we don't want to throw
-					const error = new LibWrapperPackageError(
+					const error = new ERRORS.package(
 						`The wrapper for '${data.target}' registered by ${data.package_info.type_plus_id} with type WRAPPER did not chain the call to the next wrapper, which breaks a libWrapper API requirement. This wrapper will be unregistered.`,
 						data.package_info
 					);
@@ -693,7 +692,7 @@ export class Wrapper {
 	// Non-property setter
 	set_nonproperty(value, obj=null) {
 		if(this.is_property)
-			throw new LibWrapperInternalError('Must not call \'set_nonproperty\' for a property wrapper.');
+			throw new ERRORS.internal('Must not call \'set_nonproperty\' for a property wrapper.');
 
 		const inherited = (obj !== this.object);
 
@@ -758,7 +757,7 @@ export class Wrapper {
 
 		// Sanity check
 		if(setter && !this.is_property)
-			throw new LibWrapperInternalError(`libWrapper: '${this.name}' does not wrap a property, thus setter=true is illegal.`);
+			throw new ERRORS.internal(`libWrapper: '${this.name}' does not wrap a property, thus setter=true is illegal.`);
 
 		// Get current fn_data
 		const prop_nm = setter ? 'setter_data' : 'getter_data';

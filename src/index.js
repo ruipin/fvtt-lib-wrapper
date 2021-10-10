@@ -4,7 +4,7 @@
 'use strict';
 
 // Initialize error listeners
-import {} from './errors/listeners.js';
+import {} from './errors/index.js';
 
 // Import the main library
 import {} from './lib/api.js';

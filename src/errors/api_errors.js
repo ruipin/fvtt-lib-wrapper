@@ -4,6 +4,7 @@
 'use strict';
 
 import { LibWrapperError, LibWrapperPackageError } from './base_errors.js';
+import { ERRORS } from './errors.js';
 import { PackageInfo } from '../shared/package_info.js';
 import { LibWrapperConflicts } from '../ui/conflicts.js';
 import { i18n } from '../shared/i18n.js';
@@ -134,6 +135,7 @@ export class LibWrapperAlreadyOverriddenError extends LibWrapperError {
 	}
 }
 Object.freeze(LibWrapperAlreadyOverriddenError);
+ERRORS.already_overridden = LibWrapperAlreadyOverriddenError;
 
 
 
@@ -154,3 +156,4 @@ export class LibWrapperInvalidWrapperChainError extends LibWrapperPackageError {
 	}
 }
 Object.freeze(LibWrapperInvalidWrapperChainError);
+ERRORS.invalid_chain = LibWrapperInvalidWrapperChainError;
