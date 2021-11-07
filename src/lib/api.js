@@ -679,7 +679,7 @@ init_error_listeners();
 			libwrapper_ready = true;
 
 			//#if !_ROLLUP
-			parse_manifest_version();
+				parse_manifest_version();
 			//#endif
 
 			await i18n.init();
