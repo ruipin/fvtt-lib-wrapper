@@ -5,7 +5,6 @@
 
 import { VERSION } from '../shared/version.js';
 import { PACKAGE_ID, PACKAGE_TITLE } from '../consts.js';
-import { WRAPPER_TYPES, PERF_MODES } from '../lib/enums.js';
 import { LibWrapperStats } from './stats.js';
 import { WRAPPERS } from '../utils/misc.js';
 import { PackageInfo, PACKAGE_TYPES } from '../shared/package_info.js';

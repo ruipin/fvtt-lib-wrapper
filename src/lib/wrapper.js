@@ -6,6 +6,7 @@
 import {PACKAGE_ID, PROPERTIES_CONFIGURABLE, DEBUG} from '../consts.js';
 import {WRAPPER_TYPES, PERF_MODES} from './enums.js';
 import {decorate_name, set_function_name, decorate_class_function_names} from '../utils/misc.js';
+import {getNotifyIssues, getHighPerformanceMode} from '../utils/settings.js';
 import {PackageInfo} from '../shared/package_info.js';
 
 import {ERRORS} from '../errors/errors.js';
@@ -121,7 +122,7 @@ export class Wrapper {
 			this._pending_wrapped_calls_cnt = 0;
 		}
 
-		this.update_use_static_dispatch();
+		this.use_static_dispatch = false;
 
 		// Add name
 		if(!name)
@@ -255,15 +256,15 @@ export class Wrapper {
 	}
 
 	_calc_use_static_dispatch() {
-		// Do all the wrappers in fn_data specify the same, explicit, performance mode wish?
+		let perf_mode = PERF_MODES.AUTO;
 		const fn_data = this.get_fn_data(false);
 
-		let perf_mode = undefined;
+		// Do all the wrappers in fn_data specify the same, explicit, performance mode wish?
 		for(const data of fn_data) {
 			if(!data.perf_mode)
 				continue;
 
-			if(perf_mode === undefined) {
+			if(perf_mode === PERF_MODES.AUTO) {
 				perf_mode = data.perf_mode;
 			}
 			else if(perf_mode !== data.perf_mode) {
@@ -272,18 +273,19 @@ export class Wrapper {
 			}
 		}
 
-		if(perf_mode === PERF_MODES.FAST)
-			return true;
-		else if(perf_mode === PERF_MODES.SAFE)
-			return false;
-		else /* PERF_MODES.AUTO */ {
-			// Default to static dispatch in user-enabled high performance mode
-			if(game?.settings?.get(PACKAGE_ID, 'high-performance-mode'))
-				return true;
+		// Automatic performance mode
+		if(perf_mode === PERF_MODES.AUTO) {
+			// Default to fast mode if user explicitly enabled it
+			if(getHighPerformanceMode())
+				perf_mode = PERF_MODES.FAST;
 
-			// Finally, default to false
-			return false;
+			// Otherwise, default to normal mode
+			else
+				perf_mode = PERF_MODES.NORMAL;
 		}
+
+		// Enable static dispatch only in fast mode
+		return perf_mode === PERF_MODES.FAST;
 	}
 
 	update_use_static_dispatch() {

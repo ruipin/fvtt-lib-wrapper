@@ -3,10 +3,9 @@
 
 'use strict';
 
-import {PACKAGE_ID} from '../consts.js';
-import {decorate_class_function_names} from '../utils/misc.js';
-import {game_user_isGM} from '../shared/polyfill.js'
+import { decorate_class_function_names } from '../utils/misc.js';
 import { i18n } from '../shared/i18n.js';
+import { getNotifyIssues } from '../utils/settings.js';
 
 
 // Notify user
@@ -21,14 +20,8 @@ export class LibWrapperNotifications {
 	static get ui_notifications_enabled() {
 		// Make sure we don't accidentally throw a second time, while handling what might be another exception
 		try {
-			if(game_user_isGM()) {
-				if(!game?.settings?.get(PACKAGE_ID, 'notify-issues-gm'))
-					return false;
-			}
-			else {
-				if(!game?.settings?.get(PACKAGE_ID, 'notify-issues-player'))
-					return false;
-			}
+			if(!getNotifyIssues())
+				return false;
 		}
 		catch(e) {
 			// We swallow the new error, and assume we want to display errors
