@@ -70,7 +70,3 @@ export function decorate_class_function_names(klass) {
 	if(klass.prototype)
 		decorate_class_function_names(klass.prototype);
 }
-
-
-// Shared list of active wrappers
-export const WRAPPERS = new Set();

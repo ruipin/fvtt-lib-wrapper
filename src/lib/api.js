@@ -16,7 +16,8 @@ import {
 
 import { WRAPPER_TYPES, PERF_MODES } from './enums.js';
 import { Wrapper } from './wrapper.js';
-import { get_global_variable, WRAPPERS, decorate_name, decorate_class_function_names } from '../utils/misc.js';
+import { WRAPPERS } from './storage.js';
+import { get_global_variable, decorate_name, decorate_class_function_names } from '../utils/misc.js';
 import { PackageInfo, PACKAGE_TYPES } from '../shared/package_info.js';
 
 import { init_error_listeners, onUnhandledError } from '../errors/listeners.js';
@@ -145,7 +146,7 @@ function _get_target_object(_target, package_info=undefined) {
 	return [obj, fn_name, target];
 }
 
-function _create_wrapper(target, package_info=null) {
+function _create_wrapper(target, package_info=undefined) {
 	// Get target information
 	const tgt_info = _get_target_object(target, package_info);
 
@@ -153,30 +154,49 @@ function _create_wrapper(target, package_info=null) {
 	return _create_wrapper_from_object(...tgt_info, package_info);
 }
 
-function _find_wrapper_by_name(_name) {
-	const name = _split_target_and_setter(_name)[0];
+function _get_target_from_info(obj, fn_name) {
+	const descriptor = Object.getOwnPropertyDescriptor(obj, fn_name);
+	return descriptor?.get?._lib_wrapper ?? null;
+}
 
-	for(let wrapper of WRAPPERS) {
-		if(wrapper.names.includes(name))
-			return wrapper;
-	}
+export function _find_wrapper_by_name(_name, package_info=undefined) {
+	// Get target information
+	const tgt_info = _get_target_object(_name, package_info);
 
-	return null;
+	// Return target wrapper
+	return _get_target_from_info(...tgt_info);
+}
+
+function _find_wrapper_by_id(id) {
+	const wrapper = WRAPPERS.find_id(id);
+	return [wrapper, (id === wrapper?.setter_id)];
 }
 
 function _find_package_data_in_wrapper(package_info, wrapper, is_setter) {
 	return wrapper.get_fn_data(is_setter).find((x) => x.package_info?.equals(package_info));
 }
 
-function _find_package_data_with_target(package_info, _target) {
-	const target_and_setter = _split_target_and_setter(_target);
-	const target    = target_and_setter[0];
-	const is_setter = target_and_setter[1];
+function _find_package_data_with_target(package_info, target) {
+	let wrapper = null;
+	let is_setter;
 
-	const wrapper = _find_wrapper_by_name(target);
+	if(typeof target === 'number') {
+		[wrapper, is_setter] = _find_wrapper_by_id(target);
+	}
+	else {
+		const target_and_setter = _split_target_and_setter(target);
+
+		wrapper   = _find_wrapper_by_name(target_and_setter[0]);
+		is_setter = target_and_setter[1];
+	}
+
+	// Return null if not found, or if we wanted a setter but there is none
 	if(!wrapper)
 		return null;
+	if(is_setter && !wrapper.is_property)
+		return null;
 
+	// Otherwise return the data relevant to the requested package
 	return _find_package_data_in_wrapper(package_info, wrapper, is_setter);
 }
 
@@ -194,7 +214,7 @@ function _get_default_priority(package_info, target) {
 function _unwrap_if_possible(wrapper) {
 	if(wrapper.is_empty() && PROPERTIES_CONFIGURABLE) {
 		wrapper.unwrap();
-		WRAPPERS.delete(wrapper);
+		WRAPPERS.remove(wrapper);
 	}
 }
 
@@ -223,13 +243,16 @@ function _unregister(package_info, target, fail) {
 	// Remove from fn_data
 	wrapper.remove(data);
 	_unwrap_if_possible(wrapper);
+
+	// Done
+	return data;
 }
 
 export function _unwrap_all() {
-	for(let wrapper of WRAPPERS) {
+	WRAPPERS.forEach((wrapper) => {
 		wrapper.clear();
-		wrapper.unwrap();
-	}
+		_unwrap_if_possible(wrapper);
+	});
 
 	WRAPPERS.clear();
 }
@@ -357,16 +380,23 @@ export class libWrapper {
 	 *
 	 * Triggers FVTT hook 'libWrapper.Register' when successful.
 	 *
+	 * Returns a unique numeric target identifier, which can be used as a replacement for 'target' in future calls to 'libWrapper.register' and 'libWrapper.unregister'.
+	 *
 	 * @param {string} package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest.
 	 *
-	 * @param {string} target      A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
+	 * @param {number|string} target The target identifier, specifying which wrapper should be unregistered.
 	 *
-	 *   Since v1.8.0.0, the path can contain string array indexing.
+	 *   This can be either:
+	 *     1. A unique target identifier obtained from a previous 'libWrapper.register' call.
+	 *     2. A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
+	 *
+	 *   Support for the unique target identifiers (option #1) was added in v1.11.0.0, with previous versions only supporting option #2.
+	 *
+	 *   Since v1.8.0.0, the string path (option #2) can contain string array indexing.
 	 *   For example, 'CONFIG.Actor.sheetClasses.character["dnd5e.ActorSheet5eCharacter"].cls.prototype._onLongRest' is a valid path.
 	 *   It is important to note that indexing in libWrapper does not work exactly like in JavaScript:
 	 *     - The index must be a single string, quoted using the ' or " characters. It does not support e.g. numbers or objects.
 	 *     - A backslash \ can be used to escape another character so that it loses its special meaning, e.g. quotes i.e. ' and " as well as the character \ itself.
-	 *
 	 *   By default, libWrapper searches for normal methods or property getters only. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
 	 *
 	 * @param {function} fn        Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.
@@ -397,7 +427,7 @@ export class libWrapper {
 	 *   Default is 'false' if type=='OVERRIDE', otherwise 'true'.
 	 *   First introduced in v1.3.6.0.
 	 *
-	 * @param {string} options.perf_mode [OPTIONAL] Selects the preferred performance mode for this wrapper. Default is 'AUTO'.
+	 * @param {string} options.perf_mode [Optional] Selects the preferred performance mode for this wrapper. Default is 'AUTO'.
 	 *   It will be used if all other wrappers registered on the same target also prefer the same mode, otherwise the default will be used instead.
 	 *   This option should only be specified with good reason. In most cases, using 'AUTO' in order to allow the GM to choose is the best option.
 	 *   First introduced in v1.5.0.0.
@@ -420,6 +450,9 @@ export class libWrapper {
 	 *     Default performance mode. If unsure, choose this mode.
 	 *     Will allow the GM to choose which performance mode to use.
 	 *     Equivalent to 'FAST' when the libWrapper 'High-Performance Mode' setting is enabled by the GM, otherwise 'NORMAL'.
+	 *
+	 * @returns {number} Unique numeric 'target' identifier which can be used in future 'libWrapper.register' and 'libWrapper.unregister' calls.
+	 *   Added in v1.11.0.0.
 	 */
 	static register(package_id, target, fn, type='MIXED', options={}) {
 		// Get package information
@@ -430,8 +463,8 @@ export class libWrapper {
 			throw new ERRORS.package('Not allowed to register wrappers before the \'libWrapperReady\' hook fires', package_info);
 
 		// Validate other arguments
-		if(!target || typeof target !== 'string')
-			throw new ERRORS.package('Parameter \'target\' must be a string.', package_info);
+		if(typeof target !== 'string' && typeof target !== 'number')
+			throw new ERRORS.package('Parameter \'target\' must be a number or a string.', package_info);
 
 		if(!fn || !(fn instanceof Function))
 			throw new ERRORS.package('Parameter \'fn\' must be a function.', package_info);
@@ -451,21 +484,44 @@ export class libWrapper {
 			throw new ERRORS.package(`Parameter 'perf_mode' must be one of [${PERF_MODE.list.join(', ')}].`, package_info);
 
 
-		// Split '#set' from the target
-		const target_and_setter  = _split_target_and_setter(target);
-		const target_without_set = target_and_setter[0];
-		const is_setter          = target_and_setter[1];
+		// Process 'target' parameter
+		let wrapper = undefined;
+		let is_setter;
 
-		// Create wrapper
-		let wrapper = _create_wrapper(target, package_info);
+		// In the case it is a number, then this means the wrapper must already exist, we simply need to find it
+		if(typeof target === 'number') {
+			[wrapper, is_setter] = _find_wrapper_by_id(target);
 
-		// Only allow '#set' when the wrapper is wrapping a property
-		if(is_setter && !wrapper.is_property)
-			throw new ERRORS.package(`Cannot register a wrapper for '${target}' by ${package_info.type_plus_id}' because '${target_without_set}' is not a property, and therefore has no setter.`, package_info);
+			if(!wrapper)
+				throw new ERRORS.package(`Could not find target '${target}': Invalid or unknown unique identifier.`, package_info);
+		}
+		// Otherwise, we need to create a wrapper from a target string (or obtain it if it already exists)
+		else {
+			// Split '#set' from the target
+			const target_and_setter  = _split_target_and_setter(target);
+			const target_without_set = target_and_setter[0];
+
+			is_setter = target_and_setter[1];
+
+			// Create wrapper
+			wrapper = _create_wrapper(target, package_info);
+
+			// Sanity check
+			if(!wrapper)
+				throw new ERRORS.internal(`Sanity check failed: 'wrapper' must not be falsy after _create_wrapper call`);
+
+			// Only allow '#set' when the wrapper is wrapping a property
+			if(is_setter && !wrapper.is_property)
+				throw new ERRORS.package(`Cannot register a wrapper for '${target}' by ${package_info.type_plus_id}' because '${target_without_set}' is not a property, and therefore has no setter.`, package_info);
+		}
+
+		// Get wrapper ID and name for log messages
+		const wrapper_id = wrapper.get_id(is_setter);
+		const wrapper_name = wrapper.get_name(is_setter);
 
 		// Check if this wrapper is already registered
 		if(_find_package_data_in_wrapper(package_info, wrapper, is_setter))
-			throw new ERRORS.package(`A wrapper for '${target}' has already been registered by ${package_info.type_plus_id}.`, package_info);
+			throw new ERRORS.package(`A wrapper for '${wrapper_name}' (ID=${wrapper_id}) has already been registered by ${package_info.type_plus_id}.`, package_info);
 
 		// Get priority
 		const priority = _get_default_priority(package_info, target);
@@ -490,7 +546,7 @@ export class libWrapper {
 
 						if(notify_user) {
 							LibWrapperNotifications.conflict(existing.package_info, package_info, false,
-								`${package_info.type_plus_id_capitalized} has higher priority, and is replacing the 'OVERRIDE' registered by ${package_info.type_plus_id} for '${wrapper.name}'.`
+								`${package_info.type_plus_id_capitalized} has higher priority, and is replacing the 'OVERRIDE' registered by ${package_info.type_plus_id} for '${wrapper_name}'.`
 							);
 						}
 					}
@@ -515,9 +571,11 @@ export class libWrapper {
 
 		// Done
 		if(DEBUG || (!IS_UNITTEST && package_info.id != PACKAGE_ID)) {
-			Hooks.callAll(`${HOOKS_SCOPE}.Register`, package_info.id, target, type, options);
-			console.info(`libWrapper: Registered a wrapper for '${target}' by ${package_info.type_plus_id} with type ${type}.`);
+			Hooks.callAll(`${HOOKS_SCOPE}.Register`, package_info.id, (typeof target === 'number') ? wrapper_name : target, type, options, wrapper_id);
+			console.info(`libWrapper: Registered a wrapper for '${wrapper_name}' (ID=${wrapper_id}) by ${package_info.type_plus_id} with type ${type}.`);
 		}
+
+		return wrapper_id;
 	}
 
 	/**
@@ -525,21 +583,39 @@ export class libWrapper {
 	 *
 	 * Triggers FVTT hook 'libWrapper.Unregister' when successful.
 	 *
-	 * @param {string} package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest.
-	 * @param {string} target      A string containing the path to the function you wish to remove the wrapper from, starting at global scope. For example: 'SightLayer.prototype.updateToken'
-	 * @param {function} fail      [Optional] If true, this method will throw an exception if it fails to find the method to unwrap. Default is 'true'.
+	 * @param {string} package_id     The package identifier, i.e. the 'id' field in your module/system/world's manifest.
+	 *
+	 * @param {number|string} target  The target identifier, specifying which wrapper should be unregistered.
+	 *
+	 *   This can be either:
+	 *     1. A unique target identifier obtained from a previous 'libWrapper.register' call. This is the recommended option.
+	 *     2. A string containing the path to the function you wish to remove the wrapper from, starting at global scope, with the same syntax as the 'target' parameter to 'libWrapper.register'.
+	 *
+	 *   Support for the unique target identifiers (option #1) was added in v1.11.0.0, with previous versions only supporting option #2.
+	 *   It is recommended to use option #1 if possible, in order to guard against the case where the class or object at the given path is no longer the same as when `libWrapper.register' was called.
+	 *
+	 * @param {function} fail         [Optional] If true, this method will throw an exception if it fails to find the method to unwrap. Default is 'true'.
 	 */
 	static unregister(package_id, target, fail=true) {
 		// Get package information
 		const package_info = _get_package_info(package_id);
 
+		// Validate arguments
+		if(typeof target !== 'string' && typeof target !== 'number')
+			throw new ERRORS.package('Parameter \'target\' must be a number or a string.', package_info);
+
 		// Unregister wrapper
-		_unregister(package_info, target, fail);
+		const data = _unregister(package_info, target, fail);
+		if(!data)
+			return;
 
 		// Done
 		if(DEBUG || package_info.id != PACKAGE_ID) {
-			Hooks.callAll(`${HOOKS_SCOPE}.Unregister`, package_info.id, target);
-			console.info(`libWrapper: Unregistered the wrapper for '${target}' by ${package_info.type_plus_id}.`);
+			const wrapper_id   = data.wrapper.get_id(data.setter);
+			const wrapper_name = data.wrapper.get_name(data.setter);
+
+			Hooks.callAll(`${HOOKS_SCOPE}.Unregister`, package_info.id, (typeof target === 'number') ? wrapper_name : target, wrapper_id);
+			console.info(`libWrapper: Unregistered the wrapper for '${wrapper_name}' (ID=${wrapper_id}) by ${package_info.type_plus_id}.`);
 		}
 	}
 
@@ -555,12 +631,12 @@ export class libWrapper {
 		const package_info = _get_package_info(package_id);
 
 		// Clear package wrappers
-		for(let wrapper of WRAPPERS) {
-			this.unregister(package_info.id, wrapper.name, false);
+		WRAPPERS.forEach((wrapper) => {
+			this.unregister(package_info.id, wrapper.getter_id, false);
 
 			if(wrapper.is_property)
-				this.unregister(package_info.id, `${wrapper.name}#set`, false);
-		}
+				this.unregister(package_info.id, wrapper.setter_id, false);
+		});
 
 		if(DEBUG || package_info.id != PACKAGE_ID) {
 			Hooks.callAll(`${HOOKS_SCOPE}.UnregisterAll`, package_info.id);
@@ -579,14 +655,17 @@ export class libWrapper {
 	 * First introduced in v1.7.0.0.
 	 *
 	 * @param {string}            package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest. This will be the module that owns this ignore entry.
+	 *
 	 * @param {(string|string[])} ignore_ids  Other package ID(s) with which conflicts should be ignored.
+	 *
 	 * @param {(string|string[])} targets     Target(s) for which conflicts should be ignored, corresponding to the 'target' parameter to 'libWrapper.register'.
+	 *   This method does not accept the unique target identifiers returned by 'libWrapper.register'.
 	 *
 	 * @param {Object} options [Optional] Additional options to libWrapper.
 	 *
 	 * @param {boolean} options.ignore_errors  [Optional] If 'true', will also ignore confirmed conflicts (i.e. errors), rather than only potential conflicts (i.e. warnings).
-	 *     Be careful when setting this to 'true', as confirmed conflicts are almost certainly something the user should be made aware of.
-	 *     Defaults to 'false'.
+	 *   Be careful when setting this to 'true', as confirmed conflicts are almost certainly something the user should be made aware of.
+	 *   Defaults to 'false'.
 	 */
 	static ignore_conflicts(package_id, ignore_ids, targets, options={}) {
 		// Get package information
@@ -665,14 +744,17 @@ init_error_listeners();
 
 // Initialize libWrapper right before the 'init' hook. Unit tests just initialize immediately
 {
+	let GAME_INITIALIZE_ID;
+	let GAME_TOSTRING_ID;
+
 	const libWrapperInit = decorate_name('libWrapperInit');
 	const obj = {
 		[libWrapperInit]: async function(wrapped, ...args) {
 			// Unregister our pre-initialisation patches as they are no longer necessary
 			if(!IS_UNITTEST) {
 				const lw_info = new PackageInfo('lib-wrapper', PACKAGE_TYPES.MODULE);
-				_unregister(lw_info, 'Game.toString', /*fail=*/ true);
-				_unregister(lw_info, 'Game.prototype.initialize', /*fail=*/ true);
+				_unregister(lw_info, GAME_TOSTRING_ID  , /*fail=*/ true);
+				_unregister(lw_info, GAME_INITIALIZE_ID, /*fail=*/ true);
 			}
 
 			// Initialization steps
@@ -697,11 +779,11 @@ init_error_listeners();
 	};
 
 	if(!IS_UNITTEST) {
-		libWrapper.register('lib-wrapper', 'Game.prototype.initialize', obj[libWrapperInit], libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+		GAME_INITIALIZE_ID = libWrapper.register('lib-wrapper', 'Game.prototype.initialize', obj[libWrapperInit], libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
 		// We need to prevent people patching 'Game' and breaking libWrapper.
 		// Unfortunately we cannot re-define 'Game' as a non-settable property, but we can prevent people from using 'Game.toString'.
-		libWrapper.register('lib-wrapper', 'Game.toString', function() {
+		GAME_TOSTRING_ID = libWrapper.register('lib-wrapper', 'Game.toString', function() {
 			throw new ERRORS.package("Using 'Game.toString()' before libWrapper initialises is not allowed for compatibility reasons.");
 		}, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 

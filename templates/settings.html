@@ -118,11 +118,28 @@
 		{{#if wrappers}}
 			{{#each wrappers}}
 			<ul id="{{this.name}}" class="has-nested">
-				<li><span class="caret has-nested">{{this.name}} (x{{this.packages.length}})</span>
+				<li><span class="caret has-nested">{{this.name}} ID={{this.id}} (x{{this.packages.length}})</span>
+					{{#if this.names}}
 					<ul class="nested">
-					{{#each this.packages}}
-						<li>{{this.name}} ({{this.type}}{{this.perf_mode}})</li>
-					{{/each}}
+						<li><span class="has-nested">Wrappers:</span>
+							{{/if}}
+
+							<ul class="nested">
+							{{#each this.packages}}
+								<li>{{this.name}} ({{this.type}}{{this.perf_mode}})</li>
+							{{/each}}
+
+							{{#if this.names}}
+							</ul>
+						</li>
+						<li><span class="has-nested">Also known as:</span>
+							<ul class="nested">
+							{{#each this.names}}
+								<li>{{this}}</li>
+							{{/each}}
+							</ul>
+						</li>
+					{{/if}}
 					</ul>
 				</li>
 			</ul>

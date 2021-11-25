@@ -27,7 +27,7 @@ Library for [Foundry VTT](https://foundryvtt.com/) which provides package develo
     - [1.3.3. LibWrapper API](#133-libwrapper-api)
       - [1.3.3.1. Registering a wrapper](#1331-registering-a-wrapper)
       - [1.3.3.2. Unregistering a wrapper](#1332-unregistering-a-wrapper)
-      - [1.3.3.3. Clear all wrappers for a given package](#1333-clear-all-wrappers-for-a-given-package)
+      - [1.3.3.3. Unregister all wrappers for a given package](#1333-unregister-all-wrappers-for-a-given-package)
       - [1.3.3.4. Ignore conflicts matching specific filters](#1334-ignore-conflicts-matching-specific-filters)
       - [1.3.3.5. Library Versioning](#1335-library-versioning)
         - [1.3.3.5.1. Testing for a specific libWrapper version](#13351-testing-for-a-specific-libwrapper-version)
@@ -285,16 +285,23 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *
  * Triggers FVTT hook 'libWrapper.Register' when successful.
  *
+ * Returns a unique numeric target identifier, which can be used as a replacement for 'target' in future calls to 'libWrapper.register' and 'libWrapper.unregister'.
+ *
  * @param {string} package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest.
  *
- * @param {string} target      A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
+ * @param {number|string} target The target identifier, specifying which wrapper should be unregistered.
  *
- *   Since v1.8.0.0, the path can contain string array indexing.
+ *   This can be either:
+ *     1. A unique target identifier obtained from a previous 'libWrapper.register' call.
+ *     2. A string containing the path to the function you wish to add the wrapper to, starting at global scope, for example 'SightLayer.prototype.updateToken'.
+ *
+ *   Support for the unique target identifiers (option #1) was added in v1.11.0.0, with previous versions only supporting option #2.
+ *
+ *   Since v1.8.0.0, the string path (option #2) can contain string array indexing.
  *   For example, 'CONFIG.Actor.sheetClasses.character["dnd5e.ActorSheet5eCharacter"].cls.prototype._onLongRest' is a valid path.
  *   It is important to note that indexing in libWrapper does not work exactly like in JavaScript:
  *     - The index must be a single string, quoted using the ' or " characters. It does not support e.g. numbers or objects.
  *     - A backslash \ can be used to escape another character so that it loses its special meaning, e.g. quotes i.e. ' and " as well as the character \ itself.
- *
  *   By default, libWrapper searches for normal methods or property getters only. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
  *
  * @param {function} fn        Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.
@@ -315,7 +322,7 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *
  *   'OVERRIDE' / libWrapper.OVERRIDE:
  *     Use if your wrapper will *never* continue the chain. This type has the lowest priority, and will always be called last.
- *     If another package already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <libWrapper.LibWrapperAlreadyOverriddenError> exception.
+ *     If another package already has an 'OVERRIDE' wrapper registered to the same method, using this type will throw a <libWrapper.ERRORS.package> exception.
  *     Catching this exception should allow you to fail gracefully, and for example warn the user of the conflict.
  *     Note that if the GM has explicitly given your package priority over the existing one, no exception will be thrown and your wrapper will take over.
  *
@@ -325,7 +332,7 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *   Default is 'false' if type=='OVERRIDE', otherwise 'true'.
  *   First introduced in v1.3.6.0.
  *
- * @param {string} options.perf_mode [OPTIONAL] Selects the preferred performance mode for this wrapper. Default is 'AUTO'.
+ * @param {string} options.perf_mode [Optional] Selects the preferred performance mode for this wrapper. Default is 'AUTO'.
  *   It will be used if all other wrappers registered on the same target also prefer the same mode, otherwise the default will be used instead.
  *   This option should only be specified with good reason. In most cases, using 'AUTO' in order to allow the GM to choose is the best option.
  *   First introduced in v1.5.0.0.
@@ -348,6 +355,9 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *     Default performance mode. If unsure, choose this mode.
  *     Will allow the GM to choose which performance mode to use.
  *     Equivalent to 'FAST' when the libWrapper 'High-Performance Mode' setting is enabled by the GM, otherwise 'NORMAL'.
+ *
+ * @returns {number} Unique numeric 'target' identifier which can be used in future 'libWrapper.register' and 'libWrapper.unregister' calls.
+ *   Added in v1.11.0.0.
  */
 static register(package_id, target, fn, type='MIXED', options={}) { /* ... */ }
 ```
@@ -364,15 +374,25 @@ To unregister a wrapper function, you should call the method `libWrapper.unregis
  *
  * Triggers FVTT hook 'libWrapper.Unregister' when successful.
  *
- * @param {string} package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest.
- * @param {string} target      A string containing the path to the function you wish to remove the wrapper from, starting at global scope. For example: 'SightLayer.prototype.updateToken'
- * @param {function} fail      [Optional] If true, this method will throw an exception if it fails to find the method to unwrap. Default is 'true'.
+ * @param {string} package_id     The package identifier, i.e. the 'id' field in your module/system/world's manifest.
+ *
+ * @param {number|string} target  The target identifier, specifying which wrapper should be unregistered.
+ *
+ *   This can be either:
+ *     1. A unique target identifier obtained from a previous 'libWrapper.register' call. This is the recommended option.
+ *     2. A string containing the path to the function you wish to remove the wrapper from, starting at global scope, with the same syntax as the 'target' parameter to 'libWrapper.register'.
+ *
+ *   It is recommended to use option #1 if possible, in order to guard against the case where the class or object at the given path is no longer the same as when `libWrapper.register' was called.
+ *
+ *   Support for the unique target identifiers (option #1) was added in v1.11.0.0, with previous versions only supporting option #2.
+ *
+ * @param {function} fail         [Optional] If true, this method will throw an exception if it fails to find the method to unwrap. Default is 'true'.
  */
 static unregister(package_id, target, fail=true) { /* ... */ }
 ```
 
 
-#### 1.3.3.3. Clear all wrappers for a given package
+#### 1.3.3.3. Unregister all wrappers for a given package
 To clear all wrapper functions belonging to a given package, you should call the method `libWrapper.unregister_all(package_id)`.
 
 ```javascript
@@ -397,19 +417,22 @@ To ask libWrapper to ignore specific conflicts when detected, instead of warning
  * This can be used when there are conflict warnings that are known not to cause any issues, but are unable to be resolved.
  * Conflicts will be ignored if they involve both 'package_id' and one of 'ignore_ids', and relate to one of 'targets'.
  *
- * Note that the user can still see the list of detected conflicts that were ignored, by toggling "Show ignored conflicts" in the "Conflicts" tab in the libWrapper settings.
+ * Note that the user can still see which detected conflicts were ignored, by toggling "Show ignored conflicts" in the "Conflicts" tab in the libWrapper settings.
  *
  * First introduced in v1.7.0.0.
  *
  * @param {string}            package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest. This will be the module that owns this ignore entry.
+ *
  * @param {(string|string[])} ignore_ids  Other package ID(s) with which conflicts should be ignored.
- * @param {(string|string[])} targets     Target(s) for which conflicts should be ignored, corresponding to the 'target' parameter to libWrapper.register.
+ *
+ * @param {(string|string[])} targets     Target(s) for which conflicts should be ignored, corresponding to the 'target' parameter to 'libWrapper.register'.
+ *   This method does not accept the unique target identifiers returned by 'libWrapper.register'.
  *
  * @param {Object} options [Optional] Additional options to libWrapper.
  *
  * @param {boolean} options.ignore_errors  [Optional] If 'true', will also ignore confirmed conflicts (i.e. errors), rather than only potential conflicts (i.e. warnings).
- *     Be careful when setting this to 'true', as confirmed conflicts are almost certainly something the user should be made aware of.
- *     Defaults to 'false'.
+ *   Be careful when setting this to 'true', as confirmed conflicts are almost certainly something the user should be made aware of.
+ *   Defaults to 'false'.
  */
 static ignore_conflicts(package_id, ignore_ids, targets, options={}) { /* ... */ }
 ```
@@ -567,15 +590,17 @@ Since v1.4.0.0, the libWrapper library triggers Hooks for various events, listed
     - Triggered when `libWrapper.Register` completes successfully.
     - Parameters:
         - `1`: Package ID whose wrapper is being registered (the `package_id` parameter to `libWrapper.register`).
-        - `2`: Wrapper target (the `target` parameter to `libWrapper.register`).
+        - `2`: Wrapper target path (the `target` parameter to `libWrapper.register` when it is a string, otherwise the first parameter provided by any module when registering a wrapper to the same method).
         - `3`: Wrapper type (the `type` parameter to `libWrapper.register`).
         - `4`: Options object (the `options` parameter to `libWrapper.register`).
+        - `5`: Wrapper ID (the return value of `libWrapper.register`).
 
 * `libWrapper.Unregister`:
     - Triggered when `libWrapper.Unregister` completes successfully.
     - Parameters:
         - `1`: Package ID whose wrapper is being unregistered (the `package_id` parameter to `libWrapper.unregister`).
-        - `2`: Wrapper target (the `target` parameter to `libWrapper.unregister`).
+        - `2`: Wrapper target (the `target` parameter to `libWrapper.unregister` when it is a string, otherwise the first parameter provided by any module when registering a wrapper to the same method).
+        - `3`: Wrapper ID (the return value of `libWrapper.Register`).
 
 * `libWrapper.UnregisterAll`:
     - Triggered when `libWrapper.unregister_all` completes successfully.

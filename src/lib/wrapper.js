@@ -3,10 +3,11 @@
 
 'use strict';
 
-import {PACKAGE_ID, PROPERTIES_CONFIGURABLE, DEBUG} from '../consts.js';
+import {PROPERTIES_CONFIGURABLE, DEBUG} from '../consts.js';
 import {WRAPPER_TYPES, PERF_MODES} from './enums.js';
+import {WRAPPERS} from './storage.js';
 import {decorate_name, set_function_name, decorate_class_function_names} from '../utils/misc.js';
-import {getNotifyIssues, getHighPerformanceMode} from '../utils/settings.js';
+import {getHighPerformanceMode} from '../utils/settings.js';
 import {PackageInfo} from '../shared/package_info.js';
 
 import {ERRORS} from '../errors/errors.js';
@@ -17,9 +18,14 @@ import {LibWrapperConflicts} from '../ui/conflicts.js';
 import {onUnhandledError} from '../errors/listeners.js';
 
 
-
 // Wrapper class - this class is responsible for the actual wrapping
 export class Wrapper {
+	// IDs
+	get_id(is_setter=false) {
+		return is_setter ? this.setter_id : this.getter_id;
+	}
+
+
 	// Names
 	get name() {
 		return this.names[0];
@@ -28,6 +34,17 @@ export class Wrapper {
 	get frozen_names() {
 		Object.freeze(this.names);
 		return this.names;
+	}
+
+	get_name(is_setter=false) {
+		return is_setter ? `${this.name}#set` : this.name;
+	}
+
+	get_names(is_setter=false) {
+		if(!is_setter)
+			return this.frozen_names;
+
+		return this.names.map((name) => `${name}#set`);
 	}
 
 	_add_name(name) {
@@ -103,21 +120,20 @@ export class Wrapper {
 		}
 
 		// Setup instance variables
+		[this.getter_id, this.setter_id] = WRAPPERS.get_next_id_pair();
+
 		this.names = [];
 
 		this.getter_data = [];
-		this._getter_data_id = 0;
-		if(this.is_property) {
+		if(this.is_property)
 			this.setter_data = [];
-			this._setter_data_id = 0;
-		}
 
-		this.active  = false;
+		this.active = false;
 
 		this._outstanding_wrappers = 0;
-		this._current_handler_id = 0;
 
 		if(!this.is_property) {
+			this._current_handler_id = 0;
 			this._pending_wrapped_calls = [];
 			this._pending_wrapped_calls_cnt = 0;
 		}
@@ -136,6 +152,10 @@ export class Wrapper {
 
 	// Handler
 	_get_handler() {
+		// Properties cannot use handlers
+		if(this.is_property)
+			throw new ERRORS.internal(`Unreachable: _get_handler with is_property=false`);
+
 		// Return the cached handler, if it is still valid
 		const handler_id = this._current_handler_id;
 		if(handler_id === this._cached_handler_id)
@@ -181,11 +201,15 @@ export class Wrapper {
 	}
 
 	get_static_dispatch_chain(obj) {
-		const fn_data_id = this._getter_data_id;
+		// Properties cannot use handlers
+		if(this.is_property)
+			throw new ERRORS.internal(`Unreachable: get_static_dispatch_chain with is_property=false`);
+
+		// Obtain dispatch chain
 		let dispatch_chain = null;
 
 		// Use the cached dispatch chain, if still valid
-		if(fn_data_id === this._cached_static_dispatch_chain_id && obj === this._cached_static_dispatch_chain_obj) {
+		if(obj === this._cached_static_dispatch_chain_obj) {
 			dispatch_chain = this._cached_static_dispatch_chain;
 		}
 		// Otherwise, generate a new static dispatch chain
@@ -217,12 +241,18 @@ export class Wrapper {
 
 			// Cache static dispatch chain
 			this._cached_static_dispatch_chain_obj = obj;
-			this._cached_static_dispatch_chain_id  = fn_data_id;
 			this._cached_static_dispatch_chain     = dispatch_chain;
 		}
 
 		// Done
 		return dispatch_chain;
+	}
+
+	clear_static_dispatch_chain_cache() {
+		if(!this.is_property) {
+			this._cached_static_dispatch_chain_obj = undefined;
+			this._cached_static_dispatch_chain     = undefined;
+		}
 	}
 
 	should_skip_wrappers(obj, handler_id, is_static_dispatch) {
@@ -256,10 +286,14 @@ export class Wrapper {
 	}
 
 	_calc_use_static_dispatch() {
+		// Properties cannot use static dispatch
+		if(this.is_property)
+			return false;
+
+		// Do all the wrappers in fn_data specify the same, explicit, performance mode wish?
 		let perf_mode = PERF_MODES.AUTO;
 		const fn_data = this.get_fn_data(false);
 
-		// Do all the wrappers in fn_data specify the same, explicit, performance mode wish?
 		for(const data of fn_data) {
 			if(!data.perf_mode)
 				continue;
@@ -540,7 +574,7 @@ export class Wrapper {
 				throw new ERRORS.internal(`Must not have 'data===${data}' when 'fn_data.length==${fn_data.length}'.`);
 
 			// There are no wrappers, return the wrapped value.
-			return this.call_wrapped(null, obj, ...args);
+			return this.call_wrapped(state, obj, ...args);
 		}
 
 		// Grab wrapper function from function data object
@@ -666,7 +700,7 @@ export class Wrapper {
 					console.error(error);
 
 					// Unregister this module
-					globalThis.libWrapper.unregister(data.package_info.id, data.target);
+					globalThis.libWrapper.unregister(data.package_info.id, this.get_id(data.setter));
 
 					// Manually chain to the next wrapper if there are more in the chain
 					if(!is_last_wrapper)
@@ -772,9 +806,6 @@ export class Wrapper {
 				result = this[prop_nm].slice(0);
 				this[prop_nm] = result;
 			}
-
-			// Increment unique ID
-			this[`_${prop_nm}_id`]++;
 		}
 
 		// Done
@@ -783,6 +814,7 @@ export class Wrapper {
 
 	_post_update_fn_data() {
 		this.update_use_static_dispatch();
+		this.clear_static_dispatch_chain_cache();
 	}
 
 	sort() {

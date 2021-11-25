@@ -6,7 +6,7 @@
 import { VERSION } from '../shared/version.js';
 import { PACKAGE_ID, PACKAGE_TITLE } from '../consts.js';
 import { LibWrapperStats } from './stats.js';
-import { WRAPPERS } from '../utils/misc.js';
+import { WRAPPERS } from '../lib/storage.js';
 import { PackageInfo, PACKAGE_TYPES } from '../shared/package_info.js';
 import { i18n } from '../shared/i18n.js';
 
@@ -158,14 +158,8 @@ export class LibWrapperSettings extends FormApplication {
 				if(is_setter && !wrapper.is_property)
 					continue;
 
-				let name = wrapper.name;
-				if(is_setter)
-					name = `${name}#set`;
-
-				let _d = {
-					name  : name,
-					packages: []
-				};
+				// Obtain list of packages
+				const packages = [];
 
 				wrapper.get_fn_data(is_setter).forEach((fn_data) => {
 					if(fn_data.package_info.id == PACKAGE_ID)
@@ -182,12 +176,12 @@ export class LibWrapperSettings extends FormApplication {
 					else
 						d.perf_mode = `, ${d.perf_mode}`;
 
-					_d.packages.push(d);
+					packages.push(d);
 				});
 
 				if(wrapper.detected_classic_wrapper) {
 					wrapper.detected_classic_wrapper.forEach((key) => {
-						_d.packages.push({
+						packages.push({
 							name     : new PackageInfo(key).settingsName,
 							type     : 'MANUAL',
 							perf_mode: null
@@ -195,8 +189,20 @@ export class LibWrapperSettings extends FormApplication {
 					});
 				}
 
-				if(_d.packages.length > 0)
-					data.push(_d);
+				// We only need to show this to the user if there is at least one active package
+				if(packages.length <= 0)
+					continue;
+
+				// Obtain remaining information
+				const id   = wrapper.get_id(is_setter);
+				const names = wrapper.get_names(is_setter);
+
+				data.push({
+					id      : id,
+					name    : names[0],
+					names   : names.slice(1),
+					packages: packages
+				});
 			}
 		});
 

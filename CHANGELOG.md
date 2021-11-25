@@ -1,3 +1,22 @@
+# 1.11.0.0 (2021-11-25)
+
+- API Improvements to `libWrapper.register` and `libWrapper.unregister` (non-breaking):
+  - `libWrapper.register` now returns a unique numeric target identifier.
+  - This unique identifier can be used in further calls to `libWrapper.register` and `libWrapper.unregister`, rather than specifying the target path again.
+    As a result, even if the object is no longer reachable from global scope or has otherwise been replaced by another module, it is still possible to register/unregister wrappers to it.
+  - The `libWrapper.Register` and `libWrapper.Unregister` hooks have been updated, and now also supply the unique target identifier as an extra parameter.
+  - Note: The Shim does not support nor provide these unique identifiers.
+- Improvements to 'Active Wrappers' pane in the settings window:
+  - Add the target identifier to the displayed information.
+  - Do not merge wrappers with the same path but with different target objects (i.e. different target IDs).
+  - When a target is known by multiple names, display the additional names when expanded.
+- Fixed a few cases where having multiple wrappers sharing the same target path but with different target objects (i.e. different target IDs) could cause issues.
+- Fix setter inheritance chain handling for properties when there are no setter-specific wrappers.
+- Update test cases to exercise the new target identifier code paths properly.
+- Miscellaneous cleanup/refactoring and optimisations.
+- Update `compatibleCoreVersion`, now set to v9d2 (`9.231`). Note: This was previously set to a non-existent version (`9.244`) by accident.
+
+
 # 1.10.8.0 (2021-10-10)
 
 - Fix [Issue #56](https://github.com/ruipin/fvtt-lib-wrapper/issues/56).

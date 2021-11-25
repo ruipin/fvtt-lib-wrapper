@@ -6,7 +6,7 @@
 
 import test from 'tape';
 import {CallOrderChecker} from './call_order_checker.js';
-import {wrap_front, unwrap_all_from_obj, test_combinations, async_retval, is_promise, sync_async_then} from './utilities.js';
+import {wrap_front, unwrap_all_from_obj, test_combinations, async_retval, is_promise, sync_async_then, retval} from './utilities.js';
 import '../src/lib/api.js';
 import {load_priorities} from '../src/ui/settings.js';
 
@@ -49,7 +49,7 @@ test_combinations('Library: Main', async function (t) {
 
 	// Register WRAPPER
 	game.add_module('m2');
-	libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('m2:Wrp:2'), 'WRAPPER');
+	const M2_ID = libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('m2:Wrp:2'), 'WRAPPER');
 	await chkr.call(a, 'x', ['m2:Wrp:2','m1:Mix:1','Orig',-3]);
 
 	// Register OVERRIDE
@@ -81,7 +81,7 @@ test_combinations('Library: Main', async function (t) {
 	load_priorities();
 
 	// Try removing m2
-	libWrapper.unregister('m2', 'A.prototype.x');
+	libWrapper.unregister('m2', M2_ID);
 	await chkr.call(a, 'x', ['m1:Mix:1','m3:Ovr:3',-2]);
 
 	if(!t.fast_mode) {
@@ -215,7 +215,7 @@ test_combinations('Library: Special', async function (t) {
 
 // Functionality related to wrapping a setter
 // Sync-only as it makes no sense to call a setter asynchronously
-test('Library: Setter', function (t) {
+test_combinations('Library: Setter', async function (t) {
 	setup();
 	const chkr = new CallOrderChecker(t);
 
@@ -253,103 +253,119 @@ test('Library: Setter', function (t) {
 
 	// Instantiate
 	let a = new A();
-	chkr.check(a.x, ['Orig1',-1]);
+	await chkr.check(a.x, ['Orig1',-1]);
 
 	a.x = 'Orig2';
-	chkr.check('Orig1#set', ['Orig1#set',-1], {param_in: ['Orig2']});
+	await retval(t, null);
+	await chkr.check('Orig1#set', ['Orig1#set',-1], {param_in: ['Orig2']});
 
 	t.equals(a.x_id, 'Orig2', 'Post-setter #1');
-	chkr.check(a.x, ['Orig2',-1]);
+	await chkr.check(a.x, ['Orig2',-1]);
 
 
 
 	// Register MIXED
 	game.add_module('m1');
 	libWrapper.register('m1', 'A.prototype.x', chkr.gen_wr('m1:Mix:1'));
-	chkr.check(a.x, ['m1:Mix:1','Orig2',-2]);
+	await chkr.check(a.x, ['m1:Mix:1','Orig2',-2]);
 
 
 	// Register MIXED wrapper for setter
-	libWrapper.register('m1', 'A.prototype.x#set', chkr.gen_wr('m1:Mix:1#set'));
+	const A_X_SET_ID = libWrapper.register('m1', 'A.prototype.x#set', chkr.gen_wr('m1:Mix:1#set'));
 
 	a.x = 'Orig3';
-	chkr.check('m1:Mix:1#set', ['m1:Mix:1#set','Orig2#set',-2], {param_in: ['Orig3']});
-
+	await retval(t, null);
+	await chkr.check('m1:Mix:1#set', ['m1:Mix:1#set','Orig2#set',-2], {param_in: ['Orig3']});
 	t.equals(a.x_id, 'Orig3', 'Post-setter #2');
-	chkr.check(a.x, ['m1:Mix:1','Orig3',-2]);
+	await chkr.check(a.x, ['m1:Mix:1','Orig3',-2]);
 
 
 	a.x = 'Orig4';
-	chkr.check('m1:Mix:1#set', ['m1:Mix:1#set','Orig3#set',-2], {param_in: ['Orig4']});
+	await retval(t, null);
+	await chkr.check('m1:Mix:1#set', ['m1:Mix:1#set','Orig3#set',-2], {param_in: ['Orig4']});
 	t.equals(a.x_id, 'Orig4', 'Post-setter #3');
-	chkr.check(a.x, ['m1:Mix:1','Orig4',-2]);
+	await chkr.check(a.x, ['m1:Mix:1','Orig4',-2]);
 
 
 	// Register second set of wrappers
 	game.add_module('m2');
 	libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('m2:Mix:2'));
-	chkr.check(a.x, ['m2:Mix:2','m1:Mix:1','Orig4',-3]);
+	await chkr.check(a.x, ['m2:Mix:2','m1:Mix:1','Orig4',-3]);
 
-	libWrapper.register('m2', 'A.prototype.x#set', chkr.gen_wr('m2:Mix:2#set'));
+	libWrapper.register('m2', A_X_SET_ID, chkr.gen_wr('m2:Mix:2#set'));
 
 	a.x = 'Orig5';
-	chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','m1:Mix:1#set','Orig4#set',-3], {param_in: ['Orig5']});
+	await retval(t, null);
+	await chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','m1:Mix:1#set','Orig4#set',-3], {param_in: ['Orig5']});
 
 	t.equals(a.x_id, 'Orig5', 'Post-setter #4');
-	chkr.check(a.x, ['m2:Mix:2','m1:Mix:1','Orig5',-3]);
+	await chkr.check(a.x, ['m2:Mix:2','m1:Mix:1','Orig5',-3]);
 
 
 	a.x = 'Orig6';
-	chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','m1:Mix:1#set','Orig5#set',-3], {param_in: ['Orig6']});
+	await retval(t, null);
+	await chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','m1:Mix:1#set','Orig5#set',-3], {param_in: ['Orig6']});
 	t.equals(a.x_id, 'Orig6', 'Post-setter #5');
-	chkr.check(a.x, ['m2:Mix:2','m1:Mix:1','Orig6',-3]);
+	await chkr.check(a.x, ['m2:Mix:2','m1:Mix:1','Orig6',-3]);
 
 
 	// Unregister getter wrapper
 	libWrapper.unregister('m1', 'A.prototype.x');
 
 	a.x = 'Orig7';
-	chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','m1:Mix:1#set','Orig6#set',-3], {param_in: ['Orig7']});
+	await retval(t, null);
+	await chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','m1:Mix:1#set','Orig6#set',-3], {param_in: ['Orig7']});
 	t.equals(a.x_id, 'Orig7', 'Post-setter #6');
-	chkr.check(a.x, ['m2:Mix:2','Orig7',-2]);
+	await chkr.check(a.x, ['m2:Mix:2','Orig7',-2]);
 
 
 	// Unregister setter wrapper
-	libWrapper.unregister('m1', 'A.prototype.x#set');
+	libWrapper.unregister('m1', A_X_SET_ID);
 
 	a.x = 'Orig8';
-	chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','Orig7#set',-2], {param_in: ['Orig8']});
+	await retval(t, null);
+	await chkr.check('m2:Mix:2#set', ['m2:Mix:2#set','Orig7#set',-2], {param_in: ['Orig8']});
 	t.equals(a.x_id, 'Orig8', 'Post-setter #7');
-	chkr.check(a.x, ['m2:Mix:2','Orig8',-2]);
+	await chkr.check(a.x, ['m2:Mix:2','Orig8',-2]);
 
 
 	// B sees A's wrappers
 	let b = new B();
-	chkr.check(b.x, ['m2:Mix:2','Orig1',-2]);
+	await chkr.check(b.x, ['m2:Mix:2','Orig1',-2]);
 
 	// After wrapping B, it still sees A's wrappers
 	libWrapper.register('m1', 'B.prototype.x', chkr.gen_wr('m1:Mix:3'));
-	chkr.check(b.x, ['m1:Mix:3','m2:Mix:2','Orig1',-3]);
+	await chkr.check(b.x, ['m1:Mix:3','m2:Mix:2','Orig1',-3]);
 
 	// Now wrap B's setter
 	libWrapper.register('m1', 'B.prototype.x#set', chkr.gen_wr('m1:Mix:3#set'));
 
 	b.x = 'Orig9';
-	chkr.check('m1:Mix:3#set', ['m1:Mix:3#set','m2:Mix:2#set','Orig1#set',-3], {param_in: ['Orig9']});
+	await retval(t, null);
+	await chkr.check('m1:Mix:3#set', ['m1:Mix:3#set','m2:Mix:2#set','Orig1#set',-3], {param_in: ['Orig9']});
 	t.equals(b.x_id, 'Orig9', 'Post-setter #8');
-	chkr.check(b.x, ['m1:Mix:3','m2:Mix:2','Orig9',-3]);
+	await chkr.check(b.x, ['m1:Mix:3','m2:Mix:2','Orig9',-3]);
 
 	// Now wrap A and see if B sees the change
 	libWrapper.register('m1', 'A.prototype.x', chkr.gen_wr('m1:Mix:4'));
-	chkr.check(b.x, ['m1:Mix:3','m1:Mix:4', 'm2:Mix:2','Orig9',-4]);
+	await chkr.check(b.x, ['m1:Mix:3','m1:Mix:4', 'm2:Mix:2','Orig9',-4]);
 
 	libWrapper.register('m1', 'A.prototype.x#set', chkr.gen_wr('m1:Mix:4#set'));
 	b.x = 'Orig10';
-	chkr.check('m1:Mix:3#set', ['m1:Mix:3#set','m1:Mix:4#set','m2:Mix:2#set','Orig9#set',-4], {param_in: ['Orig10']});
+	await retval(t, null);
+	await chkr.check('m1:Mix:3#set', ['m1:Mix:3#set','m1:Mix:4#set','m2:Mix:2#set','Orig9#set',-4], {param_in: ['Orig10']});
 	t.equals(b.x_id, 'Orig10', 'Post-setter #9');
-	chkr.check(b.x, ['m1:Mix:3','m1:Mix:4', 'm2:Mix:2','Orig10',-4]);
+	await chkr.check(b.x, ['m1:Mix:3','m1:Mix:4', 'm2:Mix:2','Orig10',-4]);
 
 
+	// Unregister B's setter (using a target string this time)
+	libWrapper.unregister('m1', 'B.prototype.x#set');
+
+	b.x = 'Orig11';
+	await retval(t, null);
+	await chkr.check('m1:Mix:4#set', ['m1:Mix:4#set','m2:Mix:2#set','Orig10#set',-3], {param_in: ['Orig11']});
+	t.equals(b.x_id, 'Orig11', 'Post-setter #10');
+	await chkr.check(b.x, ['m1:Mix:3','m1:Mix:4', 'm2:Mix:2','Orig11',-4]);
 
 	// Done
 	t.end();
