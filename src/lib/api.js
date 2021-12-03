@@ -397,6 +397,7 @@ export class libWrapper {
 	 *   It is important to note that indexing in libWrapper does not work exactly like in JavaScript:
 	 *     - The index must be a single string, quoted using the ' or " characters. It does not support e.g. numbers or objects.
 	 *     - A backslash \ can be used to escape another character so that it loses its special meaning, e.g. quotes i.e. ' and " as well as the character \ itself.
+	 *
 	 *   By default, libWrapper searches for normal methods or property getters only. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
 	 *
 	 * @param {function} fn        Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.

@@ -135,7 +135,7 @@ You can also specify the type of wrapper you want in the fourth (optional) param
 
     - Use if your wrapper will *always* continue the chain (i.e. call `wrapped`).
     - This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
-    - ⚠ The library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
+    - ⚠ If you use this type but do not call the original function, your wrapper will be automatically unregistered.
 
 - `MIXED` (default):
 
@@ -302,6 +302,7 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *   It is important to note that indexing in libWrapper does not work exactly like in JavaScript:
  *     - The index must be a single string, quoted using the ' or " characters. It does not support e.g. numbers or objects.
  *     - A backslash \ can be used to escape another character so that it loses its special meaning, e.g. quotes i.e. ' and " as well as the character \ itself.
+ *
  *   By default, libWrapper searches for normal methods or property getters only. To wrap a property's setter, append '#set' to the name, for example 'SightLayer.prototype.blurDistance#set'.
  *
  * @param {function} fn        Wrapper function. The first argument will be the next function in the chain, except for 'OVERRIDE' wrappers.
