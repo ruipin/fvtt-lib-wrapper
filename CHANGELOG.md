@@ -1,3 +1,7 @@
+# 1.11.0.1 (2021-12-13)
+
+- Declare compatibility with all Foundry v9 versions, instead of individual ones. It is unlikely a future update will break compatibility.
+
 # 1.11.0.0 (2021-11-25)
 
 - API Improvements to `libWrapper.register` and `libWrapper.unregister` (non-breaking):
