@@ -120,8 +120,12 @@
 
 		"support-channels": [
 			{
-				"title": "オンセ工房FVTTの日本支部サーバ",
+				"title": "オンセ工房FoundryVTTの日本支部サーバ",
 				"url": "https://discord.gg/vM4YM27"
+			},
+			{
+				"title": "FoundryVTT Discord（英語のみ）",
+				"url": "https://discord.gg/foundryvtt"
 			},
 			{
 				"title": "FoundryVTT Reddit（英語のみ）",
