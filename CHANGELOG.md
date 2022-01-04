@@ -1,3 +1,7 @@
+# 1.11.1.0 (2022-01-04)
+
+- Add Japanese localisation, contributed by BrotherSharper. Thank you!
+
 # 1.11.0.1 (2021-12-13)
 
 - Declare compatibility with all Foundry v9 versions, instead of individual ones. It is unlikely a future update will break compatibility.
