@@ -1,0 +1,136 @@
+{
+    "Localization Provided By": "Brother Sharp",
+	"lib-wrapper": {
+		"settings": {
+			"yes": "はい",
+			"no": "いいえ",
+			"save": "セーブ",
+			"reload": "再読込み",
+			"reset": "リセット",
+
+			"notify-issues-gm": {
+				"name": "GMに問題を通知",
+				"hint": "Modの競合などの問題が検出されたときにGMに通知するかどうかを設定します｡"
+			},
+			"notify-issues-player": {
+				"name": "プレイヤーに問題を通知",
+				"hint": "Modの競合などの問題が検出されたときにPLに通知するかどうかを設定します｡"
+			},
+			"high-performance-mode": {
+				"name": "低性能PC用の調整",
+				"hint": "このModが提供する動的な競合検出機能を全て無効化し、性能が低いPCを使用している人向けにパフォーマンスを確保します。競合や問題が検出される可能性が著しく低下してしまうので新規のMod等をインストールするときだけこの機能を無効化するのをお勧めします。問題がなければまた有効化してください。"
+			},
+
+			"menu": {
+				"title": "libWrapper設定メニュー",
+
+				"priorities": {
+					"name": "優先順位",
+					"package-inactive": "無効化",
+					"statistics-disabled": "注：統計情報の収集が無効になっていますので優先されないパッケージを表示することができませんでした。",
+
+					"prioritized": {
+						"title": "高優先度パッケージ",
+						"hint": "この一覧にあるパッケージは他よりも優先されます｡一覧内の位置が高いほど､優先度が高くなります。"
+					},
+
+					"unprioritized": {
+						"title": "優先されないパッケージ",
+						"hint": "ここにあるパッケージは優先度を付与されません。\nそのため、先着順で発動順位が決まります。\n新しいパッケージはデフォルトでこの一覧に置かれます。"
+					},
+
+					"deprioritized": {
+						"title": "低優先度パッケージ",
+						"hint": "この一覧にあるパッケージは他よりも優先順位が低くなります｡一覧内の位置が高いほど､優先度が高くなります。",
+						"note": "libWrapperを使用しないパッケージは更に優先順位が低くなります。"
+					}
+				},
+
+				"conflicts": {
+					"name": "競合",
+					"none-detected": "競合は検出されませんでした。",
+					"statistics-disabled": "統計情報の収集は無効です。",
+					"show-ignored": "無視された競合も表示"
+				},
+
+				"active-wrappers": {
+					"name": "アクティブなWrapper",
+					"none-active": "現在有効なWrapperは存在しません。"
+				},
+
+				"about": {
+					"name": "概要",
+					"full-name": "libWrapperについて",
+					"credits": "{name} {version}、{author}作",
+					"credits-translation": "",
+
+					"description": "「libWrapper」は複雑したオンセ工房 Foundry VTTの開発環境を整理するために、パッケージ開発者に他のパッケージとの競合の可能性を減らしつつ本体のコードを修正する簡単な方法を提供するライブラリです.",
+					"info": "このモジュールについての詳細情報は<a href=\"{repo_url}\">オンセ工房 Foundry VTTのパッケージリポジトリ</a>､および <a href=\"{github_url}\">Githubページ</a>より確認できます.",
+					"support": "<b>困っていますか？</b>サポートを受けたい場合はコミュニティに質問しましょう！以下がサポートを受けられる大手のサポートコミュニティです:",
+					"issue-tracker": "もし､ <b>libWrapperの内部エラー</b>や<b>パッケージ開発者</b>の方は、<a href=\"{issues_url}\">libWrapperのGithubIssue Tracker</a>でissueを登録してください。"
+				},
+
+				"warning-reset-priorities": "優先度をリセットするとすべてのパッケージが「優先されない」状態に戻ります。この操作は取り消すことができません、本当によろしいですか？",
+				"warning-save": "優先順位を適用するにはパッケージの再読み込みが必要です。再読み込みしますか？"
+			}
+		},
+
+		"packages": {
+			"unknown-title": "不明",
+
+			"type-plus-id": "{type} {id}",
+			"type-plus-title": "{type} {title}",
+
+			"types": {
+				"module" : "Mod",
+				"system" : "システム",
+				"world"  : "ワールドスクリプト",
+				"unknown": "パッケージ"
+			}
+		},
+
+		"error": {
+			"see-js-console": "(JSコンソールを確認してください)",
+			"tech-details": "== 詳細情報:",
+			"community-support": "コミュニティにサポートを求める：",
+			"not-lw": "これはlibWrapperのバグではありません！",
+
+			"external": {
+				"notification": "{title}: {type}にエラーが発生",
+				"message": "{type} {title}にエラーが発生しました。",
+				"info": "{type}についての詳細情報はこちらよりご確認ください：{url}",
+				"report": "エラーをissueとしてここに登録してください：{url}",
+				"likely-not-updated": "{type}はFVTTバージョン{version}に対応していない可能性が高いです。"
+			},
+
+			"internal": {
+				"message": "内部エラーが検出されました。",
+				"message-with-package": "{type} {title}の内部エラーが検出されました。",
+				"info": "libWrapperについての詳細情報はこちらよりご確認ください：{url}",
+				"report": "エラーをissueとしてここに登録してください：{url}"
+			},
+
+			"conflict": {
+				"potential": "{main}と{other}の競合が発生している可能性があります。",
+				"confirmed": "{main}と{other}の競合が検出されました。",
+				"info": "これらのパッケージついての詳細情報をこちらよりご確認ください：",
+				"report": "この競合をここに報告してください："
+			}
+		},
+
+		"support-channels": [
+			{
+				"title": "オンセ工房FoundryVTTの日本支部サーバ",
+				"url": "https://discord.gg/vM4YM27"
+			},
+			{
+				"title": "FoundryVTT Discord（英語のみ）",
+				"url": "https://discord.gg/foundryvtt"
+			},
+			{
+				"title": "FoundryVTT Reddit（英語のみ）",
+				"url": "https://www.reddit.com/r/FoundryVTT"
+			}
+		]
+	}
+}
