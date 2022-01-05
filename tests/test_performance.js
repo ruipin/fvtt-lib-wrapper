@@ -41,40 +41,31 @@ function measure_perf(t, name, fn, max, min=0, reps=200) {
 	t.ok(avg <= max, `${name}: ${display}ms <= ${max}ms`);
 }
 
-function recursive_repeat(t, i=0, reps=1000) {
-	if(i < reps)
-		return recursive_repeat(t, i+1, reps);
-	return i;
-}
 
 // Main functionality of the libWrapper Shim
 test('Performance', function (t) {
 	setup();
 
 	class A {
-		x() { return recursive_repeat(t) };
-		y() { return 0; }
+		x() { return 0 }
 	}
 	globalThis.A = A;
 
 	class B {
-		x() { return recursive_repeat(t); }
-		y() { return 0; }
-		z() { return 0; }
+		x() { return 0 }
 	}
 	globalThis.B = B;
 
 	class C {
-		x() { return recursive_repeat(t) };
-		y() { return 0; }
+		x() { return 0 };
 	}
 	globalThis.C = C;
 
 	class D {
-		x() { return recursive_repeat(t) };
-		y() { return 0; }
+		x() { return 0 };
 	}
 	globalThis.D = D;
+
 
 	// Instantiate
 	let a = new A();
@@ -82,68 +73,67 @@ test('Performance', function (t) {
 	let c = new C();
 	let d = new D();
 
-	// Test many calls, unwrapped
-	const call_reps = 1000;
-	measure_perf(t, `........... Unwrapped, ${call_reps} Calls`, () => {
-		for(let i = 0; i < call_reps; i++)
-			a.y()
-	}, 0.2);
 
-	// Test many calls with no wrappers
-	game.add_module('m0');
-	libWrapper.register('m0', 'C.prototype.y', (wrapped, ...args) => wrapped(...args));
-	unwrap_all_from_obj(C.prototype, 'y');
-	libWrapper.register('m0', 'D.prototype.y', (wrapped, ...args) => wrapped(...args), 'MIXED', {perf_mode: 'FAST'});
-	unwrap_all_from_obj(D.prototype, 'y');
+	// Utility functions
+	const original_A_prototype_x = A.prototype.x;
+	const original_B_prototype_x = B.prototype.x;
+	const wrap_many = function(wrappers) {
+		A.prototype.x = original_A_prototype_x;
+		B.prototype.x = original_B_prototype_x;
+		unwrap_all_from_obj(C.prototype, 'x');
+		unwrap_all_from_obj(D.prototype, 'x');
 
-	measure_perf(t, `Library.... 0 Wrappers, ${call_reps} Calls`, () => {
-		for(let i = 0; i < call_reps; i++)
-			c.y()
-	}, 0.5);
-	measure_perf(t, `Fast Mode.. 0 Wrappers, ${call_reps} Calls`, () => {
-		for(let i = 0; i < call_reps; i++)
-			d.y()
-	}, 0.5);
+		for(let i = 0; i < wrappers; i++) {
+			const module_nm = `m${i}`;
+			game.add_module(module_nm);
 
-	// Test many calls with a single wrapper
-	A.prototype.y = (() => { const wrapped = A.prototype.y; return (...args) => wrapped(...args); })();
-	libWrapperShim.register('m0', 'B.prototype.y', (wrapped, ...args) => wrapped(...args));
-	libWrapper.register('m0', 'C.prototype.y', (wrapped, ...args) => wrapped(...args));
-	libWrapper.register('m0', 'D.prototype.y', (wrapped, ...args) => wrapped(...args), 'MIXED', {perf_mode: 'FAST'});
-
-	measure_perf(t, `Traditional 1 Wrapper , ${call_reps} Calls`, () => {
-		for(let i = 0; i < call_reps; i++)
-			a.y()
-	}, 0.5);
-	measure_perf(t, `Shim....... 1 Wrapper , ${call_reps} Calls`, () => {
-		for(let i = 0; i < call_reps; i++)
-			b.y();
-	}, 0.5);
-	measure_perf(t, `Library.... 1 Wrapper , ${call_reps} Calls`, () => {
-		for(let i = 0; i < call_reps; i++)
-			c.y()
-	}, 2.5);
-	measure_perf(t, `Fast Mode.. 1 Wrapper , ${call_reps} Calls`, () => {
-		for(let i = 0; i < call_reps; i++)
-			d.y()
-	}, 0.5);
-
-	// Test with many wrappers
-	let wrapper_cnt;
-	for(wrapper_cnt = 0; wrapper_cnt < 1000; wrapper_cnt++) {
-		const module_nm = `m${wrapper_cnt}`;
-		game.add_module(module_nm);
-
-		A.prototype.x = (() => { const wrapped = A.prototype.x; return (...args) => wrapped(...args); })();
-		libWrapperShim.register(module_nm, 'B.prototype.x', (wrapped, ...args) => wrapped(...args));
-		libWrapper.register(module_nm, 'C.prototype.x', (wrapped, ...args) => wrapped(...args));
-		libWrapper.register(module_nm, 'D.prototype.x', (wrapped, ...args) => wrapped(...args), 'MIXED', {perf_mode: 'FAST'});
+			A.prototype.x = (() => { const wrapped = A.prototype.x; return (...args) => wrapped(...args); })();
+			libWrapperShim.register(module_nm, 'B.prototype.x', (wrapped, ...args) => wrapped(...args));
+			libWrapper.register(module_nm, 'C.prototype.x', (wrapped, ...args) => wrapped(...args));
+			libWrapper.register(module_nm, 'D.prototype.x', (wrapped, ...args) => wrapped(...args), 'MIXED', {perf_mode: 'FAST'});
+		}
 	}
 
-	measure_perf(t, `Traditional ${wrapper_cnt} Wrappers, 1 Call`, () => a.x(), 0.5);
-	measure_perf(t, `Shim....... ${wrapper_cnt} Wrappers, 1 Call`, () => b.x(), 0.5);
-	measure_perf(t, `Library.... ${wrapper_cnt} Wrappers, 1 Call`, () => c.x(), 2.5);
-	measure_perf(t, `Fast Mode.. ${wrapper_cnt} Wrappers, 1 Call`, () => d.x(), 0.5);
+	const call_many_objects = function(t, title, cls, objs, calls, max) {
+		const objarr = [];
+
+		for(let i = 0; i < objs; i++)
+			objarr[i] = new cls();
+
+		measure_perf(t, title, () => {
+			for(let call = 0; call < calls; call++) {
+				for(const obj of objarr)
+					cls.prototype.x.apply(obj);
+			}
+		}, max);
+	}
+
+	const measure_perf_all = function(t, wrappers, calls, objs, maxA, maxB, maxC, maxD) {
+		wrap_many(wrappers);
+
+		const info = `${wrappers} Wrappers, ${calls} Calls, ${objs} Objects`;
+		call_many_objects(t, `Traditional ${info}`, A, objs, calls, maxA);
+		call_many_objects(t, `Shim....... ${info}`, B, objs, calls, maxB);
+		call_many_objects(t, `Library.... ${info}`, C, objs, calls, maxC);
+		call_many_objects(t, `Fast Mode.. ${info}`, D, objs, calls, maxD);
+	}
+
+
+	// Test many calls with no wrappers
+	measure_perf_all(t, 0, 1000, 1, 0.5, 0.5, 0.5, 0.5);
+
+	// Test many calls with a single wrapper
+	measure_perf_all(t, 1, 1000, 1, 0.5, 0.5, 2.5, 0.5);
+
+	// Test with many wrappers
+	measure_perf_all(t, 1000, 1, 1, 0.5, 0.5, 2.5, 0.5);
+
+	// Test many objects
+	measure_perf_all(t, 1, 1, 1000, 0.5, 0.5, 2.5, 0.5);
+
+	// Test many objects and wrappers
+	measure_perf_all(t, 10, 10, 10, 0.5, 0.5, 2.5, 0.5);
+
 
 	// Done
 	t.end();

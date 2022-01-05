@@ -1,3 +1,7 @@
+# 1.11.2.0 (2022-01-05)
+
+- Improve static dispatch chain caching, speeding up wrappers when calling them on different objects with "High Performance Mode" enabled.
+
 # 1.11.1.0 (2022-01-04)
 
 - Add Japanese localisation, contributed by BrotherSharper. Thank you!

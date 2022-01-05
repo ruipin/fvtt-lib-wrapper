@@ -26,6 +26,7 @@ export class Wrapper {
 	}
 
 
+
 	// Names
 	get name() {
 		return this.names[0];
@@ -58,10 +59,12 @@ export class Wrapper {
 	}
 
 
+
 	// Callstack
 	_callstack_name(nm, arg1=this.name) {
 		return decorate_name(arg1, nm);
 	}
+
 
 
 	// Constructor
@@ -150,6 +153,7 @@ export class Wrapper {
 	}
 
 
+
 	// Handler
 	_get_handler() {
 		// Properties cannot use handlers
@@ -183,14 +187,13 @@ export class Wrapper {
 					else
 						return _this.call_wrapper(null, this, ...args);
 				}
-			},
-
-			toString: function () {
-				return "/* WARNING: libWrapper wrappers present! */\n" + _this.get_wrapped(this).toString();
 			}
 		};
 		const handler = obj[handler_nm];
-		handler.toString = obj['toString'];
+
+		handler.toString = function () {
+			return "/* WARNING: libWrapper wrappers present! */\n" + _this.get_wrapped(this).toString();
+		}
 
 		// Cache handler
 		this._cached_handler = handler;
@@ -198,61 +201,6 @@ export class Wrapper {
 
 		// Done
 		return handler;
-	}
-
-	get_static_dispatch_chain(obj) {
-		// Properties cannot use handlers
-		if(this.is_property)
-			throw new ERRORS.internal(`Unreachable: get_static_dispatch_chain with is_property=false`);
-
-		// Obtain dispatch chain
-		let dispatch_chain = null;
-
-		// Use the cached dispatch chain, if still valid
-		if(obj === this._cached_static_dispatch_chain_obj) {
-			dispatch_chain = this._cached_static_dispatch_chain;
-		}
-		// Otherwise, generate a new static dispatch chain
-		else {
-			const _init_dispatch_chain = () => {
-				dispatch_chain = this.call_wrapped.bind(this, /*state=*/ null, obj);
-			};
-
-			// Walk wrappers in reverse order
-			const fn_data = this.get_fn_data(false);
-			for(let i = fn_data.length-1; i >= 0; i--) {
-				const data = fn_data[i];
-				const fn = data.fn;
-
-				// OVERRIDE type will usually not continue the chain
-				if(!data.chain)
-					dispatch_chain = fn.bind(obj);
-				// Else, bind the wrapper
-				else {
-					if(!dispatch_chain)
-						_init_dispatch_chain();
-
-					dispatch_chain = fn.bind(obj, dispatch_chain);
-				}
-			}
-
-			if(!dispatch_chain)
-				_init_dispatch_chain();
-
-			// Cache static dispatch chain
-			this._cached_static_dispatch_chain_obj = obj;
-			this._cached_static_dispatch_chain     = dispatch_chain;
-		}
-
-		// Done
-		return dispatch_chain;
-	}
-
-	clear_static_dispatch_chain_cache() {
-		if(!this.is_property) {
-			this._cached_static_dispatch_chain_obj = undefined;
-			this._cached_static_dispatch_chain     = undefined;
-		}
 	}
 
 	should_skip_wrappers(obj, handler_id, is_static_dispatch) {
@@ -283,6 +231,65 @@ export class Wrapper {
 
 	skip_existing_handlers() {
 		this._current_handler_id++;
+	}
+
+
+
+	// Static Dispatch Chain
+	_get_static_dispatch_chain_cache(obj) {
+		return this._static_dispatch_weakmap?.get(obj) ?? this._static_dispatch_strongmap?.get(obj);
+	}
+
+	_set_static_dispatch_chain_cache(obj, dispatch_chain) {
+		try {
+			if(!this._static_dispatch_weakmap)
+				this._static_dispatch_weakmap = new WeakMap();
+			this._static_dispatch_weakmap.set(obj, dispatch_chain);
+		}
+		catch {
+			if(!this._static_dispatch_strongmap)
+				this._static_dispatch_strongmap = new Map();
+			this._static_dispatch_strongmap.set(obj, dispatch_chain);
+		}
+	}
+
+	clear_static_dispatch_chain_cache() {
+		this._static_dispatch_weakmap?.clear ? this._static_dispatch_weakmap.clear() : delete this._static_dispatch_weakmap;
+		this._static_dispatch_strongmap?.clear();
+	}
+
+	get_static_dispatch_chain(obj) {
+		// Properties cannot use handlers
+		if(this.is_property)
+			throw new ERRORS.internal(`Unreachable: get_static_dispatch_chain with is_property=false`);
+
+		// Obtain dispatch chain
+		let dispatch_chain = this._get_static_dispatch_chain_cache(obj);
+
+		// Use the cached dispatch chain, if still valid
+		if(!dispatch_chain) {
+			dispatch_chain = this.call_wrapped.bind(this, /*state=*/ null, obj);
+
+			// Walk wrappers in reverse order
+			const fn_data = this.get_fn_data(false);
+			for(let i = fn_data.length-1; i >= 0; i--) {
+				const data = fn_data[i];
+				const fn = data.fn;
+
+				// OVERRIDE type will usually not continue the chain
+				if(!data.chain)
+					dispatch_chain = fn.bind(obj);
+				// Else, bind the wrapper
+				else
+					dispatch_chain = fn.bind(obj, dispatch_chain);
+			}
+
+			// Cache static dispatch chain
+			this._set_static_dispatch_chain_cache(obj, dispatch_chain);
+		}
+
+		// Done
+		return dispatch_chain;
 	}
 
 	_calc_use_static_dispatch() {
@@ -325,6 +332,7 @@ export class Wrapper {
 	update_use_static_dispatch() {
 		this.use_static_dispatch = this._calc_use_static_dispatch();
 	}
+
 
 
 	// Wrap/unwrap logic

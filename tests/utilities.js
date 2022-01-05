@@ -147,7 +147,7 @@ export const wrap_front = function(obj, fn_name, fn, {is_setter=false, chain=tru
 
 export const unwrap_all_from_obj = function(obj, fn_name, is_setter=false) {
 	const wrapper = libWrapper._UT_create_wrapper_from_object(obj, fn_name);
-	wrapper.get_fn_data(is_setter).splice(0);
+	wrapper.clear();
 }
 
 
