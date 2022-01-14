@@ -1,3 +1,7 @@
+# 1.11.3.0 (2022-01-14)
+
+- Allow JavaScript engine to garbage collect objects that have been wrapped by libWrapper.
+
 # 1.11.2.0 (2022-01-05)
 
 - Improve static dispatch chain caching, speeding up wrappers when calling them on different objects with "High Performance Mode" enabled.
@@ -27,7 +31,6 @@
 - Update test cases to exercise the new target identifier code paths properly.
 - Miscellaneous cleanup/refactoring and optimisations.
 - Update `compatibleCoreVersion`, now set to v9d2 (`9.231`). Note: This was previously set to a non-existent version (`9.244`) by accident.
-
 
 # 1.10.8.0 (2021-10-10)
 

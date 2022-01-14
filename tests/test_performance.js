@@ -123,7 +123,7 @@ test('Performance', function (t) {
 	measure_perf_all(t, 0, 1000, 1, 0.5, 0.5, 0.5, 0.5);
 
 	// Test many calls with a single wrapper
-	measure_perf_all(t, 1, 1000, 1, 0.5, 0.5, 2.5, 0.5);
+	measure_perf_all(t, 1, 1000, 1, 0.5, 0.5, 2.5, 1.0);
 
 	// Test with many wrappers
 	measure_perf_all(t, 1000, 1, 1, 0.5, 0.5, 2.5, 0.5);

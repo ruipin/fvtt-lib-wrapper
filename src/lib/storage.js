@@ -8,7 +8,7 @@
 class WrapperStorage {
 	// Construction
 	constructor() {
-		this.clear();
+		this.data = new Map();
 	}
 
 
@@ -26,12 +26,41 @@ class WrapperStorage {
 	}
 
 
+	// Data Storage
+	_delete(idx) {
+		this.data.delete(idx);
+	}
+
+	_set(idx, wrapper) {
+		if(wrapper === null || wrapper === undefined)
+			return this._delete(idx);
+
+		const ref = new WeakRef(wrapper);
+		this.data.set(idx, ref);
+	}
+
+	_deref(idx, ref) {
+		const obj = ref?.deref();
+
+		// If the weak reference dereferences to null, we can garbage-collect it from the Map
+		if(!obj)
+			this._delete(idx);
+
+		return obj;
+	}
+
+	_get(idx) {
+		const ref = this.data.get(idx);
+		return this._deref(idx, ref);
+	}
+
+
 	// Utility
 	exists(wrapper, idx=undefined) {
 		if(idx === undefined)
 			idx = this.index_for_wrapper(wrapper);
 
-		const existing = this.data[idx];
+		const existing = this._get(idx);
 
 		// If the index already exists, it must be the same object
 		if(existing) {
@@ -52,44 +81,52 @@ class WrapperStorage {
 
 		// Add to storage if it does not exist yet
 		if(!this.exists(wrapper, idx))
-			this.data[idx] = wrapper;
+			this._set(idx, wrapper);
 	}
 
 	remove(wrapper) {
 		const idx = this.index_for_wrapper(wrapper);
 
 		if(this.exists(wrapper, idx))
-			this.data[idx] = undefined;
+			this._delete(idx);
 	}
 
 	clear() {
-		this.data = [];
+		this.data.clear();
 		this.next_id = 0;
 	}
 
 
 	// Iteration
-	forEach(callbackFn) {
-		return this.data.forEach((element, ...args) => {
-			if(!element)
-				return false;
+	*wrappers() {
+		for(const [idx, ref] of this.data.entries()) {
+			const wrapper = this._deref(idx, ref);
+			if(!wrapper)
+				continue;
 
-			return callbackFn(element, ...args);
-		});
+			yield wrapper;
+		}
+	}
+
+	forEach(callbackFn) {
+		for(const wrapper of this.wrappers())
+			callbackFn(wrapper);
 	}
 
 	find(callbackFn) {
-		return this.data.find((element, ...args) => {
-			if(!element)
-				return false;
+		for(const wrapper of this.wrappers()) {
+			if(callbackFn(wrapper))
+				return wrapper;
+		}
 
-			return callbackFn(element, ...args);
-		});
+		return undefined;
 	}
 
-	find_id(id) {
-		const array_id = this.index_for_id(id);
-		return this.data[array_id];
+
+	// Wrapper ID
+	find_by_id(id) {
+		const idx = this.index_for_id(id);
+		return this._get(idx);
 	}
 }
 

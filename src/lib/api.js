@@ -168,7 +168,7 @@ export function _find_wrapper_by_name(_name, package_info=undefined) {
 }
 
 function _find_wrapper_by_id(id) {
-	const wrapper = WRAPPERS.find_id(id);
+	const wrapper = WRAPPERS.find_by_id(id);
 	return [wrapper, (id === wrapper?.setter_id)];
 }
 
