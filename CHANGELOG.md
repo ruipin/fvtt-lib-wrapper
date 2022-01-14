@@ -1,3 +1,7 @@
+# 1.11.4.0 (2022-01-14)
+
+- Hotfix: Previous update caused significant breakage due to an uninitialised variable not caught by unit tests. Sorry for the inconvenience!
+
 # 1.11.3.0 (2022-01-14)
 
 - Allow JavaScript engine to garbage collect objects that have been wrapped by libWrapper.

@@ -3,12 +3,14 @@
 
 'use strict';
 
+import {ERRORS} from '../errors/errors.js';
+
 
 // Class meant to store active wrappers
 class WrapperStorage {
 	// Construction
 	constructor() {
-		this.data = new Map();
+		this.clear();
 	}
 
 
@@ -92,7 +94,7 @@ class WrapperStorage {
 	}
 
 	clear() {
-		this.data.clear();
+		this.data = new Map();
 		this.next_id = 0;
 	}
 
