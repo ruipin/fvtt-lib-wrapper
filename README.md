@@ -357,6 +357,15 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *     Will allow the GM to choose which performance mode to use.
  *     Equivalent to 'FAST' when the libWrapper 'High-Performance Mode' setting is enabled by the GM, otherwise 'NORMAL'.
  *
+ * @param {any[]} options.bind [Optional] An array of parameters that should be passed to 'fn'.
+ *
+ *   This allows avoiding an extra function call, for instance:
+ *     libWrapper.register(PACKAGE_ID, "foo", function(wrapped, ...args) { return someFunction.call(this, wrapped, "foo", "bar", ...args) });
+ *   becomes
+ *     libWrapper.register(PACKAGE_ID, "foo", someFunction, "WRAPPER", {bind: ["foo", "bar"]});
+ *
+ *   First introduced in v1.12.0.0.
+ *
  * @returns {number} Unique numeric 'target' identifier which can be used in future 'libWrapper.register' and 'libWrapper.unregister' calls.
  *   Added in v1.11.0.0.
  */

@@ -1,3 +1,17 @@
+# 1.12.0.0 (2022-01-29)
+
+- Fix `libWrapper.AlreadyOverriddenError` usage.
+  - Override conflicts were accidentally throwing `libWrapper.PackageError` exceptions instead, which breaks the API.
+- Fix module updated check when `compatibleCoreVersion` contains only the compatible FVTT major version.
+- Allow arguments to be bound when calling `libWrapper.register` ([Issue #58](https://github.com/ruipin/fvtt-lib-wrapper/issues/58))
+  - This allows avoiding an extra function call, for example
+    `libWrapper.register(PACKAGE_ID, "foo", function(wrapped, ...args) { return someFunction.call(this, wrapped, "foo", "bar", ...args) });`
+    becomes
+    `libWrapper.register(PACKAGE_ID, "foo", someFunction, "WRAPPER", {bind: ["foo", "bar"]});`.
+- Implement a logging verbosity setting ([Issue #62](https://github.com/ruipin/fvtt-lib-wrapper/issues/62))
+  - By default, libWrapper will only show warnings or errors in the console.
+
+
 # 1.11.4.0 (2022-01-14)
 
 - Hotfix: Previous update caused significant breakage due to an uninitialised variable not caught by unit tests. Sorry for the inconvenience!
