@@ -7,7 +7,7 @@
 // A shim for the libWrapper library
 export let libWrapper = undefined;
 
-export const VERSIONS       = [1,11,0];
+export const VERSIONS       = [1,12,0];
 export const TGT_SPLIT_RE   = new RegExp("([^.[]+|\\[('([^'\\\\]|\\\\.)+?'|\"([^\"\\\\]|\\\\.)+?\")\\])", 'g');
 export const TGT_CLEANUP_RE = new RegExp("(^\\['|'\\]$|^\\[\"|\"\\]$)", 'g');
 
@@ -27,7 +27,7 @@ Hooks.once('init', () => {
 		static get MIXED()    { return 'MIXED'    };
 		static get OVERRIDE() { return 'OVERRIDE' };
 
-		static register(package_id, target, fn, type="MIXED", {chain=undefined}={}) {
+		static register(package_id, target, fn, type="MIXED", {chain=undefined, bind=[]}={}) {
 			const is_setter = target.endsWith('#set');
 			target = !is_setter ? target : target.slice(0, -4);
 			const split = target.match(TGT_SPLIT_RE).map((x)=>x.replace(/\\(.)/g, '$1').replace(TGT_CLEANUP_RE,''));
@@ -54,7 +54,10 @@ Hooks.once('init', () => {
 			if(!descriptor || descriptor?.configurable === false) throw `libWrapper Shim: '${target}' does not exist, could not be found, or has a non-configurable descriptor.`;
 
 			let original = null;
-			const wrapper = (chain ?? (type.toUpperCase?.() != 'OVERRIDE' && type != 3)) ? function() { return fn.call(this, original.bind(this), ...arguments); } : function() { return fn.apply(this, arguments); };
+			const wrapper = (chain ?? (type.toUpperCase?.() != 'OVERRIDE' && type != 3)) ?
+				function(...args) { return fn.call(this, original.bind(this), ...bind, ...args); } :
+				function(...args) { return fn.call(this, ...bind, ...args); }
+			;
 
 			if(!is_setter) {
 				if(descriptor.value) {

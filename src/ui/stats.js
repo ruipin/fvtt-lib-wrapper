@@ -6,6 +6,7 @@
 import {PACKAGE_ID, IS_UNITTEST} from '../consts.js';
 import {LibWrapperNotifications} from './notifications.js';
 import {game_user_can} from '../shared/polyfill.js'
+import {Log} from '../shared/log.js';
 
 export class LibWrapperStats {
 	static _collect_stats() {
@@ -20,7 +21,7 @@ export class LibWrapperStats {
 			LibWrapperNotifications.console_ui(
 				"A non-critical error occurred while initializing libWrapper.",
 				"Could not read user permissions during initialization.\n",
-				'warn',
+				Log.WARNING,
 				e
 			);
 

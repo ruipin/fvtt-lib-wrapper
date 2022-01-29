@@ -22,9 +22,3 @@ export const HOOKS_SCOPE   = 'libWrapper';
 //#endif
 
 export const PROPERTIES_CONFIGURABLE = IS_UNITTEST ? true : false;
-
-
-//*********************
-// Debug
-export let DEBUG = false;
-export function setDebug(new_debug) { DEBUG = new_debug; }

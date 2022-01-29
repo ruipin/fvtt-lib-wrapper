@@ -4,6 +4,7 @@
 import test from 'tape';
 import fs from 'fs';
 import {PACKAGE_ID} from '../src/consts.js';
+import {Log} from '../src/shared/log.js';
 
 
 // Tell Node to give us longer callstacks
@@ -13,17 +14,17 @@ Error.stackTraceLimit = Infinity;
 // Emulate hooks
 class Hooks {
 	static callAll(hook) {
-		console.debug(`Hooks.callAll('${hook}') triggered`);
+		Log.debug$?.(`Hooks.callAll('${hook}') triggered`);
 		return true;
 	}
 
 	static call(hook) {
-		console.debug(`Hooks.call('${hook}') triggered`);
+		Log.debug$?.(`Hooks.call('${hook}') triggered`);
 		return true;
 	}
 
 	static once(key, cb) {
-		console.debug(`Hooks.once('${key}') triggered`);
+		Log.debug$?.(`Hooks.once('${key}') triggered`);
 		cb();
 	}
 };
@@ -112,14 +113,14 @@ class UiNotifications {
 		if(this !== globalThis.ui.notifications)
 			throw "ui.notifications.error 'this' is not 'globalThis.ui.notifications";
 
-		console.error(`(UI) ${msg}`);
+		Log.error$?.(`(UI) ${msg}`);
 	}
 
 	warn(msg) {
 		if(this !== globalThis.ui.notifications)
 			throw "ui.notifications.warn 'this' is not 'globalThis.ui.notifications";
 
-		console.warn(`(UI) ${msg}`);
+		Log.warn$?.(`(UI) ${msg}`);
 	}
 }
 globalThis.ui = { notifications: new UiNotifications() };

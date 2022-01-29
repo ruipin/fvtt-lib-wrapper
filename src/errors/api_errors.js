@@ -8,6 +8,7 @@ import { ERRORS } from './errors.js';
 import { PackageInfo } from '../shared/package_info.js';
 import { LibWrapperConflicts } from '../ui/conflicts.js';
 import { i18n } from '../shared/i18n.js';
+import { PACKAGE_TITLE } from '../consts.js';
 
 
 // Already Overridden Error
@@ -24,7 +25,7 @@ export class LibWrapperAlreadyOverriddenError extends LibWrapperError {
 		const conflict_msg = i18n.format(`${type_prefix}.confirmed`, {main: pkg_i18n, other: confl_i18n});
 
 		// UI Message
-		let ui_msg = `libWrapper: ${conflict_msg}`;
+		let ui_msg = `${PACKAGE_TITLE}: ${conflict_msg}`;
 
 
 		// Console Message

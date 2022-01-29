@@ -19,6 +19,21 @@
 				"name": "High-Performance Mode",
 				"hint": "This disables most dynamic conflict detection capabilities in exchange for performance, especially relevant on low-end systems. Note that this will significantly decrease the chance conflicts are detected. As such, it is recommended to turn this off when installing or updating packages."
 			},
+			"log-verbosity": {
+				"name": "Verbosity",
+				"hint": "The verbosity of libWrapper's Javascript console messages.",
+				"choices": {
+					"never"   : "Never",
+					"all"     : "All",
+					"trace"   : "Trace",
+					"debug"   : "Debug",
+					"info"    : "Information",
+					"warning" : "Warning",
+					"error"   : "Error",
+					"critical": "Critical",
+					"always"  : "Always"
+				}
+			},
 
 			"menu": {
 				"title": "libWrapper Settings Menu",

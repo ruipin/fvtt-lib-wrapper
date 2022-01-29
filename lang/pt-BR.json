@@ -19,6 +19,21 @@
 				"name": "Modo de alto desempenho",
 				"hint": "Desativa a maioria dos recursos de detecção de conflito dinâmico em troca de desempenho, especialmente relevante em sistemas de baixo custo. Note que isso diminuirá significativamente a chance de conflitos serem detectados. Assim, é recomendado desligar isso ao instalar ou atualizar pacotes."
 			},
+			"log-verbosity": {
+				"name": "Verbosidade",
+				"hint": "A verbosidade das mensagens do libWrapper na consola Javascript.",
+				"choices": {
+					"never"   : "Nunca",
+					"all"     : "Tudo",
+					"trace"   : "Traçagem",
+					"debug"   : "Depuração",
+					"info"    : "Informação",
+					"warning" : "Aviso",
+					"error"   : "Erro",
+					"critical": "Crítico",
+					"always"  : "Sempre"
+				}
+			},
 
 			"menu": {
 				"title": "Menu de Configurações do libWrapper",

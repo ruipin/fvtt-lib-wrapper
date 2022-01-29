@@ -11,7 +11,7 @@ import {
 } from '../shared/version.js';
 
 import {
-	PACKAGE_ID, HOOKS_SCOPE, IS_UNITTEST, PROPERTIES_CONFIGURABLE, DEBUG, setDebug,
+	PACKAGE_ID, HOOKS_SCOPE, IS_UNITTEST, PROPERTIES_CONFIGURABLE,
 } from '../consts.js';
 
 import { WRAPPER_TYPES, PERF_MODES } from './enums.js';
@@ -28,6 +28,7 @@ import { LibWrapperStats } from '../ui/stats.js';
 import { LibWrapperConflicts } from '../ui/conflicts.js';
 import { LibWrapperSettings, PRIORITIES } from '../ui/settings.js';
 import { i18n } from '../shared/i18n.js';
+import { Log } from '../shared/log.js';
 
 
 
@@ -225,7 +226,7 @@ export function _clear(target) {
 		wrapper.clear();
 		_unwrap_if_possible(wrapper);
 
-		console.info(`libWrapper: Cleared all wrapper functions for '${target}'.`);
+		Log.info$?.(`Cleared all wrapper functions for '${target}'.`);
 	}
 }
 
@@ -317,15 +318,6 @@ export class libWrapper {
 	 * @returns {boolean}  The real libWrapper module will always return false. Fallback implementations (e.g. poly-fill / shim) should return true.
 	 */
 	static get is_fallback() { return false; }
-
-	/**
-	 * @returns {boolean}  Whether libWrapper is in debug mode.
-	 */
-	static get debug() { return DEBUG; }
-	/**
-	 * @param {boolean} value  Whether to enable or disable libWrapper debug mode.
-	 */
-	static set debug(value) { setDebug(value) }
 
 
 	// Errors
@@ -452,6 +444,15 @@ export class libWrapper {
 	 *     Will allow the GM to choose which performance mode to use.
 	 *     Equivalent to 'FAST' when the libWrapper 'High-Performance Mode' setting is enabled by the GM, otherwise 'NORMAL'.
 	 *
+	 * @param {any[]} options.bind [Optional] An array of parameters that should be passed to 'fn'.
+	 *
+	 *   This allows avoiding an extra function call, for instance:
+	 *     libWrapper.register(PACKAGE_ID, "foo", function(wrapped, ...args) { return someFunction.call(this, wrapped, "foo", "bar", ...args) });
+	 *   becomes
+	 *     libWrapper.register(PACKAGE_ID, "foo", someFunction, "WRAPPER", {bind: ["foo", "bar"]});
+	 *
+	 *   First introduced in v1.12.0.0.
+	 *
 	 * @returns {number} Unique numeric 'target' identifier which can be used in future 'libWrapper.register' and 'libWrapper.unregister' calls.
 	 *   Added in v1.11.0.0.
 	 */
@@ -476,13 +477,17 @@ export class libWrapper {
 
 		const chain = options?.chain ?? (type.value < WRAPPER_TYPES.OVERRIDE.value);
 		if(typeof chain !== 'boolean')
-			throw new ERRORS.package(`Parameter 'chain' must be a boolean.`, package_info);
+			throw new ERRORS.package(`Parameter 'options.chain' must be a boolean.`, package_info);
 
 		if(IS_UNITTEST && FORCE_FAST_MODE)
 			options.perf_mode = 'FAST';
 		const perf_mode = PERF_MODES.get(options?.perf_mode ?? 'AUTO', null);
 		if(perf_mode === null)
-			throw new ERRORS.package(`Parameter 'perf_mode' must be one of [${PERF_MODE.list.join(', ')}].`, package_info);
+			throw new ERRORS.package(`Parameter 'options.perf_mode' must be one of [${PERF_MODE.list.join(', ')}].`, package_info);
+
+		const bind = options?.bind ?? null;
+		if(bind !== null && !Array.isArray(bind))
+			throw new ERRORS.package(`Parameter 'options.bind' must be an array.`, package_info);
 
 
 		// Process 'target' parameter
@@ -565,16 +570,17 @@ export class libWrapper {
 			wrapper      : wrapper,
 			priority     : priority,
 			chain        : chain,
-			perf_mode    : perf_mode
+			perf_mode    : perf_mode,
+			bind         : bind
 		};
 
 		wrapper.add(data);
 
 		// Done
-		if(DEBUG || (!IS_UNITTEST && package_info.id != PACKAGE_ID)) {
+		if(package_info.id != PACKAGE_ID)
 			Hooks.callAll(`${HOOKS_SCOPE}.Register`, package_info.id, (typeof target === 'number') ? wrapper_name : target, type, options, wrapper_id);
-			console.info(`libWrapper: Registered a wrapper for '${wrapper_name}' (ID=${wrapper_id}) by ${package_info.type_plus_id} with type ${type}.`);
-		}
+
+		Log.info$?.(`Registered a wrapper for '${wrapper_name}' (ID=${wrapper_id}) by ${package_info.type_plus_id} with type ${type}.`);
 
 		return wrapper_id;
 	}
@@ -611,13 +617,13 @@ export class libWrapper {
 			return;
 
 		// Done
-		if(DEBUG || package_info.id != PACKAGE_ID) {
-			const wrapper_id   = data.wrapper.get_id(data.setter);
-			const wrapper_name = data.wrapper.get_name(data.setter);
+		const wrapper_id   = data.wrapper.get_id(data.setter);
+		const wrapper_name = data.wrapper.get_name(data.setter);
 
+		if(package_info.id != PACKAGE_ID)
 			Hooks.callAll(`${HOOKS_SCOPE}.Unregister`, package_info.id, (typeof target === 'number') ? wrapper_name : target, wrapper_id);
-			console.info(`libWrapper: Unregistered the wrapper for '${wrapper_name}' (ID=${wrapper_id}) by ${package_info.type_plus_id}.`);
-		}
+
+		Log.info$?.(`Unregistered the wrapper for '${wrapper_name}' (ID=${wrapper_id}) by ${package_info.type_plus_id}.`);
 	}
 
 	/**
@@ -639,10 +645,10 @@ export class libWrapper {
 				this.unregister(package_info.id, wrapper.setter_id, false);
 		});
 
-		if(DEBUG || package_info.id != PACKAGE_ID) {
+		if(package_info.id != PACKAGE_ID)
 			Hooks.callAll(`${HOOKS_SCOPE}.UnregisterAll`, package_info.id);
-			console.info(`libWrapper: Unregistered all wrapper functions by ${package_info.type_plus_id}.`);
-		}
+
+		Log.info$?.(`Unregistered all wrapper functions by ${package_info.type_plus_id}.`);
 	}
 
 	/**
@@ -703,15 +709,15 @@ export class libWrapper {
 
 		// Ignore API call if no packages to be ignored
 		if(ignore_infos.length == 0) {
-			console.debug(`libWrapper: Ignoring 'ignore_conflict' call for ${package_info.type_plus_id} since none of the package IDs provided exist or are active.`)
+			Log.debug$?.(`Ignoring 'ignore_conflict' call for ${package_info.type_plus_id} since none of the package IDs provided exist or are active.`)
 			return;
 		}
 
 		// Register ignores
 		LibWrapperConflicts.register_ignore(package_info, ignore_infos, targets, ignore_errors);
 
-		if(DEBUG || package_info.id != PACKAGE_ID)
-			console.debug(`libWrapper: Ignoring conflicts involving ${package_info.type_plus_id} and [${ignore_infos.map((x) => x.type_plus_id).join(', ')}] for targets [${targets.join(', ')}].`);
+		if(package_info.id != PACKAGE_ID)
+			Log.info$?.(`Ignoring conflicts involving ${package_info.type_plus_id} and [${ignore_infos.map((x) => x.type_plus_id).join(', ')}] for targets [${targets.join(', ')}].`);
 	}
 };
 decorate_class_function_names(libWrapper);
@@ -772,7 +778,7 @@ init_error_listeners();
 			LibWrapperNotifications.init();
 
 			// Notify everyone the library has loaded and is ready to start registering wrappers
-			console.info(`libWrapper ${VERSION.full_git}: Ready.`);
+			Log.fn(Log.ALWAYS, /*fn_verbosity=*/ Log.INFO)(`Version ${VERSION.full_git} ready.`);
 			Hooks.callAll(`${HOOKS_SCOPE}.Ready`, libWrapper);
 
 			return wrapped(...args);

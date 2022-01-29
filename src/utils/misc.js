@@ -3,7 +3,8 @@
 
 'use strict';
 
-import {IS_UNITTEST} from '../consts.js';
+import { IS_UNITTEST } from '../consts.js';
+import { ERRORS } from '../errors/errors.js';
 
 
 // HACK: The browser doesn't expose all global variables (e.g. 'Game') inside globalThis, but it does to an eval
@@ -69,4 +70,22 @@ export function decorate_class_function_names(klass) {
 
 	if(klass.prototype)
 		decorate_class_function_names(klass.prototype);
+}
+
+
+// Get an unsecure hash of a string, mimics Java's String.hashCode
+export const hash_string = function(str) {
+	if(typeof str !== 'string')
+		throw ERRORS.internal("Parameter 'str' must be a string.");
+
+	const length = str.length;
+
+    let hash = 0;
+    for (let i = 0; i < length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+
+    return hash;
 }

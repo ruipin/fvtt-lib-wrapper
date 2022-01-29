@@ -3,12 +3,13 @@
 
 'use strict';
 
-import {PROPERTIES_CONFIGURABLE, DEBUG} from '../consts.js';
+import {PROPERTIES_CONFIGURABLE, PACKAGE_TITLE} from '../consts.js';
 import {WRAPPER_TYPES, PERF_MODES} from './enums.js';
 import {WRAPPERS} from './storage.js';
 import {decorate_name, set_function_name, decorate_class_function_names} from '../utils/misc.js';
 import {getHighPerformanceMode} from '../utils/settings.js';
 import {PackageInfo} from '../shared/package_info.js';
+import {Log} from '../shared/log.js';
 
 import {ERRORS} from '../errors/errors.js';
 
@@ -81,7 +82,7 @@ export class Wrapper {
 				const wrapper = descriptor.get?._lib_wrapper;
 
 				if(!(wrapper instanceof this.constructor))
-					throw new ERRORS.internal(`libWrapper: '${name}' cannot be wrapped, the descriptor already has a wrapper, but of an unexpected class ('${wrapper.constructor.name}' vs '${this.constructor.name}').`);
+					throw new ERRORS.internal(`'${name}' cannot be wrapped, the descriptor already has a wrapper, but of an unexpected class ('${wrapper.constructor.name}' vs '${this.constructor.name}').`);
 
 				wrapper._add_name(name);
 
@@ -89,7 +90,7 @@ export class Wrapper {
 			}
 
 			if(descriptor.configurable === false) {
-				throw new ERRORS.package(`libWrapper: '${name}' cannot be wrapped, the corresponding descriptor has 'configurable=false'.`, package_info);
+				throw new ERRORS.package(`'${name}' cannot be wrapped, the corresponding descriptor has 'configurable=false'.`, package_info);
 			}
 			else {
 				if(descriptor.get) {
@@ -107,7 +108,7 @@ export class Wrapper {
 			descriptor = this._get_inherited_descriptor();
 
 			if(!descriptor)
-				throw new ERRORS.package(`libWrapper: Can't wrap '${name}', target does not exist or could not be found.`, package_info);
+				throw new ERRORS.package(`Can't wrap '${name}', target does not exist or could not be found.`, package_info);
 
 			const wrapper = descriptor.get?._lib_wrapper;
 
@@ -281,7 +282,7 @@ export class Wrapper {
 					dispatch_chain = fn.bind(obj);
 				// Else, bind the wrapper
 				else
-					dispatch_chain = fn.bind(obj, dispatch_chain);
+					dispatch_chain = fn.bind(obj, dispatch_chain, ...(data.bind ?? []));
 			}
 
 			// Cache static dispatch chain
@@ -388,7 +389,7 @@ export class Wrapper {
 
 		this.active = true;
 
-		console.debug(`libWrapper: Wrapped '${this.name}'.`);
+		Log.debug$?.(`Wrapped '${this.name}'.`);
 	}
 
 	unwrap() {
@@ -396,7 +397,7 @@ export class Wrapper {
 			return;
 
 		if(!PROPERTIES_CONFIGURABLE)
-			throw new ERRORS.internal('libWrapper: Cannot unwrap when PROPERTIES_CONFIGURABLE==false');
+			throw new ERRORS.internal(`${PACKAGE_TITLE}: Cannot unwrap when PROPERTIES_CONFIGURABLE==false`);
 
 
 		// Remove the property
@@ -417,7 +418,7 @@ export class Wrapper {
 		// Done
 		this.active = false;
 
-		console.debug(`libWrapper: Unwrapped '${this.name}'.`);
+		Log.debug$?.(`Unwrapped '${this.name}'.`);
 	}
 
 
@@ -475,7 +476,7 @@ export class Wrapper {
 
 		// Done
 		if(result === undefined)
-			console.warn(`libWrapper: There is no wrapped method for '${this.name}', returning 'undefined'.`);
+			Log.warn$?.(`There is no wrapped method for '${this.name}', returning 'undefined'.`);
 
 		return result;
 	}
@@ -616,7 +617,7 @@ export class Wrapper {
 		let result = undefined;
 		try {
 			// Call next method in the chain
-			result = fn.call(obj, next_fn, ...args);
+			result = fn.call(obj, next_fn, ...(data.bind ?? []), ...args);
 		}
 		catch(e) {
 			return this._cleanup_call_wrapper_thrown(next_state, e);
@@ -705,7 +706,7 @@ export class Wrapper {
 						data.package_info
 					);
 					onUnhandledError(error);
-					console.error(error);
+					Log.error$?.(error);
 
 					// Unregister this module
 					globalThis.libWrapper.unregister(data.package_info.id, this.get_id(data.setter));
@@ -780,9 +781,7 @@ export class Wrapper {
 
 			if(notify_user) {
 				LibWrapperNotifications.conflict(package_info, affectedPackages, true, `Detected non-libWrapper wrapping of '${this.name}' by ${package_info.type_plus_id}. This will potentially lead to conflicts.`);
-
-				if(DEBUG && console.trace)
-					console.trace();
+				Log.trace();
 			}
 		}
 
@@ -801,7 +800,7 @@ export class Wrapper {
 
 		// Sanity check
 		if(setter && !this.is_property)
-			throw new ERRORS.internal(`libWrapper: '${this.name}' does not wrap a property, thus setter=true is illegal.`);
+			throw new ERRORS.internal(`'${this.name}' does not wrap a property, thus setter=true is illegal.`);
 
 		// Get current fn_data
 		const prop_nm = setter ? 'setter_data' : 'getter_data';

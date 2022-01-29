@@ -3,17 +3,18 @@
 
 'use strict';
 
-import { PACKAGE_ID } from '../consts.js';
+import { PACKAGE_ID, PACKAGE_TITLE } from '../consts.js';
 import { ERRORS } from './errors.js';
 import { PackageInfo } from '../shared/package_info.js';
 import { inject_packages_into_error } from './error-utils.js';
 import { i18n } from '../shared/i18n.js';
 import { game_release_display } from '../shared/polyfill.js';
+import { Log } from '../shared/log.js';
 
 
 // Custom libWrapper Error
 export class LibWrapperError extends Error {
-	get notification_fn() { return 'error' };
+	get notification_verbosity() { return Log.ERROR };
 
 	constructor(ui_msg, console_msg, ...args) {
 		// Create actual error object
@@ -65,7 +66,7 @@ export class LibWrapperInternalError extends LibWrapperError {
 
 		// Done
 		return [
-			`libWrapper: ${user_msg}`,
+			`${PACKAGE_TITLE}: ${user_msg}`,
 			`${user_msg}\n\n${info_msg}\n${report_msg}\n\n${tech_details}\nInternal libWrapper error.\n${related_pkg_msg}Error= ${technical_msg}\n`
 		];
 	}

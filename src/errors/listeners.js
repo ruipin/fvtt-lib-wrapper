@@ -3,12 +3,13 @@
 
 'use strict';
 
-import { IS_UNITTEST, DEBUG } from '../consts.js';
+import { IS_UNITTEST } from '../consts.js';
 import { global_eval } from '../utils/misc.js';
 import { LibWrapperError } from './base_errors.js';
 import { is_error_object, inject_packages_into_error } from './error-utils.js';
 import { LibWrapperNotifications } from '../ui/notifications.js';
 import { i18n } from '../shared/i18n.js';
+import { Log } from '../shared/log.js';
 
 
 /*
@@ -22,8 +23,8 @@ Error.stackTraceLimit = Infinity;
  */
 function on_libwrapper_error(error) {
 	// Notify user of the issue
-	if(error.ui_msg && error.notification_fn)
-		LibWrapperNotifications.ui(`${error.ui_msg} ${i18n.localize('lib-wrapper.error.see-js-console')}`, error.notification_fn, false);
+	if(error.ui_msg && error.notification_verbosity)
+		LibWrapperNotifications.ui(`${error.ui_msg} ${i18n.localize('lib-wrapper.error.see-js-console')}`, error.notification_verbosity, false);
 
 	// Trigger 'onUnhandled'
 	if(error.onUnhandled)
@@ -53,7 +54,7 @@ export const onUnhandledError = function(error) {
 		on_any_error(error);
 	}
 	catch (e) {
-		console.warn('libWrapper: Exception thrown while processing an unhandled error.', e);
+		Log.error('Exception thrown while processing an unhandled error.', e);
 	}
 }
 
@@ -66,7 +67,7 @@ const onUnhandledErrorEvent = function(event) {
 		return onUnhandledError(cause);
 	}
 	catch (e) {
-		console.warn('libWrapper: Exception thrown while processing an unhandled error event.', e);
+		Log.error('Exception thrown while processing an unhandled error event.', e);
 	}
 }
 
@@ -85,8 +86,7 @@ function init_pre_v9p2_listeners() {
 		const patched = orig.replace(/catch[\s\n]*\((.*)\)[\s\n]*{/img, '$& globalThis.libWrapper.onUnhandledError($1);');
 		if(orig === patched)
 			throw new Error(`Could not patch 'Hooks._call' method:\n${orig}`);
-		if(DEBUG)
-			console.log(`Patched Hooks._call: ${patched}`);
+		Log.debug$?.(`Patched Hooks._call: ${patched}`);
 
 		const patched_fn = global_eval(patched)?.();
 		if(typeof patched_fn !== 'function')
@@ -99,7 +99,7 @@ function init_pre_v9p2_listeners() {
 		LibWrapperNotifications.console_ui(
 			"A non-critical error occurred while initializing libWrapper.",
 			"Could not setup 'Hooks._call' wrapper.\n",
-			'warn',
+			Log.WARNING,
 			e
 		);
 	}
@@ -118,7 +118,7 @@ function init_pre_v9p2_listeners() {
 		LibWrapperNotifications.console_ui(
 			"A non-critical error occurred while initializing libWrapper.",
 			"Could not setup 'Application.prototype._render' wrapper.\n",
-			'warn',
+			Log.WARNING,
 			e
 		);
 	}
@@ -142,7 +142,7 @@ function init_hooksOnError_listener() {
 		LibWrapperNotifications.console_ui(
 			"A non-critical error occurred while initializing libWrapper.",
 			"Could not setup 'Hooks.onError' wrapper.\n",
-			'warn',
+			Log.WARNING,
 			e
 		);
 	}

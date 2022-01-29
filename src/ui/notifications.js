@@ -3,20 +3,28 @@
 
 'use strict';
 
-import { decorate_class_function_names } from '../utils/misc.js';
+import { PACKAGE_TITLE } from '../consts.js';
+import { decorate_class_function_names, hash_string } from '../utils/misc.js';
 import { i18n } from '../shared/i18n.js';
 import { getNotifyIssues } from '../utils/settings.js';
+import { Log, verbosity_to_mapped_value } from '../shared/log.js';
 
 
-// Notify user
+//*********************
+// Constants
+const VERBOSITY_NOTIFY_FN_MAP = {
+	[Log.INFO    .value]: 'info' ,
+	[Log.WARNING .value]: 'warn' ,
+	[Log.ERROR   .value]: 'error'
+};
+
+
+//*********************
+// User notifications helper class
 export class LibWrapperNotifications {
-	static init() {
-		this.NOTIFICATION_SET = new Set();
-
-		// Seal to prevent accidental modification
-		Object.seal(this);
-	}
-
+	/*
+	 * Attributes
+	 */
 	static get ui_notifications_enabled() {
 		// Make sure we don't accidentally throw a second time, while handling what might be another exception
 		try {
@@ -25,45 +33,69 @@ export class LibWrapperNotifications {
 		}
 		catch(e) {
 			// We swallow the new error, and assume we want to display errors
-			console.error("libWrapper: Could not decide whether to show notifications or not. Defaulting to 'yes'.\n", e);
+			Log.error("Could not decide whether to show notifications or not. Defaulting to 'yes'.\n", e);
 			return true;
 		}
 
 		return true;
 	}
 
-	static _ui(msg, fn, add_title) {
+
+	/*
+	 * Methods
+	 */
+	static init() {
+		this.NOTIFICATION_SET = new Set();
+
+		// Seal to prevent accidental modification
+		Object.seal(this);
+	}
+
+	// UI Notification
+	static _ui(msg, verbosity=Log.ERROR, add_title=true) {
 		if(!this.ui_notifications_enabled)
 			return;
 
-		// Check if we've already notified the user of this
-		if(this.NOTIFICATION_SET.has(msg))
+		// Ensure that ui.notifications exists as if an error occurs too early it might not be defined yet
+		const ui_notifications = globalThis?.ui?.notifications;
+		if(!ui_notifications)
 			return;
 
-		this.NOTIFICATION_SET.add(msg);
+		// Calculate hash of message
+		const hash = hash_string(msg);
 
-		// Notify - ensure that ui.notifications exists as if an error occurs too early it might not be defined yet
-		let notify = globalThis?.ui?.notifications;
-		if(notify)
-			notify[fn].call(notify, add_title ? `libWrapper: ${msg}` : msg, {permanent: fn == 'error'});
+		// Check if we've already notified the user of this
+		if(this.NOTIFICATION_SET.has(hash))
+			return;
+
+		// Notify
+		this.NOTIFICATION_SET.add(hash);
+		const fn = verbosity_to_mapped_value(verbosity, VERBOSITY_NOTIFY_FN_MAP, 'error');
+		ui_notifications[fn].call(ui_notifications, add_title ? `${PACKAGE_TITLE}: ${msg}` : msg, {permanent: fn == 'error'});
 	}
 
-	static ui(msg, fn='error', add_title=true) {
-		// Wait until 'ready' if the error occurs early during load
+	static ui(...args) {
+		// Wait until 'ready' in case we want to trigger a notification early during load
 		if(!globalThis.game?.ready)
-			Hooks.once('ready', this._ui.bind(this, msg, fn));
+			Hooks.once('ready', this._ui.bind(this, ...args));
 		else
-			this._ui(msg, fn, add_title);
+			this._ui(...args);
 	}
 
 
-	static console_ui(ui_msg, console_msg, fn='error', ...vargs) {
-		console[fn].call(console, `libWrapper: ${ui_msg}\n${console_msg}`, ...vargs);
+	// Console + UI notifications
+	static console_ui(ui_msg, console_msg, verbosity=Log.ERROR, ...args) {
+		const log = Log.fn(verbosity);
+		if(log) {
+			log(`${ui_msg}\n${console_msg}`, ...args);
+			ui_msg += ` ${i18n.localize('lib-wrapper.error.see-js-console')}`;
+		}
 
-		this.ui(`${ui_msg} ${i18n.localize('lib-wrapper.error.see-js-console')}`, fn);
+		this.ui(ui_msg, verbosity);
 	}
 
 
+	// Conflict report
 	static conflict(package_info, other_info, potential, console_msg) {
 		let other;
 		if(Array.isArray(other_info)) {
@@ -85,7 +117,7 @@ export class LibWrapperNotifications {
 			potential ? i18n.format('lib-wrapper.error.conflict.potential', format_obj) :
 			            i18n.format('lib-wrapper.error.conflict.confirmed', format_obj) ,
 			console_msg,
-			potential ? 'warn' : 'error'
+			potential ? Log.WARNING : Log.ERROR
 		);
 	}
 }

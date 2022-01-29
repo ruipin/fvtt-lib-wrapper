@@ -9,6 +9,7 @@ import { LibWrapperStats } from './stats.js';
 import { WRAPPERS } from '../lib/storage.js';
 import { PackageInfo, PACKAGE_TYPES } from '../shared/package_info.js';
 import { i18n } from '../shared/i18n.js';
+import { Log } from '../shared/log.js';
 
 // Map of currently loaded priorities
 export const PRIORITIES = new Map();
@@ -80,6 +81,29 @@ export class LibWrapperSettings extends FormApplication {
 			config: true,
 		});
 
+		game.settings.register(PACKAGE_ID, 'log-verbosity', {
+			name: `${PACKAGE_ID}.settings.log-verbosity.name`,
+			hint: `${PACKAGE_ID}.settings.log-verbosity.hint`,
+			default: Log.WARNING.value,
+			type: Number,
+			choices: {
+				// NOTE: Some choices removed as too much choice will just confuse users or make technical support more difficult.
+				//       For example, I don't want users to disable errors accidentally, and then ask for support without any error messages showing up on console.
+
+				0                   : i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.all`),
+				//[Log.TRACE   .value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.trace`),
+				[Log.DEBUG   .value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.debug`),
+				[Log.INFO    .value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.info`),
+				[Log.WARNING .value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.warning`),
+				//[Log.ERROR   .value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.error`),
+				//[Log.CRITICAL.value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.critical`),
+				//[Log.ALWAYS  .value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.always`),
+			},
+			scope: 'client',
+			config: true,
+			onChange: _ => Log.init(/*force=*/ true)
+		});
+
 		game.settings.registerMenu(PACKAGE_ID, 'menu', {
 			name: '',
 			label: `${PACKAGE_ID}.settings.menu.title`,
@@ -94,11 +118,14 @@ export class LibWrapperSettings extends FormApplication {
 			type: Object,
 			scope: 'world',
 			config: false,
-			onChange: value => load_priorities()
+			onChange: _ => load_priorities()
 		});
 
 		// Variables
 		this.show_ignored_conflicts = false;
+
+		// When done, calculate the logging verbosity
+		Log.init();
 
 		// When done, load the priorities
 		load_priorities();
