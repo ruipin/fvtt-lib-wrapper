@@ -538,7 +538,7 @@ export class libWrapper {
 
 			if(existing) {
 				if(priority <= existing.priority) {
-					throw new ERRORS.package(package_info, existing.package_info, wrapper, target);
+					throw new ERRORS.already_overridden(package_info, existing.package_info, wrapper, target);
 				}
 				else {
 					// We trigger a hook first
