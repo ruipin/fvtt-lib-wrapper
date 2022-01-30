@@ -1,3 +1,8 @@
+# 1.12.1.0 (2022-01-30)
+
+- Hotfix: Correctly handle malformed log verbosity setting.
+- Disable minification of class names, for more readable error messages.
+
 # 1.12.0.0 (2022-01-29)
 
 - Fix `libWrapper.AlreadyOverriddenError` usage.

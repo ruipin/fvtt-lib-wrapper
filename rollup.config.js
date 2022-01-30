@@ -62,6 +62,7 @@ export default {
 			ecma: 2021,
 			toplevel: true,
 			module: true,
+			keep_classnames: true,
 			/*mangle: {
 				properties: {
 					regex: /^_/
