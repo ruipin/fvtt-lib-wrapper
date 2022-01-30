@@ -1,3 +1,8 @@
+# 1.12.2.0 (2022-01-30)
+
+- Allow integer enum values to be passed to `get` as a string, so that the caller does not need to cast explicitly.
+  - No known issues were caused by this, and this code isn't exposed in the libWrapper API, but the previous behaviour was unintended.
+
 # 1.12.1.0 (2022-01-30)
 
 - Hotfix: Correctly handle malformed log verbosity setting.
