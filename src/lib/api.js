@@ -258,30 +258,39 @@ export function _unwrap_all() {
 	WRAPPERS.clear();
 }
 
-
 function _get_package_info(package_id) {
+	// Auto-detect package info, initially
 	let package_info = new PackageInfo();
 
-	if(!PackageInfo.is_valid_id(package_id))
+	// Sanity check user provided ID
+	if(!PackageInfo.is_valid_key_or_id(package_id))
 		throw new ERRORS.package('Parameter \'package_id\' is invalid.', package_info);
 
+	// Parse user provided ID into a PackageInfo object
+	const user_package_info = new PackageInfo(package_id);
+
+	// If we were able to auto-detect the package, validate user provided info against automatically detected info
 	if(package_info.exists) {
-		if(package_id != package_info.id)
+		if(!package_info.equals(user_package_info))
 			throw new ERRORS.package(`${package_info.type_plus_id_capitalized} is not allowed to call libWrapper with package_id='${package_id}'.`, package_info);
 	}
+	// Otherwise, just assume what the user provided is correct
 	else {
-		package_info = new PackageInfo(package_id);
+		package_info = user_package_info;
 	}
 
+	// Sanity Check: Must not allow registering wrappers as lib-wrapper
 	if(package_id == PACKAGE_ID) {
 		if(!allow_libwrapper_registrations)
 			throw new ERRORS.package(`Not allowed to call libWrapper with package_id='${package_id}'.`, package_info);
 	}
+	// Sanity Check: Package must exist (single exception is lib-wrapper, since we register wrappers before 'init')
 	else {
 		if(!package_info.exists && game.modules?.size)
 			throw new ERRORS.package(`Package '${package_id}' is not a valid package.`, package_info);
 	}
 
+	// Done
 	return package_info;
 }
 

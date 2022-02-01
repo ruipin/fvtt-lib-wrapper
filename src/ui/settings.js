@@ -14,6 +14,20 @@ import { Log } from '../shared/log.js';
 // Map of currently loaded priorities
 export const PRIORITIES = new Map();
 
+
+function is_valid_priority_key_data(key, data) {
+	if(!PackageInfo.is_valid_key_or_id(key))
+		return false;
+
+	if(!data)
+		return false;
+
+	if(typeof data.id !== 'string' || typeof data.title !== 'string' || typeof data.index !== 'number')
+		return false;
+
+	return true;
+}
+
 export const load_priorities = function(value=null) {
 	// Create existing priorities
 	PRIORITIES.clear();
@@ -34,10 +48,10 @@ export const load_priorities = function(value=null) {
 		Object.entries(current).forEach(entry => {
 			let [key, data] = entry;
 
-			// Handle legacy format, if found
-			if(!data.id) {
-				data = new PackageInfo(key, PACKAGE_TYPES.MODULE);
-				key = data.key;
+			// Check key/data validity
+			if(!is_valid_priority_key_data(key, data)) {
+				Log.warn$?.(`Ignoring '${key}' entry while loading module priorities due to invalid format.`)
+				return;
 			}
 
 			// Add to priorities dictionary
@@ -315,10 +329,10 @@ export class LibWrapperSettings extends FormApplication {
 		Object.entries(cfg_prioritized).forEach((entry) => {
 			let [key, data] = entry;
 
-			// Handle legacy format, if found
-			if(!data.id) {
-				data = new PackageInfo(key, PACKAGE_TYPES.MODULE);
-				key = data.key;
+			// Check key/data validity
+			if(!is_valid_priority_key_data(key, data)) {
+				Log.warn$?.(`Ignoring '${key}' entry while loading module priorities due to invalid format.`)
+				return;
 			}
 
 			// Push data
@@ -339,10 +353,10 @@ export class LibWrapperSettings extends FormApplication {
 			if(key in cfg_prioritized)
 				return;
 
-			// Handle legacy format, if found
-			if(!data.id) {
-				data = new PackageInfo(key, PACKAGE_TYPES.MODULE);
-				key = data.key;
+			// Check key/data validity
+			if(!is_valid_priority_key_data(key, data)) {
+				Log.warn$?.(`Ignoring '${key}' entry while loading module priorities due to invalid format.`)
+				return;
 			}
 
 			// Push data

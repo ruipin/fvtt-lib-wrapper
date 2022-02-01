@@ -67,7 +67,7 @@ test_combinations('Library: Main', async function (t) {
 	// Unless the module has a higher priority
 	load_priorities({
 		prioritized: {
-			'm4': {index: 0}
+			'module:m4': {id: 'm4', title: 'm4', index: 0}
 		}
 	});
 	libWrapper.register('m4', 'A.prototype.x', chkr.gen_wr('m4:Ovr:4', {override: true}), 'OVERRIDE');

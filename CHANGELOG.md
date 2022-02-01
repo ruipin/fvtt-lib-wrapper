@@ -1,3 +1,7 @@
+# 1.12.3.0 (2022-02-01)
+
+- All API functions now accept disambiguation prefixes as part of their `package_id` parameter, i.e. `module:foobar`, `system:foobar`, or `world:foobar`.
+
 # 1.12.2.0 (2022-01-30)
 
 - Allow integer enum values to be passed to `get` as a string, so that the caller does not need to cast explicitly.
