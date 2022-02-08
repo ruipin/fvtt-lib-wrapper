@@ -7,7 +7,7 @@
 // A shim for the libWrapper library
 export let libWrapper = undefined;
 
-export const VERSIONS       = [1,12,0];
+export const VERSIONS       = [1,12,1];
 export const TGT_SPLIT_RE   = new RegExp("([^.[]+|\\[('([^'\\\\]|\\\\.)+?'|\"([^\"\\\\]|\\\\.)+?\")\\])", 'g');
 export const TGT_CLEANUP_RE = new RegExp("(^\\['|'\\]$|^\\[\"|\"\\]$)", 'g');
 
@@ -51,7 +51,7 @@ Hooks.once('init', () => {
 				if(descriptor) break;
 				iObj = Object.getPrototypeOf(iObj);
 			}
-			if(!descriptor || descriptor?.configurable === false) throw `libWrapper Shim: '${target}' does not exist, could not be found, or has a non-configurable descriptor.`;
+			if(!descriptor || descriptor?.configurable === false) throw new Error(`libWrapper Shim: '${target}' does not exist, could not be found, or has a non-configurable descriptor.`);
 
 			let original = null;
 			const wrapper = (chain ?? (type.toUpperCase?.() != 'OVERRIDE' && type != 3)) ?
@@ -70,7 +70,7 @@ Hooks.once('init', () => {
 				}
 			}
 			else {
-				if(!descriptor.set) throw `libWrapper Shim: '${target}' does not have a setter`;
+				if(!descriptor.set) throw new Error(`libWrapper Shim: '${target}' does not have a setter`);
 				original = descriptor.set;
 				descriptor.set = wrapper;
 			}
