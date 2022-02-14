@@ -6,6 +6,7 @@
 import { PACKAGE_ID } from '../consts.js';
 import { PackageInfo, PACKAGE_TYPES } from '../shared/package_info.js';
 import { decorate_name } from '../utils/misc.js';
+import { Log } from '../shared/log.js';
 
 
 /*
@@ -113,34 +114,47 @@ function can_inject_message(error) {
 
 
 export function inject_packages_into_error(error, ignore_ids=undefined) {
-	// Sanity check
-	if(!is_error_object(error))
-		return;
+	let packages_str;
 
-	// Skip package detection is already marked
-	if(error.skip_package_detection)
-		return;
+	try {
+		// Sanity check
+		if(!is_error_object(error))
+			return;
 
-	// Test whether error object allows injection
-	if(!can_inject_message(error))
-		return;
+		// Skip package detection is already marked
+		if(error.libwrapper_skip_package_detection)
+			return;
 
-	// Generate involved packages string
-	const packages_str = get_involved_packages_message(error.stack, ignore_ids);
+		// Test whether error object allows injection
+		if(!can_inject_message(error))
+			return;
 
-	// Not necessary to inject a second time, if already present
-	if(error.message.endsWith(packages_str)) {
-		error.skip_package_detection = true;
-		return;
+		// Generate involved packages string
+		packages_str = get_involved_packages_message(error.stack, ignore_ids);
+
+		// Not necessary to inject a second time, if already present
+		if(error.message.endsWith(packages_str)) {
+			error.libwrapper_skip_package_detection = true;
+			return;
+		}
+	}
+	catch (e) {
+		Log.error('Exception thrown while attempting to inject package information into an error.', e);
 	}
 
-	// Append to error message
-	const orig_msg = error.message;
-	error.message += `\n${packages_str}`;
+	// Separate try-catch, we don't need to be noisy if the error occurs due to assigning to 'error' members.
+	try {
+		// Append to error message
+		const orig_msg = error.message;
+		error.message += `\n${packages_str}`;
 
-	// If the stack contains the error message, replace that as well
-	error.stack = error.stack.replace(orig_msg, error.message);
+		// If the stack contains the error message, replace that as well
+		error.stack = error.stack.replace(orig_msg, error.message);
 
-	// Done - signal this error doesn't need package detection any more
-	error.skip_package_detection = true;
+		// Done - signal this error doesn't need package detection any more
+		error.libwrapper_skip_package_detection = true;
+	}
+	catch (e) {
+		Log.debug$?.('Exception thrown while modifying error object.', e);
+	}
 }
