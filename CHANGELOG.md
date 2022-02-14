@@ -1,3 +1,9 @@
+# 1.12.4.0 (2022-02-14)
+
+- Improve package detection. Will no longer fail if an error's stack trace is empty, which could happen sometimes when browser native code causes a JS exception.
+- Improve error package info injection to be less noisy when it fails.
+- Tweak rollup configuration so that relative sourcemap file paths are now correct.
+
 # 1.12.3.0 (2022-02-01)
 
 - All API functions now accept disambiguation prefixes as part of their `package_id` parameter, i.e. `module:foobar`, `system:foobar`, or `world:foobar`.
