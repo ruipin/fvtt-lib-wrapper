@@ -431,7 +431,7 @@ To ask libWrapper to ignore specific conflicts when detected, instead of warning
  *
  * First introduced in v1.7.0.0.
  *
- * @param {string}            package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest. This will be the module that owns this ignore entry.
+ * @param {string}            package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest. This will be the package that owns this ignore entry.
  *
  * @param {(string|string[])} ignore_ids  Other package ID(s) with which conflicts should be ignored.
  *
@@ -597,7 +597,7 @@ Since v1.4.0.0, the libWrapper library triggers Hooks for various events, listed
     - No Parameters.
 
 * `libWrapper.Register`:
-    - Triggered when `libWrapper.Register` completes successfully.
+    - Triggered when a `libWrapper.register` call completes successfully.
     - Parameters:
         - `1`: Package ID whose wrapper is being registered (the `package_id` parameter to `libWrapper.register`).
         - `2`: Wrapper target path (the `target` parameter to `libWrapper.register` when it is a string, otherwise the first parameter provided by any module when registering a wrapper to the same method).
@@ -606,14 +606,14 @@ Since v1.4.0.0, the libWrapper library triggers Hooks for various events, listed
         - `5`: Wrapper ID (the return value of `libWrapper.register`).
 
 * `libWrapper.Unregister`:
-    - Triggered when `libWrapper.Unregister` completes successfully.
+    - Triggered when a `libWrapper.unregister` call completes successfully.
     - Parameters:
         - `1`: Package ID whose wrapper is being unregistered (the `package_id` parameter to `libWrapper.unregister`).
         - `2`: Wrapper target (the `target` parameter to `libWrapper.unregister` when it is a string, otherwise the first parameter provided by any module when registering a wrapper to the same method).
         - `3`: Wrapper ID (the return value of `libWrapper.Register`).
 
 * `libWrapper.UnregisterAll`:
-    - Triggered when `libWrapper.unregister_all` completes successfully.
+    - Triggered when a `libWrapper.unregister_all` call completes successfully.
     - Parameters:
         - `1`: Package ID whose wrappers are being unregistered (the `package_id` parameter to `libWrapper.unregister_all`).
 
@@ -644,7 +644,7 @@ For example, instead of using `'OVERRIDE'` in the `libWrapper.register` call, on
 ```javascript
 libWrapper.register('my-fvtt-package', 'Foo.prototype.bar', function (...args) {
     /* ... */
-}, libWrapper.OVERRIDE /* instead of 'OVERRIDE' */>);
+}, libWrapper.OVERRIDE /* instead of 'OVERRIDE' */);
 ```
 
 A full list of the enumeration values provided by libWrapper follows:

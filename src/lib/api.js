@@ -670,7 +670,7 @@ export class libWrapper {
 	 *
 	 * First introduced in v1.7.0.0.
 	 *
-	 * @param {string}            package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest. This will be the module that owns this ignore entry.
+	 * @param {string}            package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest. This will be the package that owns this ignore entry.
 	 *
 	 * @param {(string|string[])} ignore_ids  Other package ID(s) with which conflicts should be ignored.
 	 *
