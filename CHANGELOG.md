@@ -1,3 +1,8 @@
+# 1.12.5.0 (2022-05-31)
+
+- Fix `options.bind` parameter to `libWrapper.register` for `OVERRIDE` wrappers.
+- Declare compatibility with Foundry v10. It is unlikely a future v10 update will break compatibility.
+
 # 1.12.4.0 (2022-02-14)
 
 - Improve package detection. Will no longer fail if an error's stack trace is empty, which could happen sometimes when browser native code causes a JS exception.

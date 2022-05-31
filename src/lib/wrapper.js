@@ -279,7 +279,7 @@ export class Wrapper {
 
 				// OVERRIDE type will usually not continue the chain
 				if(!data.chain)
-					dispatch_chain = fn.bind(obj);
+					dispatch_chain = fn.bind(obj, ...(data.bind ?? []));
 				// Else, bind the wrapper
 				else
 					dispatch_chain = fn.bind(obj, dispatch_chain, ...(data.bind ?? []));
@@ -592,7 +592,7 @@ export class Wrapper {
 		// OVERRIDE type will usually not continue the chain
 		if(!data.chain) {
 			// Call next method in the chain
-			return fn.apply(obj, args);
+			return fn.apply(obj, ...(data.bind ?? []), args);
 		}
 
 		// Get next index
