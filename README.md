@@ -102,15 +102,36 @@ You have multiple options here.
     });
     ```
 
-    Note that if you choose this option and require the user to install this library, you should make sure to list libWrapper as a dependency. This can be done by adding the following to your package's manifest:
+    Note that if you choose this option, i.e. require the user to install this library, you should make sure to list libWrapper as a dependency. This can be done by adding one of the following entries to your package's manifest:
 
-    ```javascript
-    "dependencies": [
-        {
-            "name": "lib-wrapper"
+    1.  Foundry VTT v10 and newer:
+
+        ```javascript
+        "relationships": {
+            "requires": [
+                {
+                    "name": "lib-wrapper",
+                    "compatibility": {
+                        "minimum": "1.0.0.0",
+                        "verified": "1.12.6.0"
+                    }
+                }
+            ]
         }
-    ]
-    ```
+        ```
+
+        The `"compatibility"` section and all fields within it are optional, and serve to declare the versions of the dependency which your package requires. This can be useful if you rely on libWrapper features added by newer versions (by using `"minimum"`), as well as to communicate to the user what version of the library you tested against (by using `"verified"`).
+
+
+    2.  Foundry VTT v9 and older (forward-compatible with v10):
+
+        ```javascript
+        "dependencies": [
+            {
+                "name": "lib-wrapper"
+            }
+        ]
+        ```
 
 If you pick options #2 or #3 and actively recommend to the user to install libWrapper using e.g. a notification, it is a good idea to give the user a way to permanently dismiss said notification. The provided [shim](#135-compatibility-shim) does this by having a "Don't remind me again" option in the alert dialog.
 

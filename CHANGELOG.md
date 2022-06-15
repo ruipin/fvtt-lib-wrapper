@@ -1,3 +1,8 @@
+# 1.12.6.0 (2022-06-15)
+
+- Add support for reading core compatibility versions for packages using the new Foundry VTT v10 manifest format.
+- Update README with information about the new Foundry VTT v10 manifest format.
+
 # 1.12.5.0 (2022-05-31)
 
 - Fix `options.bind` parameter to `libWrapper.register` for `OVERRIDE` wrappers.
