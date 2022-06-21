@@ -351,6 +351,7 @@ To register a wrapper function, you should call the method `libWrapper.register(
  * @param {Object} options [Optional] Additional options to libWrapper.
  *
  * @param {boolean} options.chain [Optional] If 'true', the first parameter to 'fn' will be a function object that can be called to continue the chain.
+ *   This parameter must be 'true' when registering non-OVERRIDE wrappers.
  *   Default is 'false' if type=='OVERRIDE', otherwise 'true'.
  *   First introduced in v1.3.6.0.
  *

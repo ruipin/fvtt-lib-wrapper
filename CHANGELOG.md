@@ -1,3 +1,7 @@
+# 1.12.7.0 (2022-06-21)
+
+- Enforce `options.chain == true` when registering non-OVERRIDE wrappers.
+
 # 1.12.6.0 (2022-06-15)
 
 - Add support for reading core compatibility versions for packages using the new Foundry VTT v10 manifest format.

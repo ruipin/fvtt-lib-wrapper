@@ -426,6 +426,7 @@ export class libWrapper {
 	 * @param {Object} options [Optional] Additional options to libWrapper.
 	 *
 	 * @param {boolean} options.chain [Optional] If 'true', the first parameter to 'fn' will be a function object that can be called to continue the chain.
+	 *   This parameter must be 'true' when registering non-OVERRIDE wrappers.
 	 *   Default is 'false' if type=='OVERRIDE', otherwise 'true'.
 	 *   First introduced in v1.3.6.0.
 	 *
@@ -487,6 +488,8 @@ export class libWrapper {
 		const chain = options?.chain ?? (type.value < WRAPPER_TYPES.OVERRIDE.value);
 		if(typeof chain !== 'boolean')
 			throw new ERRORS.package(`Parameter 'options.chain' must be a boolean.`, package_info);
+		if(!chain && type.value < WRAPPER_TYPES.OVERRIDE.value)
+			throw new ERRORS.package(`Parameter 'options.chain' must be 'true' for non-OVERRIDE wrappers.`, package_info);
 
 		if(IS_UNITTEST && FORCE_FAST_MODE)
 			options.perf_mode = 'FAST';
