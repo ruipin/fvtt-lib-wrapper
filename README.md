@@ -110,7 +110,8 @@ You have multiple options here.
         "relationships": {
             "requires": [
                 {
-                    "name": "lib-wrapper",
+                    "id": "lib-wrapper",
+                    "type": "module",
                     "compatibility": {
                         "minimum": "1.0.0.0",
                         "verified": "1.12.6.0"
@@ -128,7 +129,8 @@ You have multiple options here.
         ```javascript
         "dependencies": [
             {
-                "name": "lib-wrapper"
+                "name": "lib-wrapper",
+                "type": "module"
             }
         ]
         ```
