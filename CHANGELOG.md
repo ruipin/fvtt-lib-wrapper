@@ -1,3 +1,7 @@
+# 1.12.7.1 (2022-08-08)
+
+- Add `compatibility` and `id` keys to the module manifest to avoid compatibility warnings in FVTT v10.
+
 # 1.12.7.0 (2022-06-21)
 
 - Enforce `options.chain == true` when registering non-OVERRIDE wrappers.

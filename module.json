@@ -1,13 +1,18 @@
 {
+	"id": "lib-wrapper",
 	"name": "lib-wrapper",
 	"title": "libWrapper",
 	"description": "Library for wrapping core Foundry VTT methods, meant to improve compatibility between packages that wrap the same methods.",
-	"version": "1.12.7.0",
+	"version": "1.12.7.1",
 	"author": "Rui Pinheiro",
 	"esmodules": ["src/index.js"],
 	"styles": ["dist/lib-wrapper.css"],
 	"minimumCoreVersion": "0.6.5",
 	"compatibleCoreVersion": "10",
+	"compatibility": {
+		"minimum": "0.6.5",
+		"verified": "10"
+	},
 	"url": "https://github.com/ruipin/fvtt-lib-wrapper",
 	"bugs": "https://github.com/ruipin/fvtt-lib-wrapper/issues",
 	"languages": [
