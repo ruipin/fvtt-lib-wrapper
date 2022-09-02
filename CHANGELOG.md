@@ -1,3 +1,7 @@
+# 1.12.7.2 (2022-09-02)
+
+- Add `authors` key to the module manifest to avoid compatibility warnings in FVTT v10.
+
 # 1.12.7.1 (2022-08-08)
 
 - Add `compatibility` and `id` keys to the module manifest to avoid compatibility warnings in FVTT v10.
