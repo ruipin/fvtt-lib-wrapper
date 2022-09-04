@@ -1,3 +1,9 @@
+# 1.12.8.0 (2022-09-04)
+
+- Get rid of FVTT v10 deprecation warnings caused by legacy style package 'data' accesses.
+  - Shim updated to v1.12.2 to also get rid of these warnings when libWrapper is not installed.
+  - Closes [Issue #71](https://github.com/ruipin/fvtt-lib-wrapper/issues/71). Thanks to wickermoon for the issue report and fix proposal!
+
 # 1.12.7.2 (2022-09-02)
 
 - Add `authors` key to the module manifest to avoid compatibility warnings in FVTT v10.
