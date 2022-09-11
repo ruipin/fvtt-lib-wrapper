@@ -65,7 +65,10 @@ class GameSettings {
 
 class Game {
 	constructor() {
-		this.modules = new Map();
+		this.reset();
+	}
+
+	reset() {
 		this.settings = new GameSettings();
 		this.user = { isGM: true, userId: 12345 };
 		this.userId = 12345;
@@ -85,6 +88,13 @@ class Game {
 			}
 		}
 		this.ready = true;
+
+		this.clear_modules();
+	}
+
+	clear_modules() {
+		this.modules = new Map();
+		this.add_module('lib-wrapper');
 	}
 
 	add_module(nm) {
@@ -95,12 +105,7 @@ class Game {
 		else
 			mdl.data = { title: nm };
 
-		game.modules.set(nm, mdl);
-	}
-
-	clear_modules() {
-		this.modules.clear();
-		this.add_module('lib-wrapper');
+		this.modules.set(nm, mdl);
 	}
 }
 globalThis.game = new Game();

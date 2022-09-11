@@ -11,7 +11,7 @@ import '../src/lib/api.js';
 function setup() {
 	libWrapper._UT_unwrap_all();
 
-	game.modules.clear();
+	game.reset();
 	globalThis.A = undefined;
 }
 

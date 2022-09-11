@@ -286,7 +286,7 @@ function _get_package_info(package_id) {
 	}
 	// Sanity Check: Package must exist (single exception is lib-wrapper, since we register wrappers before 'init')
 	else {
-		if(!package_info.exists && game.modules?.size)
+		if(!package_info.exists && globalThis.game?.modules?.size)
 			throw new ERRORS.package(`Package '${package_id}' is not a valid package.`, package_info);
 	}
 
@@ -343,7 +343,7 @@ export class libWrapper {
 	static get           AlreadyOverriddenError() { return ERRORS.already_overridden; };
 
 	static get LibWrapperInvalidWrapperChainError() { return ERRORS.invalid_chain; };
-	static get          InvalidWrapperChainError () { return ERRORS.invalid_chain; };
+	static get           InvalidWrapperChainError() { return ERRORS.invalid_chain; };
 
 	/* Undocumented on purpose, do not use */
 	static get onUnhandledError() { return onUnhandledError; };
@@ -385,7 +385,7 @@ export class libWrapper {
 	 *
 	 * @param {string} package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest.
 	 *
-	 * @param {number|string} target The target identifier, specifying which wrapper should be unregistered.
+	 * @param {number|string} target The target identifier, specifying which wrapper should be registered.
 	 *
 	 *   This can be either:
 	 *     1. A unique target identifier obtained from a previous 'libWrapper.register' call.
@@ -472,7 +472,7 @@ export class libWrapper {
 
 		// Validate we're allowed to register wrappers at this moment
 		if(package_id != PACKAGE_ID && !libwrapper_ready)
-			throw new ERRORS.package('Not allowed to register wrappers before the \'libWrapperReady\' hook fires', package_info);
+			throw new ERRORS.package('Not allowed to register wrappers before the \'libWrapper.Ready\' hook fires', package_info);
 
 		// Validate other arguments
 		if(typeof target !== 'string' && typeof target !== 'number')
@@ -619,6 +619,10 @@ export class libWrapper {
 		// Get package information
 		const package_info = _get_package_info(package_id);
 
+		// Validate we're allowed to unregister wrappers at this moment
+		if(package_id != PACKAGE_ID && !libwrapper_ready)
+			throw new ERRORS.package('Not allowed to unregister wrappers before the \'libWrapper.Ready\' hook fires', package_info);
+
 		// Validate arguments
 		if(typeof target !== 'string' && typeof target !== 'number')
 			throw new ERRORS.package('Parameter \'target\' must be a number or a string.', package_info);
@@ -648,6 +652,10 @@ export class libWrapper {
 	static unregister_all(package_id) {
 		// Get package information
 		const package_info = _get_package_info(package_id);
+
+		// Validate we're allowed to unregister wrappers at this moment
+		if(package_id != PACKAGE_ID && !libwrapper_ready)
+			throw new ERRORS.package('Not allowed to unregister wrappers before the \'libWrapper.Ready\' hook fires', package_info);
 
 		// Clear package wrappers
 		WRAPPERS.forEach((wrapper) => {
@@ -692,7 +700,7 @@ export class libWrapper {
 
 		// Validate we are allowed to call this method right now
 		if(!libwrapper_ready)
-			throw new ERRORS.package('Not allowed to ignore conflicts before the \'libWrapperReady\' hook fires', package_info);
+			throw new ERRORS.package('Not allowed to ignore conflicts before the \'libWrapper.Ready\' hook fires', package_info);
 
 		// Convert parameters to arrays
 		if(!Array.isArray(ignore_ids))
@@ -743,6 +751,7 @@ if(IS_UNITTEST) {
 	libWrapper._UT_clear_ignores              = (() => LibWrapperConflicts.clear_ignores());
 	libWrapper._UT_TGT_SPLIT_REGEX            = TGT_SPLIT_RE;
 	libWrapper._UT_TGT_CLEANUP_REGEX          = TGT_CLEANUP_RE;
+	libWrapper._UT_setReady                   = ((rdy) => libwrapper_ready = rdy);
 }
 Object.freeze(libWrapper);
 

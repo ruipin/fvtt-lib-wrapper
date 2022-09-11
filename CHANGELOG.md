@@ -1,3 +1,10 @@
+# 1.12.9.0 (2022-09-11)
+
+- Fix incorrect error messages when calling the libWrapper API before the `libWrapper.Ready` hook. ([Issue  #72](https://github.com/ruipin/fvtt-lib-wrapper/issues/72))
+  - Add unit test to catch this issue in the future.
+- Fix accidental 3 consecutive blank lines in error messages when a module has neither an `url` nor a `bugs` entry in its manifest.
+- Update NPM dependencies to latest version.
+
 # 1.12.8.0 (2022-09-04)
 
 - Get rid of FVTT v10 deprecation warnings caused by legacy style package 'data' accesses.

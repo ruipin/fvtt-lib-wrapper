@@ -14,7 +14,7 @@ function setup() {
 	libWrapper._UT_unwrap_all();
 	libWrapper._UT_clear_ignores();
 
-	game.modules.clear();
+	game.reset();
 	globalThis.A = undefined;
 }
 

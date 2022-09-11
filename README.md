@@ -312,7 +312,7 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *
  * @param {string} package_id  The package identifier, i.e. the 'id' field in your module/system/world's manifest.
  *
- * @param {number|string} target The target identifier, specifying which wrapper should be unregistered.
+ * @param {number|string} target The target identifier, specifying which wrapper should be registered.
  *
  *   This can be either:
  *     1. A unique target identifier obtained from a previous 'libWrapper.register' call.

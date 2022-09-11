@@ -139,19 +139,19 @@ export class LibWrapperPackageError extends LibWrapperError {
 		let console_msg = `${console_ui_msg}\n\n${i18n.localize(`${key_prefix}.not-lw`)}\n\n`;
 
 		const info_url = package_info.url;
-		if(typeof info_url === 'string') {
+		const has_info = (typeof info_url === 'string');
+		if(has_info) {
 			console_msg += i18n.format(`${type_prefix}.info`, {type: pkg_type_i18n, url: info_url});
 		}
 
 		const report_url = package_info.bugs;
 		if(typeof report_url === 'string') {
-			console_msg += '\n';
 			console_msg += i18n.format(`${type_prefix}.report`, {url: report_url});
 		}
 		else {
 			const community_support_msg = this.get_community_support_message();
 			if(community_support_msg) {
-				console_msg += '\n\n';
+				if(has_info) console_msg += '\n\n';
 				console_msg += i18n.localize(`${key_prefix}.community-support`);
 				console_msg += '\n';
 				console_msg += community_support_msg;

@@ -14,7 +14,8 @@ import '../src/lib/api.js';
 
 function setup() {
 	libWrapper._UT_unwrap_all();
-	game.clear_modules();
+
+	game.reset();
 }
 
 

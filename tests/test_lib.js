@@ -13,11 +13,48 @@ import {load_priorities} from '../src/ui/settings.js';
 
 function setup() {
 	libWrapper._UT_unwrap_all();
+	libWrapper._UT_setReady(true);
 	load_priorities();
-
-	game.clear_modules();
+	game.reset();
 }
 
+
+// Pre-ready functionality
+test_combinations('Library: Pre-ready', async function(t) {
+	setup();
+
+	// Set libWrapper to not-ready, and mimic a non-initialised game
+	libWrapper._UT_setReady(false);
+	game.modules = undefined;
+	game.ready = false;
+
+	// Check that we throw when libWrapper is not yet ready
+	t.throws(
+		() => libWrapper.register('some-module', 'A.prototype.x', () => {}, 'MIXED'),
+		new RegExp("Not allowed to register wrappers before the 'libWrapper.Ready' hook fires"),
+		"Calling 'register' before ready should throw"
+	);
+
+	t.throws(
+		() => libWrapper.unregister('some-module', 'A.prototype.x'),
+		new RegExp("Not allowed to unregister wrappers before the 'libWrapper.Ready' hook fires"),
+		"Calling 'unregister' before ready should throw"
+	);
+
+	t.throws(
+		() => libWrapper.unregister_all('some-module'),
+		new RegExp("Not allowed to unregister wrappers before the 'libWrapper.Ready' hook fires"),
+		"Calling 'unregister_all' before ready should throw"
+	);
+
+	t.throws(
+		() => libWrapper.ignore_conflicts('some-module', 'another-module', 'A.prototype.x'),
+		new RegExp("Not allowed to ignore conflicts before the 'libWrapper.Ready' hook fires"),
+		"Calling 'ignore_conflicts' before ready should throw"
+	);
+
+	t.end();
+});
 
 
 // Main functionality of libWrapper
@@ -42,9 +79,11 @@ test_combinations('Library: Main', async function (t) {
 	await chkr.call(a, 'x', ['m1:Mix:1','Orig',-2]);
 
 	// Registering the same method twice with the same module should fail
-	t.throws(function() {
-		libWrapper.register('m1', 'A.prototype.x', () => {});
-	}, libWrapper.Error, 'Registering twice with same module should fail');
+	t.throws(
+		() => libWrapper.register('m1', 'A.prototype.x', () => {}),
+		libWrapper.Error,
+		'Registering twice with same module should fail'
+	);
 	await chkr.call(a, 'x', ['m1:Mix:1','Orig',-2]);
 
 	// Register WRAPPER
@@ -59,9 +98,11 @@ test_combinations('Library: Main', async function (t) {
 
 	// Registing another OVERRIDE should fail
 	game.add_module('m4');
-	t.throws(function() {
-		libWrapper.register('m4', 'A.prototype.x', () => {}, 'OVERRIDE');
-	}, libWrapper.AlreadyOverriddenError, 'Registering second override should fail');
+	t.throws(
+		() => libWrapper.register('m4', 'A.prototype.x', () => {}, 'OVERRIDE'),
+		libWrapper.AlreadyOverriddenError,
+		'Registering second override should fail'
+	);
 	await chkr.call(a, 'x', ['m2:Wrp:2','m1:Mix:1','m3:Ovr:3',-3]);
 
 	// Unless the module has a higher priority
@@ -126,11 +167,11 @@ test_combinations('Library: Main', async function (t) {
 
 
 	// Test invalid getter
-	t.throws(() => libWrapper.register('m1', 'A.prototype.xyz', ()=>{}), libWrapper.ModuleError, "Wrap invalid getter");
+	t.throws(() => libWrapper.register('m1', 'A.prototype.xyz', ()=>{}), libWrapper.PackageError, "Wrap invalid getter");
 
 	// Test invalid setter
-	t.throws(() => libWrapper.register('m1', 'A.prototype.x#set', ()=>{}), libWrapper.ModuleError, "Wrap invalid setter");
-	t.throws(() => libWrapper.register('m1', 'A.prototype.xyz#set', ()=>{}), libWrapper.ModuleError, "Wrap invalid setter");
+	t.throws(() => libWrapper.register('m1', 'A.prototype.x#set', ()=>{}), libWrapper.PackageError, "Wrap invalid setter");
+	t.throws(() => libWrapper.register('m1', 'A.prototype.xyz#set', ()=>{}), libWrapper.PackageError, "Wrap invalid setter");
 
 
 	// Done
