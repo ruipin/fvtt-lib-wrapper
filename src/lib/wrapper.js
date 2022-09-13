@@ -341,18 +341,17 @@ export class Wrapper {
 		if(this.active)
 			return;
 
-		// Setup setter/getter
-		// We use a trick here to be able to convince the browser to name the method the way we want it
+		// Create setter / getter functions
+		// Note: We use a trick here to be able to convince the browser to name the method the way we want it
 		const getter_nm = this._callstack_name('getter');
 		const setter_nm = this._callstack_name('setter');
+
+		const _this = this;
 		let obj;
 
 		if(!this.is_property) {
-			const _this = this;
-
-			// Setup setter / getter
 			obj = {
-				[getter_nm]: () => _this._get_handler(),
+				[getter_nm]: _this._get_handler.bind(_this),
 
 				[setter_nm]: function(value) {
 					return _this.set_nonproperty(value, this);
@@ -360,9 +359,6 @@ export class Wrapper {
 			};
 		}
 		else {
-			// Setup setter / getter
-			const _this = this;
-
 			obj = {
 				[getter_nm]: function(...args) {
 					return _this.call_wrapper(null, this, ...args);
@@ -548,7 +544,7 @@ export class Wrapper {
 	}
 
 	_cleanup_call_wrapped(pend, is_dynamic_dispatch) {
-		if(!this._pending_wrapped_calls_cnt)
+		if(this._pending_wrapped_calls_cnt <= 0)
 			throw new ERRORS.internal(`this._pending_wrapped_calls_cnt=${this._pending_wrapped_calls_cnt} should be unreachable at this point.`);
 		this._pending_wrapped_calls_cnt--;
 
@@ -645,7 +641,7 @@ export class Wrapper {
 
 	_call_wrapper_update_state(state) {
 		// Keep track of call state
-		if('valid' in state && !state.valid) {
+		if(state.valid === false) {
 			throw new ERRORS.invalid_chain(
 				this,
 				state.prev_data?.package_info,
