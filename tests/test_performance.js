@@ -121,19 +121,19 @@ test('Performance', function (t) {
 
 
 	// Test many calls with no wrappers
-	measure_perf_all(t, 0, 1000, 1, 0.5, 0.5, 0.5, 0.5);
+	measure_perf_all(t, 0, 1000, 1, 1.0, 1.0, 1.0, 1.0);
 
 	// Test many calls with a single wrapper
-	measure_perf_all(t, 1, 1000, 1, 0.5, 0.5, 2.5, 1.0);
+	measure_perf_all(t, 1, 1000, 1, 1.0, 1.0, 2.5, 1.0);
 
 	// Test with many wrappers
-	measure_perf_all(t, 1000, 1, 1, 0.5, 0.5, 2.5, 0.5);
+	measure_perf_all(t, 1000, 1, 1, 1.0, 1.0, 2.5, 1.0);
 
 	// Test many objects
-	measure_perf_all(t, 1, 1, 1000, 0.5, 0.5, 2.5, 0.5);
+	measure_perf_all(t, 1, 1, 1000, 1.0, 1.0, 2.5, 1.0);
 
 	// Test many objects and wrappers
-	measure_perf_all(t, 10, 10, 10, 0.5, 0.5, 2.5, 0.5);
+	measure_perf_all(t, 10, 10, 10, 1.0, 1.0, 2.5, 1.0);
 
 
 	// Done

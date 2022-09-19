@@ -1,3 +1,8 @@
+# 1.12.10.0 (2022-09-19)
+
+- Code refactoring/clean-up (no user-facing changes)
+- Get rid of another FVTT v10 deprecation warning that occurred only when running the development version of the module.
+
 # 1.12.9.0 (2022-09-11)
 
 - Fix incorrect error messages when calling the libWrapper API before the `libWrapper.Ready` hook. ([Issue  #72](https://github.com/ruipin/fvtt-lib-wrapper/issues/72))
