@@ -146,6 +146,7 @@ export class LibWrapperPackageError extends LibWrapperError {
 
 		const report_url = package_info.bugs;
 		if(typeof report_url === 'string') {
+			if(has_info) console_msg += '\n';
 			console_msg += i18n.format(`${type_prefix}.report`, {url: report_url});
 		}
 		else {

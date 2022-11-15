@@ -1,3 +1,7 @@
+# 1.12.11.0 (2022-11-15)
+
+- Fix incorrect formatting of error messages when modules have both an 'info' and 'bugs' URL in their package manifest. ([Issue #73](https://github.com/ruipin/fvtt-lib-wrapper/issues/73))
+
 # 1.12.10.0 (2022-09-19)
 
 - Code refactoring/clean-up (no user-facing changes)
