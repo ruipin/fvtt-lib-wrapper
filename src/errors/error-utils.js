@@ -113,7 +113,7 @@ function can_inject_message(error) {
 }
 
 
-export function inject_packages_into_error(error, ignore_ids=undefined) {
+export function inject_packages_into_error(error, prepend_stack=undefined) {
 	let packages_str;
 
 	try {
@@ -130,7 +130,7 @@ export function inject_packages_into_error(error, ignore_ids=undefined) {
 			return;
 
 		// Generate involved packages string
-		packages_str = get_involved_packages_message(error.stack, ignore_ids);
+		packages_str = get_involved_packages_message(error.stack);
 
 		// Not necessary to inject a second time, if already present
 		if(error.message.endsWith(packages_str)) {
@@ -149,7 +149,8 @@ export function inject_packages_into_error(error, ignore_ids=undefined) {
 		error.message += `\n${packages_str}`;
 
 		// If the stack contains the error message, replace that as well
-		error.stack = error.stack.replace(orig_msg, error.message);
+		// We use prepend_stack as a workaround to mimic FVTT's Hooks.onError behaviour, see https://github.com/ruipin/fvtt-lib-wrapper/issues/76
+		error.stack = error.stack.replace(orig_msg, `${prepend_stack}. ${error.message}`);
 
 		// Done - signal this error doesn't need package detection any more
 		error.libwrapper_skip_package_detection = true;

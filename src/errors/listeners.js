@@ -31,16 +31,16 @@ function on_libwrapper_error(error) {
 		error.onUnhandled.apply(error);
 }
 
-function on_any_error(error) {
+function on_any_error(error, prepend_stack=undefined) {
 	// Detect packages and inject a list into the error object
-	inject_packages_into_error(error);
+	inject_packages_into_error(error, prepend_stack);
 }
 
 
 /*
  * Error Listeners
  */
-export const onUnhandledError = function(error) {
+export const onUnhandledError = function(error, prepend_stack=undefined) {
 	try {
 		// Sanity check
 		if(!is_error_object(error))
@@ -51,7 +51,7 @@ export const onUnhandledError = function(error) {
 			on_libwrapper_error(error);
 
 		// Trigger the error handling code for all errors
-		on_any_error(error);
+		on_any_error(error, prepend_stack);
 	}
 	catch (e) {
 		Log.error('Exception thrown while processing an unhandled error.', e);
@@ -131,7 +131,8 @@ function init_hooksOnError_listener() {
 		libWrapper.register('lib-wrapper', 'Hooks.onError', function(wrapped, ...args) {
 			// Handle error ourselves first
 			const err = args[1];
-			onUnhandledError(err);
+			const msg = args?.[2]?.msg;
+			onUnhandledError(err, msg);
 
 			// Let Foundry do its thing after
 			return wrapped(...args);

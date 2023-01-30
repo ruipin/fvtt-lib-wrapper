@@ -1,3 +1,7 @@
+# 1.12.12.0 (2023-01-30)
+
+- Implement workaround for Chromium handling of error stack traces resulting in missing information when printed to console ([Issue #76](https://github.com/ruipin/fvtt-lib-wrapper/issues/76))
+
 # 1.12.11.0 (2022-11-15)
 
 - Fix incorrect formatting of error messages when modules have both an 'info' and 'bugs' URL in their package manifest. ([Issue #73](https://github.com/ruipin/fvtt-lib-wrapper/issues/73))

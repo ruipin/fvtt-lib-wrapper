@@ -4,6 +4,9 @@ on:
     tags:
       - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10, v2.1.4rc5
 
+permissions:
+    contents: write
+
 jobs:
   build:
     name: Build
@@ -139,7 +142,7 @@ jobs:
 
 
       - name: Create/Upload Zip
-        uses: ncipollo/release-action@1df3b9d90da563e0a6f5e19f350774bc1074df54
+        uses: ncipollo/release-action@215101a6e62db34b334af623ab3a43e27baa93d9
         with:
           artifacts: "./${{ steps.prepare_env.outputs.PROJECT_NO_FVTT }}-v${{ steps.prepare_env.outputs.VERSION }}.zip"
           artifactContentType: application/zip
@@ -149,7 +152,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create/Upload Json
-        uses: ncipollo/release-action@1df3b9d90da563e0a6f5e19f350774bc1074df54
+        uses: ncipollo/release-action@215101a6e62db34b334af623ab3a43e27baa93d9
         with:
           artifacts: ./module.json
           artifactContentType: application/json
