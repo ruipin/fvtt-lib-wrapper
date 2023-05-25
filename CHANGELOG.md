@@ -1,3 +1,8 @@
+# 1.12.12.1 (2023-05-25)
+
+- Declare compatibility with Foundry v11.
+- No code changes.
+
 # 1.12.12.0 (2023-01-30)
 
 - Implement workaround for Chromium handling of error stack traces resulting in missing information when printed to console ([Issue #76](https://github.com/ruipin/fvtt-lib-wrapper/issues/76))
