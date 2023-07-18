@@ -125,7 +125,7 @@
 			},
 
 			"conflict": {
-				"potential": "Potential conflict detected between {main} and {other}.",
+				"potential": "{main} and {other} modify the same FoundryVTT functionality and are more likely to conflict.",
 				"confirmed": "Conflict detected between {main} and {other}.",
 				"info": "Find information about these packages here:",
 				"report": "Report this conflict here:"

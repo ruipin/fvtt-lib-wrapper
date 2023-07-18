@@ -2,15 +2,15 @@ import path from 'path';
 import fs from 'fs';
 
 import cleanup from 'rollup-plugin-cleanup';
-//import { getBabelOutputPlugin } from '@rollup/plugin-babel';
-import { terser } from "rollup-plugin-terser";
+//import getBabelOutputPlugin from '@rollup/plugin-babel';
+import terser from "@rollup/plugin-terser";
 import json from '@rollup/plugin-json';
 import jscc from 'rollup-plugin-jscc';
 
 
 // Parse the version information from the current module.json
 import { _parse_manifest_version } from './src/shared/version.js';
-import moduleJson from './module.json';
+import moduleJson from './module.json' assert {type: 'json'};
 const pkgVersion = _parse_manifest_version(moduleJson.version, moduleJson.flags.git_version);
 if(!pkgVersion.known)
 	throw "Failed to parse package version";
@@ -21,6 +21,7 @@ const i18nLangs = fs.readdirSync('./lang').map((f) => path.parse(f).name);
 
 // Rollup config
 export default {
+	strictDeprecations: true,
 	input: 'src/index.js',
 	output: {
 		file: 'dist/lib-wrapper.js',

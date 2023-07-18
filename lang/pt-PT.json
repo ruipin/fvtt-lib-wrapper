@@ -125,7 +125,7 @@
 			},
 
 			"conflict": {
-				"potential": "Conflito potencial detectado entre {main} e {other}.",
+				"potential": "{main} e {other} modificam a mesma funcionalidade do FoundryVTT e é mais provável have conflito.",
 				"confirmed": "Conflito detectado entre {main} e {other}.",
 				"info": "Encontre informação sobre estes pacotes aqui:",
 				"report": "Reporte este problema aqui:"

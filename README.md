@@ -1,5 +1,5 @@
 # 1. FVTT libWrapper
-Library for [Foundry VTT](https://foundryvtt.com/) which provides package developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other packages.
+Library for [Foundry VTT](https://foundryvtt.com/) which provides package developers with a simple way to modify core Foundry VTT code, while reducing the likelihood of conflict with other packages and making troubleshooting easier.
 
 [![License](https://img.shields.io/github/license/ruipin/fvtt-lib-wrapper)](LICENSE)
 [![Build Release](https://github.com/ruipin/fvtt-lib-wrapper/workflows/Build%20Release/badge.svg)](https://github.com/ruipin/fvtt-lib-wrapper/releases/latest)
@@ -46,9 +46,19 @@ Library for [Foundry VTT](https://foundryvtt.com/) which provides package develo
 
 ## 1.1. Why?
 
-One of the biggest causes of incompatibility between packages is them patching the same method, breaking each other. This module attempts to improve this situation, and also provide package developers with a flexible and easy-to-use API to wrap/monkey-patch core Foundry VTT code.
+The libWrapper library is intended to be used as a replacement for traditional monkey-patching methods, to make interoperability and troubleshooting easier.
 
-As a bonus, it provides the Game Master with package conflict detection, as well as the possibility of prioritizing and/or deprioritizing certain packages, which can help resolve conflicts if they do arise.
+It provides a standardized API, improving consistency and compatibility while reducing the likelihood of mistakes.
+
+Its wrapping mechanisms attempt to detect and prevent conflicts between different packages. When conflicts cannot be prevented, libWrapper aids troubleshooting by notifying the game master of what went wrong, and which packages are responsible.
+
+| | Traditional monkey-patching | libWrapper |
+|-|-|-|
+| Conflict troubleshooting | Requires waiting until something goes wrong.<br>User is responsible for figuring out if an error is caused by a conflict, and which package(s) caused it. | Able to detect most conflicts and warn the user, in many cases automatically upon game launch. |
+| Error Detection | None by default. | When any error occurs, libWrapper will detect which package(s) caused it (if any), and tell the user. |
+| API | None.<br>Each developer is on their own. | Provides a standard API enforcing best-practices with included error-checking. |
+| Wrapper execution order | Package execution order, i.e. random. | Customizable.<br>Developers can request to run first or last, if their module requires it.<br>Game masters can troubleshoot conflicts by prioritising or deprioritising packages. |
+| Edge cases | Each developer must understand the intricacies of Javascript. | Handled automatically and transparently. |
 
 <img src="https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/7cb19d4def1d5ebf84f4df5753f8e48ecfc1523c/example_priorities.png" width="200">
 <img src="https://raw.githubusercontent.com/ruipin/fvtt-lib-wrapper/7cb19d4def1d5ebf84f4df5753f8e48ecfc1523c/example_conflicts.png" width="200">

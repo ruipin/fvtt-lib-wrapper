@@ -1,3 +1,15 @@
+# 1.12.13.0 (2023-07-18)
+
+- Improve "potential conflict" warning message. ([Issue #77](https://github.com/ruipin/fvtt-lib-wrapper/issues/77))
+  - Now worded "[A] and [B] modify the same FoundryVTT functionality and are more likely to conflict"
+  - Portuguese translations (pt-PT and pt-BR) also updated similarly. PRs for other languages welcome.
+
+- [README] Update "Why?" section to make it more clear why libWrapper is useful.
+
+- [BUILD] Updated npm dependencies to latest version.
+  - Removed unnecessary dependencies.
+  - Updated to rollup v3.
+
 # 1.12.12.1 (2023-05-25)
 
 - Declare compatibility with Foundry v11.

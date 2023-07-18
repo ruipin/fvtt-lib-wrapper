@@ -91,7 +91,7 @@ jobs:
       - name: Prepare node
         uses: actions/setup-node@v2
         with:
-          node-version: '16.8'
+          node-version: '20.4'
 
 
       - name: Prepare npm
