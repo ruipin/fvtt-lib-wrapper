@@ -1,3 +1,8 @@
+# 1.12.13.1 (2024-05-22)
+
+- Declare compatibility with Foundry v12.
+- No code changes.
+
 # 1.12.13.0 (2023-07-18)
 
 - Improve "potential conflict" warning message. ([Issue #77](https://github.com/ruipin/fvtt-lib-wrapper/issues/77))
