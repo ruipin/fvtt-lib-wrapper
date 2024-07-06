@@ -62,7 +62,12 @@ export class LibWrapperInternalError extends LibWrapperError {
 		const report_msg = i18n.format(`${type_prefix}.report`, {url: 'https://github.com/ruipin/fvtt-lib-wrapper/issues'});
 		const tech_details = i18n.localize(`${key_prefix}.tech-details`);
 
-		const related_pkg_msg = (!package_info.known ? '' : `Related Package ID= ${package_info.logId}\n`);
+		let related_pkg_msg = '';
+		if(package_info.known) {
+			const related_pkg_version = package_info.version;
+			const related_pkg_version_msg = pkg_version ? `Related Package Version= ${related_pkg_version}\n` : '';
+			related_pkg_msg = (!package_info.known ? '' : `Related Package ID= ${package_info.logId}\n${related_pkg_version_msg}`);
+		}
 
 		// Done
 		return [
@@ -161,8 +166,11 @@ export class LibWrapperPackageError extends LibWrapperError {
 		console_msg += "\n\n";
 
 		console_msg += i18n.localize(`${key_prefix}.tech-details`);
-		console_msg += `\nDetected by libWrapper.\nPackage ID= ${package_info.logId}\nError= ${technical_msg}\n`
 
+		const pkg_version = package_info.version;
+		const pkg_version_msg = pkg_version ? `Package Version= ${pkg_version}\n` : '';
+
+		console_msg += `\nDetected by libWrapper.\nPackage ID= ${package_info.logId}\n${pkg_version_msg}Error= ${technical_msg}\n`
 
 		// Done
 		return [

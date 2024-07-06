@@ -59,10 +59,10 @@ function get_involved_packages_message(stack, ignore_ids=undefined) {
 
 	// 1 package
 	if(length == 1)
-		return `[Detected 1 package: ${packages[0].logId}]`;
+		return `[Detected 1 package: ${packages[0].logIdVersion}]`;
 
 	// 2+ packages
-	return`[Detected ${length} packages: ${packages.map((p)=>p.logId).join(', ')}]`;
+	return`[Detected ${length} packages: ${packages.map((p)=>p.logIdVersion).join(', ')}]`;
 }
 
 
