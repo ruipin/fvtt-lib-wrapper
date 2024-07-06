@@ -1,3 +1,11 @@
+# 1.12.14.0 (2024-07-06)
+
+- Foundry VTT 12 compatibility
+  - Resolve deprecation warnings related to `isNewerVersion` ([Issue #81](https://github.com/ruipin/fvtt-lib-wrapper/issues/81))
+  - Remove `author` key from package manifest ([Issue #82](https://github.com/ruipin/fvtt-lib-wrapper/issues/82)).
+
+- Include package version in various error messages ([Issue #80](https://github.com/ruipin/fvtt-lib-wrapper/issues/80))
+
 # 1.12.13.1 (2024-05-22)
 
 - Declare compatibility with Foundry v12.
