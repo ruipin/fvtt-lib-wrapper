@@ -27,9 +27,10 @@ export function is_error_object(obj) {
 
 
 const LIBWRAPPER_IGNORE_MATCHES = [
-	'/listeners.js', // ignore anything in the listeners.js file
+	'listeners.js', // ignore anything in the listeners.js file
 	decorate_name('call_wrapped'), // shows up every time libWrapper is in the callstack
 	decorate_name('Application.prototype._render'), // has a libWrapper patch for unhandled error detection
+	decorate_name('Hooks.onError'), // has a libWrapper wrapper for unhandled error detection
 ];
 function get_involved_packages(stack, ignore_ids=undefined) {
 	return PackageInfo.collect_all(stack, /* include_fn= */ (id, type, match) => {
@@ -66,32 +67,73 @@ function get_involved_packages_message(stack, ignore_ids=undefined) {
 }
 
 
-function has_property_string_writable(obj, prop) {
+function has_property_string_writable(obj, prop, allow_missing=false, allow_getter_setter=true) {
 	if(!(prop in obj))
-		return false
+		return allow_missing;
 
 	// Get the property's descriptor if available
 	const desc = Object.getOwnPropertyDescriptor(obj, prop);
 	if(desc) {
-		// Check if the descriptor is not a getter/setter
-		if(!('value' in desc))
-			return false;
+		// Handle getter/setter vs value
+		if('value' in desc) {
+			// Check if the value is a string
+			if(typeof desc.value !== 'string') {
+				Log.debug$?.(`Object has a non-string '${prop}' property:`, obj);
+				return false;
+			}
 
-		// Check if the value is a string
-		if(typeof desc.value !== 'string')
-			return false;
+			// Check if it is writable
+			if(!desc.writable) {
+				Log.debug$?.(`Object has a non-writable '${prop}' property:`, obj);
+				return false;
+			}
+		}
+		// Getter/Setter and getter-only
+		else if('get' in desc) {
+			if(!allow_getter_setter) {
+				Log.debug$?.(`Object has a getter '${prop}' property:`, obj);
+				return false;
+			}
 
-		// Check if it is writable
-		if(!desc.writable)
+			// Getter-only property
+			if(!('set' in desc)) {
+				Log.debug$?.(`Object has a getter-only '${prop}' property:`, obj);
+				return false;
+			}
+
+			// Check if the getter return value is a string
+			if(typeof obj[prop] !== 'string') {
+				Log.debug$?.(`Object has a non-string-getter '${prop}' property:`, obj);
+				return false;
+			}
+		}
+		// Setter-only
+		else if('set' in desc) {
+			Log.debug$?.(`Object has a setter-only '${prop}' property:`, obj);
 			return false;
+		}
+		// Unknown
+		else {
+			Log.debug$?.(`Object has an unexpected ${prop} property descriptor:`, obj, desc);
+			return false;
+		}
 	}
 	// We assume that if the property descriptor doesn't exist, then it is writable by default
-	// But we still need to validate that it is a string
+	// But we still need to validate that it exists and is a string
 	else {
 		const value = obj[prop];
 
-		if(typeof value !== 'string')
+		// Check if the property is undefined
+		if(value === undefined) {
+			Log.debug$?.(`Object has an undefined '${prop}' property:`, obj);
+			return allow_missing;
+		}
+
+		// Check if the property is a string
+		if(typeof value !== 'string') {
+			Log.debug$?.(`Object has a non-string '${prop}' property:`, obj);
 			return false;
+		}
 	}
 
 	// Done
@@ -105,7 +147,7 @@ function can_inject_message(error) {
 		return false;
 
 	// We need both 'message' and 'stack' to be writable strings
-	if(!has_property_string_writable(error, 'message') || !has_property_string_writable(error, 'stack'))
+	if(!has_property_string_writable(error, 'message') || !has_property_string_writable(error, 'stack', /*allow_missing=*/ false, /*allow_getter_setter=*/ true))
 		return false;
 
 	// Done
@@ -118,16 +160,20 @@ export function inject_packages_into_error(error, prepend_stack=undefined) {
 
 	try {
 		// Sanity check
-		if(!is_error_object(error))
+		if(!is_error_object(error)) {
+			Log.debug$?.(`Skipping error package injection because it is not an error object:`, error);
 			return;
+		}
 
 		// Skip package detection is already marked
 		if(error.libwrapper_skip_package_detection)
 			return;
 
 		// Test whether error object allows injection
-		if(!can_inject_message(error))
+		if(!can_inject_message(error)) {
+			Log.debug$?.(`Skipping error package injection because the error object prevents injection:`, error);
 			return;
+		}
 
 		// Generate involved packages string
 		packages_str = get_involved_packages_message(error.stack);

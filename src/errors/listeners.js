@@ -43,8 +43,10 @@ function on_any_error(error, prepend_stack=undefined) {
 export const onUnhandledError = function(error, prepend_stack=undefined) {
 	try {
 		// Sanity check
-		if(!is_error_object(error))
+		if(!is_error_object(error)) {
+			Log.debug$?.(`Ignoring unhandled error because it is not an error object:`, error);
 			return;
+		}
 
 		// If we have an instance of LibWrapperError, we trigger the libWrapper-specific behaviour
 		if(error instanceof LibWrapperError)

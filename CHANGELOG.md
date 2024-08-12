@@ -1,3 +1,9 @@
+# 1.12.15.0 (2024-08-13)
+
+- Fixes to error message involved packages injection to ensure more errors display this information.
+  - Allow injecting involved packages even where the error object has a getter/setter stack property.
+  - Do not report libWrapper involvement related to `Hooks.onError` to avoid confusing the users.
+
 # 1.12.14.0 (2024-07-06)
 
 - Foundry VTT 12 compatibility
