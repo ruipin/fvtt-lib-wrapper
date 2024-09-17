@@ -174,7 +174,10 @@ function _find_wrapper_by_id(id) {
 }
 
 function _find_package_data_in_wrapper(package_info, wrapper, is_setter) {
-	return wrapper.get_fn_data(is_setter).find((x) => x.package_info?.equals(package_info));
+	let result = wrapper.get_fn_data(is_setter, /*is_listener=*/ false).find((x) => x.package_info?.equals(package_info));
+	if(!result)
+		result = wrapper.get_fn_data(is_setter, /*is_listener=*/ true ).find((x) => x.package_info?.equals(package_info));
+	return result;
 }
 
 function _find_package_data_with_target(package_info, target) {
@@ -353,6 +356,7 @@ export class libWrapper {
 	static get WRAPPER()  { return WRAPPER_TYPES.WRAPPER  };
 	static get MIXED()    { return WRAPPER_TYPES.MIXED    };
 	static get OVERRIDE() { return WRAPPER_TYPES.OVERRIDE };
+	static get LISTENER() { return WRAPPER_TYPES.LISTENER };
 
 	static get PERF_NORMAL() { return PERF_MODES.NORMAL };
 	static get PERF_AUTO()   { return PERF_MODES.AUTO   };
@@ -408,9 +412,17 @@ export class libWrapper {
 	 *
 	 *   The possible types are:
 	 *
+	 *   'LISTENER' / libWrapper.LISTENER:
+	 * 	   Use this to register a listener function. This function will be called immediately before the target is called, but is not part of the call chain.
+	 *     Use when you just need to know a method is being called and the parameters used for the call, without needing to modify the parameters or execute any
+	 *     code after the method finishes execution.
+	 *     Listeners will always be called first, before any other type, and should be used whenever possible as they have a virtually zero chance of conflict.
+	 *     Note that asynchronous listeners are *not* awaited before execution is allowed to proceed.
+	 *     First introduced in v1.13.0.0.
+	 *
 	 *   'WRAPPER' / libWrapper.WRAPPER:
 	 *     Use if your wrapper will *always* continue the chain.
-	 *     This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
+	 *     This type has priority over MIXED and OVERRIDE. It should be preferred over those whenever possible as it massively reduces the likelihood of conflicts.
 	 *     Note that the library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
 	 *
 	 *   'MIXED' / libWrapper.MIXED:
@@ -485,11 +497,13 @@ export class libWrapper {
 		if(type === null)
 			throw new ERRORS.package(`Parameter 'type' must be one of [${WRAPPER_TYPES.list.join(', ')}].`, package_info);
 
-		const chain = options?.chain ?? (type.value < WRAPPER_TYPES.OVERRIDE.value);
+		const chain = options?.chain ?? (type !== WRAPPER_TYPES.OVERRIDE && type !== WRAPPER_TYPES.LISTENER);
 		if(typeof chain !== 'boolean')
 			throw new ERRORS.package(`Parameter 'options.chain' must be a boolean.`, package_info);
-		if(!chain && type.value < WRAPPER_TYPES.OVERRIDE.value)
-			throw new ERRORS.package(`Parameter 'options.chain' must be 'true' for non-OVERRIDE wrappers.`, package_info);
+		if(!chain && (type === WRAPPER_TYPES.WRAPPER || type === WRAPPER_TYPES.MIXED))
+			throw new ERRORS.package(`Parameter 'options.chain' must be 'true' for ${type.name} wrappers.`, package_info);
+		if(chain && (type === WRAPPER_TYPES.LISTENER))
+			throw new ERRORS.package(`Parameter 'options.chain' must be 'false' for ${type.name} wrappers.`, package_info);
 
 		if(IS_UNITTEST && FORCE_FAST_MODE)
 			options.perf_mode = 'FAST';
@@ -550,7 +564,7 @@ export class libWrapper {
 			LibWrapperStats.register_package(package_info);
 
 		// Only allow one 'OVERRIDE' type
-		if(type.value >= WRAPPER_TYPES.OVERRIDE.value) {
+		if(type === WRAPPER_TYPES.OVERRIDE) {
 			const existing = wrapper.get_fn_data(is_setter).find((x) => { return x.type === WRAPPER_TYPES.OVERRIDE });
 
 			if(existing) {
@@ -777,7 +791,7 @@ init_error_listeners();
 
 	const libWrapperInit = decorate_name('libWrapperInit');
 	const obj = {
-		[libWrapperInit]: async function(wrapped, ...args) {
+		[libWrapperInit]: function(...args) {
 			// Unregister our pre-initialisation patches as they are no longer necessary
 			if(!IS_UNITTEST) {
 				const lw_info = new PackageInfo('lib-wrapper', PACKAGE_TYPES.MODULE);
@@ -792,7 +806,7 @@ init_error_listeners();
 				parse_manifest_version();
 			//#endif
 
-			await i18n.init();
+			i18n.init(); // async method, but we don't await on purpose - we need to initialise everything before FVTT initializes
 			LibWrapperSettings.init();
 			LibWrapperStats.init();
 			LibWrapperConflicts.init();
@@ -801,13 +815,11 @@ init_error_listeners();
 			// Notify everyone the library has loaded and is ready to start registering wrappers
 			Log.fn(Log.ALWAYS, /*fn_verbosity=*/ Log.INFO)(`Version ${VERSION.full_git} ready.`);
 			Hooks.callAll(`${HOOKS_SCOPE}.Ready`, libWrapper);
-
-			return wrapped(...args);
 		}
 	};
 
 	if(!IS_UNITTEST) {
-		GAME_INITIALIZE_ID = libWrapper.register('lib-wrapper', 'Game.prototype.initialize', obj[libWrapperInit], libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
+		GAME_INITIALIZE_ID = libWrapper.register('lib-wrapper', 'Game.prototype.initialize', obj[libWrapperInit], libWrapper.LISTENER, {perf_mode: libWrapper.PERF_FAST});
 
 		// We need to prevent people patching 'Game' and breaking libWrapper.
 		// Unfortunately we cannot re-define 'Game' as a non-settable property, but we can prevent people from using 'Game.toString'.

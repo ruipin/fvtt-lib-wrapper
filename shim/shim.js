@@ -7,7 +7,7 @@
 // A shim for the libWrapper library
 export let libWrapper = undefined;
 
-export const VERSIONS       = [1,12,2];
+export const VERSIONS       = [1,13,0];
 export const TGT_SPLIT_RE   = new RegExp("([^.[]+|\\[('([^'\\\\]|\\\\.)+?'|\"([^\"\\\\]|\\\\.)+?\")\\])", 'g');
 export const TGT_CLEANUP_RE = new RegExp("(^\\['|'\\]$|^\\[\"|\"\\]$)", 'g');
 
@@ -26,6 +26,7 @@ Hooks.once('init', () => {
 		static get WRAPPER()  { return 'WRAPPER'  };
 		static get MIXED()    { return 'MIXED'    };
 		static get OVERRIDE() { return 'OVERRIDE' };
+		static get LISTENER() { return 'LISTENER' };
 
 		static register(package_id, target, fn, type="MIXED", {chain=undefined, bind=[]}={}) {
 			const is_setter = target.endsWith('#set');
@@ -54,10 +55,14 @@ Hooks.once('init', () => {
 			if(!descriptor || descriptor?.configurable === false) throw new Error(`libWrapper Shim: '${target}' does not exist, could not be found, or has a non-configurable descriptor.`);
 
 			let original = null;
-			const wrapper = (chain ?? (type.toUpperCase?.() != 'OVERRIDE' && type != 3)) ?
+			const is_override = (type == 3 || type.toUpperCase?.() == 'OVERRIDE' || type == 3);
+			const is_listener = (type == 4 || type.toUpperCase?.() == 'LISTENER' || type == 4);
+			const wrapper = is_listener ? (
+				function(...args) { fn.call(this, ...bind, ...args); return original.call(this, ...args); }
+			) : ((chain ?? !is_override) ?
 				function(...args) { return fn.call(this, original.bind(this), ...bind, ...args); } :
 				function(...args) { return fn.call(this, ...bind, ...args); }
-			;
+			);
 
 			if(!is_setter) {
 				if(descriptor.value) {

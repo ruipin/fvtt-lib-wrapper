@@ -43,7 +43,7 @@ export class CallOrderChecker {
 
 	_add_frame() {
 		const idx = ++this.index;
-		const frm = {index: idx};
+		const frm = {index: idx, call_depth: this.depth};
 		this.call_order.push(frm);
 
 		return frm;
@@ -65,6 +65,9 @@ export class CallOrderChecker {
 	}
 
 	_get_frame_caller(frm) {
+		if(frm.call_depth < 0)
+			return null;
+
 		const prev_frm = this._get_frame(frm.index - 1);
 
 		if(!prev_frm)
@@ -219,16 +222,20 @@ export class CallOrderChecker {
 
 
 	// Function generators
-	gen_fn(id, fn, {is_wrapper=true, randomize_args=true}={}) {
+	gen_fn(id, fn, {is_wrapper=true, is_listener=false, randomize_args=true, bind=[]}={}) {
 		this.validate_id(id);
 
 		const _checker = this;
 
 		const onInitFrame = function(frm) {
-			frm.is_wrapper = is_wrapper;
+			frm.is_wrapper         = is_wrapper;
+			frm.is_listener        = is_listener;
+			frm.expected_bind_args = bind;
 
-			frm.in_args = frm.args.slice(is_wrapper ? 1 : 0);
-			frm.in_id = frm.in_args[1];
+			const wrapper_arg_num = (is_wrapper ? 1 : 0);
+			frm.bind_args = frm.args.slice(wrapper_arg_num, wrapper_arg_num + bind.length);
+			frm.in_args   = frm.args.slice(wrapper_arg_num + bind.length);
+			frm.in_id     = frm.in_args[1];
 		}
 
 		const doChainWrapper = fn ? function(frm) {
@@ -279,13 +286,15 @@ export class CallOrderChecker {
 		return rt;
 	}
 
-	gen_wr(id, {override=false, nochain=false}={}) {
+	gen_wr(id, {override=false, nochain=false, listener=false, bind=[]}={}) {
 		return this.gen_fn(
 			id,
-			(override || nochain) ? null : (frm, chain) => chain(),
+			(override || nochain || listener) ? null : (frm, chain) => chain(),
 			{
-				is_wrapper: !override,
-				randomize_args: (!override && !nochain)
+				is_wrapper: !override && !listener,
+				is_listener: listener,
+				randomize_args: (!override && !nochain && !listener),
+				bind: bind
 			}
 		);
 	}
@@ -333,8 +342,8 @@ export class CallOrderChecker {
 				if(current.in_id)
 					compare(current.in_id, caller.id, 'Caller ID Mismatch');
 
-				compare(current.this , caller.this , 'Caller \'this\' Mismatch');
-				compare(current.in_args, caller.nxt_args, 'Caller Arguments Mismatch');
+				compare(current.this     , caller.this     , 'Caller \'this\' Mismatch');
+				compare(current.in_args  , caller.nxt_args , 'Caller Arguments Mismatch');
 			}
 			else {
 				compare(current.depth, 0, 'Depth Mismatch');
@@ -363,6 +372,9 @@ export class CallOrderChecker {
 				if(current.nxt_id)
 					error(`Callee returned '${current.nxt_id}', but expected no callee.`);
 			}
+
+			// Bind args
+			compare(current.expected_bind_args, current.bind_args, 'Bind Arguments Mismatch');
 
 			// Validate return count
 			const next_frame = this._get_frame(i+1);

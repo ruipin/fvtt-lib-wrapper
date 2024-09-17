@@ -140,9 +140,9 @@ globalThis.Dialog = Dialog;
 
 
 // Wrap helpers to bypass libWrapper public API
-export const wrap_front = function(obj, fn_name, fn, {is_setter=false, chain=true, perf_mode='AUTO'}={}) {
+export const wrap_front = function(obj, fn_name, fn, {is_setter=false, is_notify=false, chain=true, perf_mode='AUTO'}={}) {
 	const wrapper = libWrapper._UT_create_wrapper_from_object(obj, fn_name);
-	wrapper.get_fn_data(is_setter, true).splice(0, 0, {
+	wrapper.get_fn_data(is_setter, is_notify, true).splice(0, 0, {
 		fn: fn,
 		priority: undefined,
 		active: true,

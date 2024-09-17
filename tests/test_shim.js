@@ -90,6 +90,14 @@ test_combinations('Shim: Main', async function (t) {
 	await chkr.call(a, 'x', ['S:8','S:6','S:5',-3]);
 
 
+	// Test a LISTENER
+	libWrapperShim.register('m2', 'A.prototype.x', chkr.gen_wr('S:9', {listener: true}), 'LISTENER');
+	await chkr.call(a, 'x', ['S:9', -1, 'S:8', 'S:6', 'S:5', -3]);
+
+	libWrapperShim.register('m3', 'A.prototype.x', chkr.gen_wr('S:10', {listener: true}), 'LISTENER');
+	await chkr.call(a, 'x', ['S:10', -1, 'S:9', -1, 'S:8', 'S:6', 'S:5', -3]);
+
+
 	// Test invalid getter
 	t.throws(() => libWrapperShim.register('m1', 'A.prototype.xyz', ()=>{}), undefined, "Wrap invalid getter");
 
@@ -101,7 +109,6 @@ test_combinations('Shim: Main', async function (t) {
 	// Done
 	t.end();
 });
-
 
 
 // Main functionality of the libWrapper Shim

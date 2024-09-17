@@ -6,7 +6,7 @@
 import {PROPERTIES_CONFIGURABLE, PACKAGE_TITLE} from '../consts.js';
 import {WRAPPER_TYPES, PERF_MODES} from './enums.js';
 import {WRAPPERS} from './storage.js';
-import {decorate_name, set_function_name, decorate_class_function_names} from '../utils/misc.js';
+import {decorate_name, set_function_name, decorate_class_function_names, is_promise} from '../utils/misc.js';
 import {getHighPerformanceMode} from '../utils/settings.js';
 import {PackageInfo} from '../shared/package_info.js';
 import {Log} from '../shared/log.js';
@@ -128,10 +128,6 @@ export class Wrapper {
 
 		this.names = [];
 
-		this.getter_data = [];
-		if(this.is_property)
-			this.setter_data = [];
-
 		this.active = false;
 
 		this._outstanding_wrappers = 0;
@@ -143,6 +139,8 @@ export class Wrapper {
 		}
 
 		this.use_static_dispatch = false;
+
+		this.clear();
 
 		// Add name
 		if(!name)
@@ -168,7 +166,7 @@ export class Wrapper {
 
 		// Create a handler function
 		const _this = this;
-		const handler_nm = this._callstack_name(handler_id);
+		const handler_nm = this._callstack_name(handler_id, this.name);
 		const wrapped = this._wrapped ?? null; // we explicitly convert undefined to null here, to force a inheritance chain search when calling get_wrapped
 
 		// We use a trick here to be able to convince the browser to name the method the way we want it
@@ -180,11 +178,16 @@ export class Wrapper {
 				if(_this.should_skip_wrappers(this, handler_id, is_static_dispatch)) {
 					return _this.get_wrapped(this, false, wrapped).apply(this, args);
 				}
-				// Otherwise, trigger the wrapper dispatch chain
+				// Otherwise, trigger listeners and the wrapper dispatch chain
 				else {
-					// Trigger the desired dispatch chain - dynamic or static
-					if(is_static_dispatch)
-						return _this.get_static_dispatch_chain(this).apply(this, args);
+					// Trigger listeners
+					_this.call_listeners(this, /*is_setter=*/ false, ...args);
+
+					// Decide what to call next
+					if(_this.get_fn_data(false, false).length == 0)
+						return _this.get_wrapped(this, false, wrapped).apply(this, args);
+					else if(is_static_dispatch)
+						return _this.get_static_dispatch_chain(this).apply(_this, args);
 					else
 						return _this.call_wrapper(null, this, ...args);
 				}
@@ -361,10 +364,18 @@ export class Wrapper {
 		else {
 			obj = {
 				[getter_nm]: function(...args) {
+					// Trigger listeners
+					_this.call_listeners(this, /*is_setter=*/ false, ...args);
+
+					// Call wrappers
 					return _this.call_wrapper(null, this, ...args);
 				},
 
 				[setter_nm]: function(...args) {
+					// Trigger listeners
+					_this.call_listeners(this, /*is_setter=*/ true, ...args);
+
+					// Decide what to call next
 					return _this.call_wrapper({setter: true}, this, ...args);
 				}
 			}
@@ -520,7 +531,7 @@ export class Wrapper {
 		// If the result is a Promise, then we must wait until it fulfills before cleaning up.
 		// Per the JS spec, the only way to detect a Promise (since Promises can be polyfilled, extended, wrapped, etc) is to look for the 'then' method.
 		// Anything with a 'then' function is technically a Promise. This leaves a path for false-positives, but I don't see a way to avoid this.
-		if(typeof result?.then === 'function') {
+		if(is_promise(result)) {
 			result = result.then(
 				// onResolved
 				v => {
@@ -588,7 +599,7 @@ export class Wrapper {
 		// OVERRIDE type will usually not continue the chain
 		if(!data.chain) {
 			// Call next method in the chain
-			return fn.apply(obj, ...(data.bind ?? []), args);
+			return fn.call(obj, ...(data.bind ?? []), ...args);
 		}
 
 		// Get next index
@@ -622,7 +633,7 @@ export class Wrapper {
 		// If the result is a Promise, then we must wait until it fulfills before cleaning up.
 		// Per the JS spec, the only way to detect a Promise (since Promises can be polyfilled, extended, wrapped, etc) is to look for the 'then' method.
 		// Anything with a 'then' function is technically a Promise. This leaves a path for false-positives, but I don't see a way to avoid this.
-		if(typeof result?.then === 'function') {
+		if(is_promise(result)) {
 			result = result.then(
 				// onResolved
 				v => this._cleanup_call_wrapper(v, next_state, data, fn_data, next_fn, obj, args),
@@ -730,6 +741,23 @@ export class Wrapper {
 
 
 
+	// Notifications
+	call_listeners(obj, is_setter, ...args) {
+		// Get list of registered notification functions
+		const fn_data = this.get_fn_data(is_setter, true);
+
+		// Loop through notification functions and call them
+		for(const data of fn_data) {
+			// Grab notification function from function data object
+			const fn = data.fn;
+
+			// Call notification function
+			fn.call(obj, ...(data.bind ?? []), ...args);
+		}
+	}
+
+
+
 	// Non-property setter
 	set_nonproperty(value, obj=null) {
 		if(this.is_property)
@@ -790,20 +818,20 @@ export class Wrapper {
 
 	// Wraper array methods
 	// NOTE: These should only ever be called from libWrapper, they do not clean up after themselves
-	get_fn_data(setter, to_modify=false) {
+	get_fn_data(is_setter, is_listener=false, to_modify=false) {
 		// to_modify=true must be used any time the fn_data array will be modified.
 		// If there are any outstanding wrapper calls, this will force the creation of a copy of the array, to avoid affecting said outstanding wrapper calls.
 
 		// Sanity check
-		if(setter && !this.is_property)
-			throw new ERRORS.internal(`'${this.name}' does not wrap a property, thus setter=true is illegal.`);
+		if(is_setter && !this.is_property)
+			throw new ERRORS.internal(`'${this.name}' does not wrap a property, thus is_setter=true is illegal.`);
 
 		// Get current fn_data
-		const prop_nm = setter ? 'setter_data' : 'getter_data';
+		const prop_nm = is_setter ? (is_listener ? 'setter_listener_data' : 'setter_data') : (is_listener ? 'getter_listener_data' : 'getter_data');
 		let result = this[prop_nm];
 
 		// If we are going to modify the return result...
-		if(to_modify) {
+		if(to_modify && !is_listener) {
 			// Duplicate fn_data if we are modifying it and there are outstanding wrappers
 			if(this._outstanding_wrappers > 0) {
 				result = this[prop_nm].slice(0);
@@ -820,12 +848,20 @@ export class Wrapper {
 		this.clear_static_dispatch_chain_cache();
 	}
 
-	sort() {
-		for(let setter of [false, true]) {
+	sort(setter=null, listener=null) {
+		if(setter === null && this.is_property) {
+			for(const _setter of [false, true])
+				this.sort(_setter, listener);
+		}
+		else if(listener === null) {
+			for(const _listener of [false, true])
+				this.sort(setter, _listener);
+		}
+		else {
 			if(setter && !this.is_property)
-				continue;
+				return;
 
-			let fn_data = this.get_fn_data(setter);
+			let fn_data = this.get_fn_data(setter, listener);
 			fn_data.sort((a,b) => { return a.type.value - b.type.value || b.priority - a.priority });
 		}
 	}
@@ -837,34 +873,42 @@ export class Wrapper {
 			set_function_name(fn, this._callstack_name(data.package_info.id ?? '<unknown>'));
 
 		// Add to fn_data
-		const fn_data = this.get_fn_data(data.setter, true);
+		const is_listener = (data.type == WRAPPER_TYPES.LISTENER);
+		const fn_data = this.get_fn_data(data.setter, is_listener, /*to_modify=*/ true);
 
 		fn_data.splice(0, 0, data);
-		this.sort(data.setter);
+		this.sort(data.setter, is_listener);
 
-		this._post_update_fn_data();
+		if(!is_listener)
+			this._post_update_fn_data();
 	}
 
 	remove(data) {
-		const fn_data = this.get_fn_data(data.setter, true);
+		const is_listener = (data.type == WRAPPER_TYPES.LISTENER);
+		const fn_data = this.get_fn_data(data.setter, is_listener, /*to_modify=*/ true);
 
 		const index = fn_data.indexOf(data);
 		fn_data.splice(index, 1);
 
-		this._post_update_fn_data();
+		if(!is_listener)
+			this._post_update_fn_data();
 	}
 
 	clear() {
-		this.getter_data = [];
+		this.getter_data          = [];
+		this.getter_listener_data = [];
 
-		if(this.is_property)
-			this.setter_data = [];
+		if(this.is_property) {
+			this.setter_data          = [];
+			this.setter_listener_data = [];
+		}
 
 		this._post_update_fn_data();
 	}
 
 	is_empty() {
-		return !this.getter_data.length && !this.setter_data?.length;
+		return !this.getter_data         ?.length && !this.setter_data         ?.length &&
+		       !this.getter_listener_data?.length && !this.setter_listener_data?.length;
 	}
 };
 decorate_class_function_names(Wrapper);

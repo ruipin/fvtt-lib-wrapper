@@ -20,7 +20,7 @@ Library for [Foundry VTT](https://foundryvtt.com/) which provides package develo
     - [1.3.1. Summary](#131-summary)
     - [1.3.2. Common Issues and Pitfalls](#132-common-issues-and-pitfalls)
       - [1.3.2.1. Not allowed to register wrappers before the `init` hook.](#1321-not-allowed-to-register-wrappers-before-the-init-hook)
-      - [1.3.2.2. OVERRIDE wrappers have a different call signature](#1322-override-wrappers-have-a-different-call-signature)
+      - [1.3.2.2. LISTENER and OVERRIDE wrappers have a different call signature](#1322-listener-and-override-wrappers-have-a-different-call-signature)
       - [1.3.2.3. Arrow Functions do not support `this`](#1323-arrow-functions-do-not-support-this)
       - [1.3.2.4. Using `super` inside wrappers](#1324-using-super-inside-wrappers)
       - [1.3.2.5. Patching Mixins](#1325-patching-mixins)
@@ -164,10 +164,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 In order to wrap a method, you should call the `libWrapper.register` method during or after the `init` hook, and provide it with your package ID, the scope of the method you want to override, and a wrapper function.
 You can also specify the type of wrapper you want in the fourth (optional) parameter:
 
+- `LISTENER`:
+    - Use when you just need to know a method is being called and the parameters used for the call, without needing to modify the parameters or execute any code after the method finishes execution.
+    - Listeners will always be called first, before any other type, and should be used whenever possible as they have a virtually zero chance of conflict.
+
 - `WRAPPER`:
 
     - Use if your wrapper will *always* continue the chain (i.e. call `wrapped`).
-    - This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
+    - This type has priority over `MIXED` and `OVERRIDE` wrappers. It should be used instead of those two when possible, as it massively reduces the chance of conflict.
     - ⚠ If you use this type but do not call the original function, your wrapper will be automatically unregistered.
 
 - `MIXED` (default):
@@ -206,15 +210,22 @@ Any attempts to register wrappers before then will throw an exception. If using 
 ⚠ Note that while the full library provides the `libWrapper.Ready` hook, which fires as soon as libWrapper is ready to register wrappers, this hook is not provided by the [shim](#135-compatibility-shim).
 
 
-#### 1.3.2.2. OVERRIDE wrappers have a different call signature
+#### 1.3.2.2. LISTENER and OVERRIDE wrappers have a different call signature
 
-When using `OVERRIDE`, wrappers do not receive the next function in the wrapper chain as the first parameter. Make sure to account for this.
+When using `LISTENER` or `OVERRIDE`, wrappers do not receive the next function in the wrapper chain as the first parameter. Make sure to account for this.
 
 ```javascript
 libWrapper.register('my-fvtt-package', 'Foo.prototype.bar', function (...args) { // There is no 'wrapped' parameter in the wrapper signature
     console.log('Foo.prototype.bar was overridden');
     return;
 }, 'OVERRIDE');
+```
+
+```javascript
+libWrapper.register('my-fvtt-package', 'Foo.prototype.bar', function (...args) { // There is no 'wrapped' parameter in the wrapper signature
+    console.log('Foo.prototype.bar was called');
+    return;
+}, 'LISTENER');
 ```
 
 
@@ -345,9 +356,17 @@ To register a wrapper function, you should call the method `libWrapper.register(
  *
  *   The possible types are:
  *
+ *   'LISTENER' / libWrapper.LISTENER:
+ * 	   Use this to register a listener function. This function will be called immediately before the target is called, but is not part of the call chain.
+ *     Use when you just need to know a method is being called and the parameters used for the call, without needing to modify the parameters or execute any
+ *     code after the method finishes execution.
+ *     Listeners will always be called first, before any other type, and should be used whenever possible as they have a virtually zero chance of conflict.
+ *     Note that asynchronous listeners are *not* awaited before execution is allowed to proceed.
+ *     First introduced in v1.13.0.0.
+ *
  *   'WRAPPER' / libWrapper.WRAPPER:
  *     Use if your wrapper will *always* continue the chain.
- *     This type has priority over every other type. It should be used whenever possible as it massively reduces the likelihood of conflicts.
+ *     This type has priority over MIXED and OVERRIDE. It should be preferred over those whenever possible as it massively reduces the likelihood of conflicts.
  *     Note that the library will auto-detect if you use this type but do not call the original function, and automatically unregister your wrapper.
  *
  *   'MIXED' / libWrapper.MIXED:
@@ -687,6 +706,7 @@ A full list of the enumeration values provided by libWrapper follows:
 static get WRAPPER()  { /* ... */ };
 static get MIXED()    { /* ... */ };
 static get OVERRIDE() { /* ... */ };
+static get LISTENER() { /* ... */ };
 
 static get PERF_NORMAL() { /* ... */ };
 static get PERF_AUTO()   { /* ... */ };

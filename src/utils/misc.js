@@ -89,3 +89,9 @@ export const hash_string = function(str) {
 
     return hash;
 }
+
+
+// Is object a promise
+export const is_promise = function(obj) {
+	return (typeof obj?.then === 'function');
+}
