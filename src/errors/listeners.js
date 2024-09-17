@@ -130,15 +130,12 @@ function init_hooksOnError_listener() {
 	// Wrap Hooks._onError to intercept unhandled exceptions
 	// We could use the 'error' hook instead, but then we wouldn't be able to see an exception before it gets logged to the console
 	try {
-		libWrapper.register('lib-wrapper', 'Hooks.onError', function(wrapped, ...args) {
+		libWrapper.register('lib-wrapper', 'Hooks.onError', function(...args) {
 			// Handle error ourselves first
 			const err = args[1];
 			const msg = args?.[2]?.msg;
 			onUnhandledError(err, msg);
-
-			// Let Foundry do its thing after
-			return wrapped(...args);
-		}, 'WRAPPER', {perf_mode: 'FAST'});
+		}, 'LISTENER', {perf_mode: 'FAST'});
 	}
 	catch(e) {
 		// Handle a possible error gracefully

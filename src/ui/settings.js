@@ -195,55 +195,57 @@ export class LibWrapperSettings extends FormApplication {
 		let data = [];
 
 		WRAPPERS.forEach((wrapper) => {
-			for(let is_setter of [false, true]) {
-				if(is_setter && !wrapper.is_property)
-					continue;
+			for(const is_setter of [false, true]) {
+				for (const is_notify of [false, true]) {
+					if(is_setter && !wrapper.is_property)
+						continue;
 
-				// Obtain list of packages
-				const packages = [];
+					// Obtain list of packages
+					const packages = [];
 
-				wrapper.get_fn_data(is_setter).forEach((fn_data) => {
-					if(fn_data.package_info.id == PACKAGE_ID)
-						return;
+					wrapper.get_fn_data(is_setter, is_notify).forEach((fn_data) => {
+						if(fn_data.package_info.id == PACKAGE_ID)
+							return;
 
-					const d = {
-						name     : fn_data.package_info.settingsName,
-						type     : fn_data.type.name,
-						perf_mode: fn_data.perf_mode.name
-					};
+						const d = {
+							name     : fn_data.package_info.settingsName,
+							type     : fn_data.type.name,
+							perf_mode: fn_data.perf_mode.name
+						};
 
-					if(d.perf_mode == 'AUTO')
-						d.perf_mode = null;
-					else
-						d.perf_mode = `, ${d.perf_mode}`;
+						if(d.perf_mode == 'AUTO')
+							d.perf_mode = null;
+						else
+							d.perf_mode = `, ${d.perf_mode}`;
 
-					packages.push(d);
-				});
+						packages.push(d);
+					});
 
-				if(wrapper.detected_classic_wrapper) {
-					wrapper.detected_classic_wrapper.forEach((key) => {
-						packages.push({
-							name     : new PackageInfo(key).settingsName,
-							type     : 'MANUAL',
-							perf_mode: null
+					if(wrapper.detected_classic_wrapper) {
+						wrapper.detected_classic_wrapper.forEach((key) => {
+							packages.push({
+								name     : new PackageInfo(key).settingsName,
+								type     : 'MANUAL',
+								perf_mode: null
+							});
 						});
+					}
+
+					// We only need to show this to the user if there is at least one active package
+					if(packages.length <= 0)
+						continue;
+
+					// Obtain remaining information
+					const id   = wrapper.get_id(is_setter);
+					const names = wrapper.get_names(is_setter);
+
+					data.push({
+						id      : id,
+						name    : names[0],
+						names   : names.slice(1),
+						packages: packages
 					});
 				}
-
-				// We only need to show this to the user if there is at least one active package
-				if(packages.length <= 0)
-					continue;
-
-				// Obtain remaining information
-				const id   = wrapper.get_id(is_setter);
-				const names = wrapper.get_names(is_setter);
-
-				data.push({
-					id      : id,
-					name    : names[0],
-					names   : names.slice(1),
-					packages: packages
-				});
 			}
 		});
 

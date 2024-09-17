@@ -12,7 +12,7 @@ import { Log, verbosity_to_mapped_value } from '../shared/log.js';
 
 //*********************
 // Constants
-const VERBOSITY_NOTIFY_FN_MAP = {
+const VERBOSITY_LISTENER_FN_MAP = {
 	[Log.INFO    .value]: 'info' ,
 	[Log.WARNING .value]: 'warn' ,
 	[Log.ERROR   .value]: 'error'
@@ -70,7 +70,7 @@ export class LibWrapperNotifications {
 
 		// Notify
 		this.NOTIFICATION_SET.add(hash);
-		const fn = verbosity_to_mapped_value(verbosity, VERBOSITY_NOTIFY_FN_MAP, 'error');
+		const fn = verbosity_to_mapped_value(verbosity, VERBOSITY_LISTENER_FN_MAP, 'error');
 		ui_notifications[fn].call(ui_notifications, add_title ? `${PACKAGE_TITLE}: ${msg}` : msg, {permanent: fn == 'error'});
 	}
 

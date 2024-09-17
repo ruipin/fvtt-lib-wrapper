@@ -31,7 +31,7 @@ This section contains a list of the most significant differences between the shi
 
 4. This shim does not support dynamic dispatch. The next method in the wrapper chain is calculated at the time of each `register` call, and never changed/reordered later. This has many implications:
 
-    1. The wrapper type metadata (`WRAPPER`, `MIXED`, `OVERRIDE`) is completely ignored. Unlike the full library, nothing guarantees `MIXED` wrappers come after all `WRAPPER` wrappers, nor that `OVERRIDE` wrappers come after all `MIXED` wrappers. The wrapper call order will match the order in which they are registered. For instance, if a module registers an `OVERRIDE`, previously registered wrappers (`OVERRIDE` or not) will never be called.
+    1. The wrapper type metadata (`WRAPPER`, `MIXED`, `OVERRIDE`, `LISTENER`) is completely ignored. Unlike the full library, nothing guarantees `MIXED` wrappers come after all `WRAPPER` wrappers, nor that `OVERRIDE` wrappers come after all `MIXED` wrappers. The wrapper call order will match the order in which they are registered. For instance, if a module registers an `OVERRIDE`, previously registered wrappers (`OVERRIDE` or not) will never be called.
 
     2. Inheritance chains are static and calculated at `register` time. For instance, if there is `class B extends A` and a module overrides `B.prototype.foo` before another overrides `A.prototype.foo`, calling `B.prototype.foo` will skip the `A.prototype.foo` wrapper.
 

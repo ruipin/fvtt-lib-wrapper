@@ -12,7 +12,8 @@ import {Enum} from '../shared/enums.js';
 export const WRAPPER_TYPES = Enum('WrapperType', {
 	'WRAPPER' : 1,
 	'MIXED'   : 2,
-	'OVERRIDE': 3
+	'OVERRIDE': 3,
+	'LISTENER': 4
 });
 
 

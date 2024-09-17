@@ -134,9 +134,18 @@ test_combinations('Library: Main', async function (t) {
 		await chkr.call(a, 'x', ['m1:Mix:1','m3:Ovr:3',-2]);
 	}
 
-	// Add a MIXED that does not chain, this time not relying on the default parameter
-	libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('m2:Mix:6'), 'MIXED');
-	await chkr.call(a, 'x', ['m2:Mix:6','m1:Mix:1','m3:Ovr:3',-3]);
+	// Add a MIXED that does not chain
+	libWrapper.register('m2', 'A.prototype.x', chkr.gen_wr('m2:Mix:6', {nochain: true}), 'MIXED');
+	await chkr.call(a, 'x', ['m2:Mix:6',-1]);
+
+
+	// Add a LISTENER
+	libWrapper.register('m4', 'A.prototype.x', chkr.gen_wr('m4:Lst:1', {listener: true}), 'LISTENER');
+	await chkr.call(a, 'x', ['m4:Lst:1', -1, 'm2:Mix:6', -1]);
+
+	game.add_module('m5');
+	libWrapper.register('m5', 'A.prototype.x', chkr.gen_wr('m5:Lst:1', {listener: true}), 'LISTENER');
+	await chkr.call(a, 'x', ['m5:Lst:1', -1, 'm4:Lst:1', -1, 'm2:Mix:6', -1]);
 
 
 	// Try clearing 'A.prototype.x'
@@ -173,6 +182,23 @@ test_combinations('Library: Main', async function (t) {
 	t.throws(() => libWrapper.register('m1', 'A.prototype.x#set', ()=>{}), libWrapper.PackageError, "Wrap invalid setter");
 	t.throws(() => libWrapper.register('m1', 'A.prototype.xyz#set', ()=>{}), libWrapper.PackageError, "Wrap invalid setter");
 
+
+	// Test binds
+	class B {};
+	B.prototype.x = chkr.gen_rt('Orig');
+	globalThis.B = B;
+
+	let b = new B();
+	await chkr.call(b, 'x', ['Orig',-1]);
+
+	libWrapper.register('m1', 'B.prototype.x', chkr.gen_wr('m1:Bind', {bind: ['m1v1', 'm1v2']}), 'MIXED'   , {bind: ['m1v1', 'm1v2']});
+	await chkr.call(b, 'x', ['m1:Bind', 'Orig', -2]);
+
+	libWrapper.register('m2', 'B.prototype.x', chkr.gen_wr('m2:Bind', {bind: ['m2v1', 'm2v2']}), 'WRAPPER' , {bind: ['m2v1', 'm2v2']});
+	await chkr.call(b, 'x', ['m2:Bind', 'm1:Bind', 'Orig', -3]);
+
+	libWrapper.register('m3', 'B.prototype.x', chkr.gen_wr('m3:Bind', {bind: ['m3v1', 'm3v2'], override: true}), 'OVERRIDE', {bind: ['m3v1', 'm3v2']});
+	await chkr.call(b, 'x', ['m2:Bind', 'm1:Bind', 'm3:Bind', -3]);
 
 	// Done
 	t.end();
