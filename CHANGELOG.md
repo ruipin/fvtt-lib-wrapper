@@ -1,3 +1,8 @@
+# 1.13.1.0rc (2024-09-25)
+
+- Ensure calling behaviour when a method has only listeners is consistent with libWrapper v1.12.15.0 and older
+  - Potentially fixes https://github.com/ironmonk88/monks-enhanced-journal/issues/719
+
 # 1.13.0.0 (2024-09-17)
 
 - Implement support for listeners, i.e. functions that are called immediately before the target method is called, but aren't part of the usual call chain.

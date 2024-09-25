@@ -184,8 +184,8 @@ export class Wrapper {
 					_this.call_listeners(this, /*is_setter=*/ false, ...args);
 
 					// Decide what to call next
-					if(_this.get_fn_data(false, false).length == 0)
-						return _this.get_wrapped(this, false, wrapped).apply(this, args);
+					if(_this.get_fn_data(false, false).length === 0)
+						return _this.call_wrapped(true, this, ...args);
 					else if(is_static_dispatch)
 						return _this.get_static_dispatch_chain(this).apply(_this, args);
 					else
@@ -493,23 +493,15 @@ export class Wrapper {
 	// Calling the wrapped method
 	call_wrapped(state, obj, ...args) {
 		// Keep track of call state
-		if(state)
+		if(state && state !== true)
 			this._call_wrapper_update_state(state);
 
 		// Load necessary state
 		const is_setter = state?.setter ?? false;
-		const is_dynamic_dispatch = (!!state);
+		const is_dynamic_dispatch = (!!state); // state can be both an object and a bool
 
-		// If necessary, set this wrapped call as pending
-		let pend = undefined;
-		if(!this.is_property) {
-			this._pending_wrapped_calls_cnt++;
-
-			if(is_dynamic_dispatch) {
-				pend = obj;
-				this._pending_wrapped_calls.push(pend);
-			}
-		}
+		// Pre hook
+		const pend = this._pre_call_wrapped(obj, is_dynamic_dispatch);
 
 		// Try-catch block to handle normal exception flow
 		let result = undefined;
@@ -524,6 +516,25 @@ export class Wrapper {
 			throw e;
 		}
 
+		// Post hook
+		return this._post_call_wrapped(result, pend, is_dynamic_dispatch);
+	}
+
+	_pre_call_wrapped(obj, is_dynamic_dispatch) {
+		// If necessary, set this wrapped call as pending
+		if(!this.is_property) {
+			this._pending_wrapped_calls_cnt++;
+
+			if(is_dynamic_dispatch) {
+				this._pending_wrapped_calls.push(obj);
+				return obj;
+			}
+		}
+		// Otherwise, do nothing
+		return null;
+	}
+
+	_post_call_wrapped(result, pend, is_dynamic_dispatch) {
 		// We only need to keep track of pending calls when we're not wrapping a property
 		if(this.is_property)
 			return result;
