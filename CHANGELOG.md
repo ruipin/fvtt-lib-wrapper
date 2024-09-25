@@ -1,3 +1,8 @@
+# 1.13.1.0 (2024-09-25)
+
+- Ensure calling behaviour when a method has only listeners is consistent with libWrapper v1.12.15.0 and older.
+- Miscellaneous clean-up.
+
 # 1.13.0.1 (2024-09-17)
 
 - No code changes, re-released to clear issue caused by accidentally pushing a broken commit for a few seconds, which was cached in Forge as v1.13.0.0.
