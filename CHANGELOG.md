@@ -1,3 +1,7 @@
+# 1.13.0.1 (2024-09-17)
+
+- No code changes, re-released to clear issue caused by accidentally pushing a broken commit for a few seconds, which was cached in Forge as v1.13.0.0.
+
 # 1.13.0.0 (2024-09-17)
 
 - Implement support for listeners, i.e. functions that are called immediately before the target method is called, but aren't part of the usual call chain.

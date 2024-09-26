@@ -3,7 +3,7 @@
 	"name": "lib-wrapper",
 	"title": "libWrapper",
 	"description": "Library for wrapping core Foundry VTT methods, meant to improve compatibility between packages that wrap the same methods.",
-	"version": "1.13.0.0",
+	"version": "1.13.0.1",
 	"authors": [{
 		"name": "Rui Pinheiro",
 		"url": "https://github.com/ruipin"
