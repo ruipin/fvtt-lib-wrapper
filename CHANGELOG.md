@@ -1,3 +1,8 @@
+# 1.13.2.0 (2024-09-27)
+
+- Add Polish translation, thanks to Lionheart for the contribution!
+- Ensure that non-english translations are correctly loaded at first use even if i18n hasn't initialised yet. This is something that broke during the 1.13.0.0 update.
+
 # 1.13.1.0 (2024-09-25)
 
 - Ensure calling behaviour when a method has only listeners is consistent with libWrapper v1.12.15.0 and older.

@@ -104,14 +104,14 @@ export class LibWrapperSettings extends FormApplication {
 				// NOTE: Some choices removed as too much choice will just confuse users or make technical support more difficult.
 				//       For example, I don't want users to disable errors accidentally, and then ask for support without any error messages showing up on console.
 
-				0                   : i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.all`),
-				//[Log.TRACE   .value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.trace`),
-				[Log.DEBUG   .value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.debug`),
-				[Log.INFO    .value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.info`),
-				[Log.WARNING .value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.warning`),
-				//[Log.ERROR   .value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.error`),
-				//[Log.CRITICAL.value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.critical`),
-				//[Log.ALWAYS  .value]: i18n.localize(`${PACKAGE_ID}.settings.log-verbosity.choices.always`),
+				0                   : `${PACKAGE_ID}.settings.log-verbosity.choices.all`     ,
+				//[Log.TRACE   .value]: `${PACKAGE_ID}.settings.log-verbosity.choices.trace`   ,
+				[Log.DEBUG   .value]: `${PACKAGE_ID}.settings.log-verbosity.choices.debug`   ,
+				[Log.INFO    .value]: `${PACKAGE_ID}.settings.log-verbosity.choices.info`    ,
+				[Log.WARNING .value]: `${PACKAGE_ID}.settings.log-verbosity.choices.warning` ,
+				//[Log.ERROR   .value]: `${PACKAGE_ID}.settings.log-verbosity.choices.error`   ,
+				//[Log.CRITICAL.value]: `${PACKAGE_ID}.settings.log-verbosity.choices.critical`,
+				//[Log.ALWAYS  .value]: `${PACKAGE_ID}.settings.log-verbosity.choices.always`  ,
 			},
 			scope: 'client',
 			config: true,
