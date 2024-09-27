@@ -1,0 +1,146 @@
+{
+	"lib-wrapper": {
+		"settings": {
+			"yes": "Tak",
+			"no": "Nie",
+			"save": "Zapisz",
+			"reload": "Przeładuj",
+			"reset": "Reset",
+
+			"notify-issues-gm": {
+				"name": "Powiadom MG o problemach",
+				"hint": "Czy powiadamiać MG o wykryciu problemu, na przykład konfliktu."
+			},
+			"notify-issues-player": {
+				"name": "Powiadom graczy o problemach",
+				"hint": "Czy powiadamiać Graczy o wykryciu problemu, na przykład konfliktu."
+			},
+			"high-performance-mode": {
+				"name": "Tryb wysokiej wydajności",
+				"hint": "Powoduje to wyłączenie większości funkcji dynamicznego wykrywania konfliktów w zamian za wydajność, co jest szczególnie istotne w systemach z niższej półki. Należy pamiętać, że znacznie zmniejszy to prawdopodobieństwo wykrycia konfliktów. W związku z tym zaleca się wyłączenie tej opcji podczas instalowania lub aktualizowania pakietów."
+			},
+			"log-verbosity": {
+				"name": "Szczegółowość",
+				"hint": "Szczegółowość komunikatów konsoli Javascript libWrapper.",
+				"choices": {
+					"never"   : "Nigdy",
+					"all"     : "Wszystkie",
+					"trace"   : "Śledzenie",
+					"debug"   : "Debugowanie",
+					"info"    : "Informacja",
+					"warning" : "Ostrzeżenie",
+					"error"   : "Błąd",
+					"critical": "Krytyczny",
+					"always"  : "Zawsze"
+				}
+			},
+
+			"menu": {
+				"title": "Menu ustawień libWrapper",
+
+				"priorities": {
+					"name": "Priorytety",
+					"package-inactive": "Nieaktywny",
+					"statistics-disabled": "Uwaga: Zbieranie statystyk jest wyłączone, nie można wyświetlać pakietów niepriorytetowych.",
+
+					"prioritized": {
+						"title": "Pakiety priorytetowe",
+						"hint": "Pakiety te będą traktowane priorytetowo w porównaniu z pakietami spoza tej listy.\nWyższe pozycje na liście oznaczają wyższy priorytet."
+					},
+
+					"unprioritized": {
+						"title": "Pakiety niepriorytetowe",
+						"hint": "Pakiety te nie będą ani traktowane priorytetowo, ani depriorytetyzowane.\nPriorytety wśród tych pakietów są ustalane na zasadzie „kto pierwszy, ten lepszy”.\nNowe pakiety będą domyślnie umieszczane na tej liście."
+					},
+
+					"deprioritized": {
+						"title": "Pakiety o obniżonym priorytecie",
+						"hint": "Pakiety te nie będą depriorytetyzowane w porównaniu z pakietami spoza tej listy.\nWyższe pozycje na liście oznaczają wyższy priorytet.",
+						"note": "Zauważ, że pakiety, które nie używają libWrapper są depriorytetyzowane nawet w porównaniu do tych."
+					}
+				},
+
+				"conflicts": {
+					"name": "Konflikty",
+					"none-detected": "Nie wykryto żadnych konfliktów.",
+					"statistics-disabled": "Zbieranie statystyk jest wyłączone.",
+					"show-ignored": "Pokaż zignorowane konflikty"
+				},
+
+				"active-wrappers": {
+					"name": "Aktywne Wrappery",
+					"none-active": "Żadne wrappery nie są obecnie aktywne."
+				},
+
+				"about": {
+					"name": "Informacje o",
+					"full-name": "O libWrapper",
+					"credits": "{name} {version} przez {author}.",
+					"credits-translation": "",
+
+					"description": "„libWrapper” to biblioteka, która zapewnia programistom pakietów prosty sposób modyfikowania podstawowego kodu Foundry VTT, jednocześnie zmniejszając prawdopodobieństwo konfliktu z innymi pakietami.",
+					"info": "Więcej informacji na temat tego modułu można znaleźć w <a href=\"{repo_url}\">repozytorium pakietów Foundry VTT</a>, a także na <a href=\"{github_url}\">stronie Github</a> projektu.",
+					"support": "<b>Jeśli napotkasz jakiekolwiek problemy</b>, najłatwiejszym sposobem na znalezienie wsparcia jest zapytanie społeczności. Największe kanały wsparcia zapewniane przez społeczność to:",
+					"issue-tracker": "Jeśli napotkasz <b>wewnętrzny błąd libWrapper</b> lub jesteś <b>deweloperem pakietu</b>, możesz również przesłać prośbę o pomoc techniczną w <a href=\"{issues_url}\">libWrapper Github Issue Tracker</a>."
+				},
+
+				"warning-reset-priorities": "Zresetowanie priorytetów pakietów spowoduje przeniesienie wszystkich pakietów z powrotem do pozycji „Bez priorytetów”. Tego działania nie można cofnąć. Czy na pewno chcesz kontynuować?",
+				"warning-save": "Zaleca się ponowne załadowanie tej strony, aby zastosować nowe priorytety pakietów. Czy chcesz przeładować stronę?"
+			}
+		},
+
+		"packages": {
+			"unknown-title": "Nieznany",
+
+			"type-plus-id": "{type} {id}",
+			"type-plus-title": "{type} {title}",
+
+			"types": {
+				"module" : "moduł",
+				"system" : "system",
+				"world"  : "skrypt świata",
+				"unknown": "pakiet"
+			}
+		},
+
+		"error": {
+			"see-js-console": "(Patrz konsola JS)",
+			"tech-details": "== Szczegóły techniczne:",
+			"community-support": "Poproś społeczność o wsparcie:",
+			"not-lw": "To *nie* jest błąd libWrapper.",
+
+			"external": {
+				"notification": "{title}: Wykryto błąd w {type}.",
+				"message": "Wykryto błąd w {type} {title}.",
+				"info": "Więcej informacji na temat {type} znajdziesz tutaj: {url}",
+				"report": "Zgłoś ten problem tutaj: {url}",
+				"likely-not-updated": "Prawdopodobnie ten {type} nie został zaktualizowany dla FVTT {version}."
+			},
+
+			"internal": {
+				"message": "Wykryto błąd wewnętrzny.",
+				"message-with-package": "Wykryto błąd wewnętrzny, obejmujący {type} {title}.",
+				"info": "Informacje o libWrapper można znaleźć tutaj: {url}",
+				"report": "Zgłoś ten problem tutaj: {url}"
+			},
+
+			"conflict": {
+				"potential": "{main} i {other} modyfikują tę samą funkcjonalność FoundryVTT i są bardziej podatne na konflikty.",
+				"confirmed": "Wykryto konflikt między {main} i {other}.",
+				"info": "Informacje na temat tych pakietów można znaleźć tutaj:",
+				"report": "Zgłoś ten konflikt tutaj:"
+			}
+		},
+
+		"support-channels": [
+			{
+				"title": "Kanał FoundryVTT Discord #modules-troubleshooting",
+				"url": "https://discord.gg/foundryvtt"
+			},
+			{
+				"title": "FoundryVTT Reddit",
+				"url": "https://www.reddit.com/r/FoundryVTT"
+			}
+		]
+	}
+}
