@@ -23,7 +23,8 @@
 		{ "lang": "pt-PT", "name": "Português (Portugal)", "path": "lang/pt-PT.json" },
 		{ "lang": "pt-BR", "name": "Português (Brasil)", "path": "lang/pt-BR.json" },
 		{ "lang": "es", "name": "Español", "path": "lang/es.json" },
-		{ "lang": "ja", "name": "日本語", "path": "lang/ja.json" }
+		{ "lang": "ja", "name": "日本語", "path": "lang/ja.json" },
+		{ "lang": "pl", "name": "Polski", "path": "lang/pl.json" }
 	],
 	"flags": {
 		"git_version": "HEAD",
