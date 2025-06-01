@@ -20,6 +20,7 @@
 	"bugs": "https://github.com/ruipin/fvtt-lib-wrapper/issues",
 	"languages": [
 		{ "lang": "en", "name": "English", "path": "lang/en.json" },
+		{ "lang": "it", "name": "Italiano", "path": "lang/it.json" },
 		{ "lang": "pt-PT", "name": "Português (Portugal)", "path": "lang/pt-PT.json" },
 		{ "lang": "pt-BR", "name": "Português (Brasil)", "path": "lang/pt-BR.json" },
 		{ "lang": "es", "name": "Español", "path": "lang/es.json" },
