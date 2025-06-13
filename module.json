@@ -24,7 +24,8 @@
 		{ "lang": "pt-BR", "name": "Português (Brasil)", "path": "lang/pt-BR.json" },
 		{ "lang": "es", "name": "Español", "path": "lang/es.json" },
 		{ "lang": "ja", "name": "日本語", "path": "lang/ja.json" },
-		{ "lang": "pl", "name": "Polski", "path": "lang/pl.json" }
+		{ "lang": "pl", "name": "Polski", "path": "lang/pl.json" },
+		{ "lang": "it", "name": "Italiano", "path": "lang/it.json" }
 	],
 	"flags": {
 		"git_version": "HEAD",
