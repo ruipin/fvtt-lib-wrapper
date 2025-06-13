@@ -1,3 +1,11 @@
+# 1.13.3.0 (2025-06-13)
+
+- Foundry VTT 13 compatibility
+  - Fix libWrapper settings menu not opening correctly in FVTT v13 ([Issue #89](https://github.com/ruipin/fvtt-lib-wrapper/issues/89))
+  - Resolve deprecation warnings in FVTT v13 related to the use of the `Game` object ([Issue #87](https://github.com/ruipin/fvtt-lib-wrapper/issues/87))
+
+- Add Italian translation, thanks to GregoryWarn for the contribution!
+
 # 1.13.2.0 (2024-09-27)
 
 - Add Polish translation, thanks to Lionheart for the contribution!
