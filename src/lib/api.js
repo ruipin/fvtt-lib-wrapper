@@ -819,12 +819,14 @@ init_error_listeners();
 	};
 
 	if(!IS_UNITTEST) {
-		GAME_INITIALIZE_ID = libWrapper.register('lib-wrapper', 'Game.prototype.initialize', obj[libWrapperInit], libWrapper.LISTENER, {perf_mode: libWrapper.PERF_FAST});
+		let GAME_SCOPE = (!!foundry.Game) ? 'foundry.Game' : 'Game';
+
+		GAME_INITIALIZE_ID = libWrapper.register('lib-wrapper', `${GAME_SCOPE}.prototype.initialize`, obj[libWrapperInit], libWrapper.LISTENER, {perf_mode: libWrapper.PERF_FAST});
 
 		// We need to prevent people patching 'Game' and breaking libWrapper.
 		// Unfortunately we cannot re-define 'Game' as a non-settable property, but we can prevent people from using 'Game.toString'.
-		GAME_TOSTRING_ID = libWrapper.register('lib-wrapper', 'Game.toString', function() {
-			throw new ERRORS.package("Using 'Game.toString()' before libWrapper initialises is not allowed for compatibility reasons.");
+		GAME_TOSTRING_ID = libWrapper.register('lib-wrapper', `${GAME_SCOPE}.toString`, function() {
+			throw new ERRORS.package(`Using '${GAME_SCOPE}.toString()' before libWrapper initialises is not allowed for compatibility reasons.`);
 		}, libWrapper.WRAPPER, {perf_mode: libWrapper.PERF_FAST});
 
 		// Add a sanity check hook, just in case someone breaks our initialisation procedure
