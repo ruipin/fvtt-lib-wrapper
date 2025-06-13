@@ -67,6 +67,12 @@ export const load_priorities = function(value=null) {
 
 // Main settings class
 export class LibWrapperSettings extends FormApplication {
+	// Workaround for FVTT v13 issue, see https://github.com/ruipin/fvtt-lib-wrapper/issues/89
+	// Also hides the ApplicationV1 deprecation warning.
+	// TODO: Update libWrapper to use ApplicationV2
+	static _warnedAppV1 = true;
+
+
 	static init() {
 		game.settings.register(PACKAGE_ID, 'notify-issues-gm', {
 			name: `${PACKAGE_ID}.settings.notify-issues-gm.name`,
