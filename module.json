@@ -1,6 +1,5 @@
 {
 	"id": "lib-wrapper",
-	"name": "lib-wrapper",
 	"title": "libWrapper",
 	"description": "Library for wrapping core Foundry VTT methods, meant to improve compatibility between packages that wrap the same methods.",
 	"version": "1.13.3.0",
@@ -10,8 +9,6 @@
 	}],
 	"esmodules": ["src/index.js"],
 	"styles": ["dist/lib-wrapper.css"],
-	"minimumCoreVersion": "0.6.5",
-	"compatibleCoreVersion": "13",
 	"compatibility": {
 		"minimum": "0.6.5",
 		"verified": "13"
