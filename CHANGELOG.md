@@ -1,3 +1,7 @@
+# 1.13.4.0 (2025-08-30)
+
+- Add Czech translation, thanks to Lethrendis for the contribution!
+
 # 1.13.3.0 (2025-06-13)
 
 - Foundry VTT 13 compatibility
