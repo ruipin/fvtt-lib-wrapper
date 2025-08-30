@@ -1,0 +1,146 @@
+{
+	"lib-wrapper": {
+		"settings": {
+			"yes": "Ano",
+			"no": "Ne",
+			"save": "Uložit",
+			"reload": "Znovunačíst",
+			"reset": "Resetovat",
+
+			"notify-issues-gm": {
+				"name": "Upozorňovat GM na problémy?",
+				"hint": "zda upozornit GM, když je zjištěn problém, například konflikt."
+			},
+			"notify-issues-player": {
+				"name": "Upozorňovat hráče na problémy?",
+				"hint": "Zda upozornit hráče, když je zjištěn problém, například konflikt."
+			},
+			"high-performance-mode": {
+				"name": "Režim vysokého výkonu?",
+				"hint": "Zaškrtnutím se vypne většina dynamických mechanismů detekce konfliktů výměnou za vyšší výkon, zejména na slabších systémech. Měj na paměti, že tím výrazně klesá šance, že budou konflikty detekovány. Doporučuje se tuto možnost vypnout při instalaci nebo aktualizaci balíčků."
+			},
+			"log-verbosity": {
+				"name": "Úroveň výpisu",
+				"hint": "Úroveň podrobnosti zpráv Javascriptové konzole libWrapperu.",
+				"choices": {
+					"never"   : "Nikdy",
+					"all"     : "Všechno",
+					"trace"   : "Trasování",
+					"debug"   : "Ladění",
+					"info"    : "Informace",
+					"warning" : "Varování",
+					"error"   : "Chyba",
+					"critical": "Kritická chyba",
+					"always"  : "Vždy"
+				}
+			},
+
+			"menu": {
+				"title": "Nastavení LibWrapperu",
+
+				"priorities": {
+					"name": "Priority",
+					"package-inactive": "Neaktivní",
+					"statistics-disabled": "Poznámka: Sběr statistik je vypnutý, nelze zobrazit balíčky bez určené priority.",
+
+					"prioritized": {
+						"title": "Upřednostněné balíčky",
+						"hint": "Tyto balíčky budou mít vyšší prioritu než jakýkoli balíček, který není v tomto seznamu.\nVyšší pozice v seznamu znamená vyšší prioritu."
+					},
+
+					"unprioritized": {
+						"title": "Neupřednostněné balíčky",
+						"hint": "Tyto balíčky nebudou mít ani vyšší, ani nižší prioritu.\nPriority mezi nimi se určují podle pořadí načtení.\nNové balíčky budou ve výchozím stavu zařazeny sem."
+					},
+
+					"deprioritized": {
+						"title": "Upozaděné balíčky",
+						"hint": "Tyto balíčky budou mít nižší prioritu než jakýkoli balíček, který není v tomto seznamu.\nVyšší pozice v seznamu znamená vyšší prioritu.",
+						"note": "Měj na paměti, že balíčky, které nepoužívají LibWrapper, jsou upozaděny i vůči těmto."
+					}
+				},
+
+				"conflicts": {
+					"name": "Konflikty",
+					"none-detected": "Žádné konflikty nebyly zjištěny.",
+					"statistics-disabled": "Sběr statistik je vypnutý.",
+					"show-ignored": "Zobrazit ignorované konflikty?"
+				},
+
+				"active-wrappers": {
+					"name": "Aktivní obálky",
+					"none-active": "Momentálně nejsou aktivní žádné obálky."
+				},
+
+				"about": {
+					"name": "O modulu",
+					"full-name": "O LibWrapperu",
+					"credits": "{name} {version}, autor: {author}.",
+					"credits-translation": "",
+
+					"description": "'LibWrapper' je knihovna poskytující vývojářům balíčků jednoduchý způsob, jak upravovat základní kód Foundry VTT, a zároveň snižuje pravděpodobnost konfliktů s jinými balíčky.",
+					"info": "Více informací o tomto modulu najdeš v <a href=\"{repo_url}\">repozitáři balíčků Foundry VTT</a> a na <a href=\"{github_url}\">stránce projektu na Githubu</a>.",
+					"support": "<b>Pokud narazíš na problémy</b>, tak nejjednodušším způsobem, jak získat pomoc, je zeptat se komunity. Největšími komunitními kanály podpory jsou:",
+					"issue-tracker": "Pokud narazíš na <b>interní chybu LibWrapperu</b>, nebo jsi <b>vývojář balíčků</b>, můžeš také zadat požadavek na podporu v <a href=\"{issues_url}\">systému hlášení chyb LibWrapperu na Githubu</a>."
+				},
+
+				"warning-reset-priorities": "Resetování priorit balíčků přesune všechny balíčky zpět mezi 'Neupřednostněné'. Tuto akci nelze vrátit zpět. Opravdu chceš pokračovat?",
+				"warning-save": "Doporučujeme znovu načíst tuto stránku, aby se uplatnily nové priority balíčků. Přeješ si stránku znovu načíst?"
+			}
+		},
+
+		"packages": {
+			"unknown-title": "Neznámý",
+
+			"type-plus-id": "{type} {id}",
+			"type-plus-title": "{type} {title}",
+
+			"types": {
+				"module" : "modul",
+				"system" : "systém",
+				"world"  : "skript světa",
+				"unknown": "balíček"
+			}
+		},
+
+		"error": {
+			"see-js-console": "(Viz konzole JS)",
+			"tech-details": "== Technické podrobnosti:",
+			"community-support": "Požádej komunitu o podporu:",
+			"not-lw": "Toto *není* chyba LibWrapperu.",
+
+			"external": {
+				"notification": "{title}: Zjištěna chyba v typu {type}.",
+				"message": "Zjištěna chyba v typu {type} {title}.",
+				"info": "Informace o tomto typu {type} najdeš zde: {url}",
+				"report": "Nahlas tento problém zde: {url}",
+				"likely-not-updated": "Je pravděpodobné, že tento typ {type} nebyl aktualizován pro Foundry VTT {version}."
+			},
+
+			"internal": {
+				"message": "Zjištěna interní chyba.",
+				"message-with-package": "Zjištěna interní chyba související s typem {type} {title}.",
+				"info": "Informace o LibWrapperu najdeš zde: {url}",
+				"report": "Nahlas tento problém zde: {url}"
+			},
+
+			"conflict": {
+				"potential": "{main} a {other} upravují stejnou funkcionalitu Foundry VTT a je tak pravděpodobnější, že dojde ke konfliktu.",
+				"confirmed": "Zjištěn konflikt mezi {main} a {other}.",
+				"info": "Informace o těchto balíčcích najdeš zde:",
+				"report": "Nahlas tento konflikt zde:"
+			}
+		},
+
+		"support-channels": [
+			{
+				"title": "FoundryVTT Discord's #modules-troubleshooting channel",
+				"url": "https://discord.gg/foundryvtt"
+			},
+			{
+				"title": "FoundryVTT Reddit",
+				"url": "https://www.reddit.com/r/FoundryVTT"
+			}
+		]
+	}
+}
