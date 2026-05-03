@@ -1,3 +1,8 @@
+# 1.13.5.1 (2026-05-03)
+
+- Add 'type' key to manifest.
+- No code changes.
+
 # 1.13.5.0 (2026-05-03)
 
 - Declare compatibility with Foundry v14.
