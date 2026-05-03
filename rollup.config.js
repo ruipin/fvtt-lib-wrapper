@@ -10,7 +10,7 @@ import jscc from 'rollup-plugin-jscc';
 
 // Parse the version information from the current module.json
 import { _parse_manifest_version } from './src/shared/version.js';
-import moduleJson from './module.json' assert {type: 'json'};
+const moduleJson = JSON.parse(fs.readFileSync('./module.json', 'utf8'));
 const pkgVersion = _parse_manifest_version(moduleJson.version, moduleJson.flags.git_version);
 if(!pkgVersion.known)
 	throw "Failed to parse package version";
