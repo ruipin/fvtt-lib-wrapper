@@ -1,3 +1,9 @@
+# 1.13.5.0 (2026-05-03)
+
+- Declare compatibility with Foundry v14.
+- Update package dependencies (and rollup configuration) to latest available.
+- Replace usage of global `Game` variable when running without rollup to avoid deprecation warning.
+
 # 1.13.4.0 (2025-08-30)
 
 - Add Czech translation, thanks to Lethrendis for the contribution!

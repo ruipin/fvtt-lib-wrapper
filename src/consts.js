@@ -18,7 +18,10 @@ export const HOOKS_SCOPE   = 'libWrapper';
 /*#if _ROLLUP
 	export const IS_UNITTEST = false;
 //#else */
-	export const IS_UNITTEST = (typeof Game === 'undefined');
+	export const IS_UNITTEST = (
+		typeof foundry === 'undefined' ? typeof Game          === 'undefined' :
+		                                 typeof foundry?.Game === 'undefined'
+	);
 //#endif
 
 export const PROPERTIES_CONFIGURABLE = IS_UNITTEST ? true : false;
